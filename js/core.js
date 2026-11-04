@@ -1,0 +1,195 @@
+/* Núcleo: datos, reglas del juego, estadísticas y posiciones.
+   Capa de almacenamiento = localStorage (prototipo). Para Firebase solo se reemplaza el bloque "Store". */
+(function (w) {
+  'use strict';
+
+  const KEY = 'torneo.v1';
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const uid = p => p + Math.random().toString(36).slice(2, 8);
+
+  const DEFAULT_CONFIG = {
+    name: 'Torneo Hoopz',
+    categories: [
+      { id: 'u13', name: 'Menores de 13' },
+      { id: 'o13', name: 'Mayores de 13' }
+    ],
+    rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, ptsWin: 3, ptsDraw: 2, ptsLoss: 1 },
+    refreshSec: 15
+  };
+
+  /* lvl = nivel mínimo de captura: 0 básico, 1 intermedio, 2 completo */
+  const ACTIONS = {
+    P1: { l: '+1', name: 'Tiro libre anotado', pts: 1, lvl: 0, k: 'score' },
+    P2: { l: '+2', name: 'Tiro de 2 anotado', pts: 2, lvl: 0, k: 'score' },
+    P3: { l: '+3', name: 'Triple anotado', pts: 3, lvl: 0, k: 'score' },
+    M1: { l: 'Falla TL', name: 'Tiro libre fallado', lvl: 1, k: 'miss' },
+    M2: { l: 'Falla 2', name: 'Tiro de 2 fallado', lvl: 1, k: 'miss' },
+    M3: { l: 'Falla 3', name: 'Triple fallado', lvl: 1, k: 'miss' },
+    OREB: { l: 'Reb. ofensivo', name: 'Rebote ofensivo', lvl: 1, k: 'stat' },
+    DREB: { l: 'Reb. defensivo', name: 'Rebote defensivo', lvl: 1, k: 'stat' },
+    AST: { l: 'Asistencia', name: 'Asistencia', lvl: 1, k: 'stat' },
+    STL: { l: 'Robo', name: 'Robo de balón', lvl: 1, k: 'stat' },
+    BLK: { l: 'Tapón', name: 'Tapón', lvl: 1, k: 'stat' },
+    TO: { l: 'Pérdida', name: 'Pérdida de balón', lvl: 1, k: 'stat' },
+    FOUL: { l: 'Falta', name: 'Falta personal', lvl: 0, k: 'foul' },
+    FD: { l: 'Falta recibida', name: 'Falta recibida', lvl: 2, k: 'stat' },
+    TMO: { l: 'Tiempo muerto', name: 'Tiempo muerto', lvl: 0, team: true }
+  };
+  const MODES = ['Básico', 'Intermedio', 'Completo'];
+
+  /* ---------- Store (localStorage) ---------- */
+  let state = null;
+  const subs = [];
+
+  function readRaw() {
+    try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ } }
+  function load() {
+    state = readRaw();
+    if (!state) { state = w.Seed.build(); persist(); }
+    return state;
+  }
+  function reload() { const s = readRaw(); if (s) state = s; return state; }
+  function mutate(fn) { fn(state); persist(); subs.forEach(f => f(state)); }
+  function subscribe(f) { subs.push(f); }
+  function replaceAll(s) { state = s; persist(); subs.forEach(f => f(state)); }
+  w.addEventListener('storage', e => {
+    if (e.key === KEY && e.newValue) { state = JSON.parse(e.newValue); subs.forEach(f => f(state)); }
+  });
+
+  const cfg = () => (state ? state.config : DEFAULT_CONFIG);
+  const game = id => state.games.find(g => g.id === id);
+
+  /* ---------- Reloj ---------- */
+  const periodLen = p => (p <= cfg().rules.periods ? cfg().rules.minutes : cfg().rules.otMinutes) * 60000;
+  const periodLabel = p => (p <= cfg().rules.periods ? 'Q' + p : 'OT' + (p - cfg().rules.periods));
+  const remaining = (g, now = Date.now()) =>
+    g.clock.running ? Math.max(0, g.clock.remainingMs - (now - g.clock.startedAt)) : g.clock.remainingMs;
+  function fmtClock(ms) {
+    const s = Math.ceil(ms / 1000);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  /* ---------- Partidos ---------- */
+  function newGame({ cat, home, away, date, mode }) {
+    return {
+      id: uid('g'), cat, home, away, date, mode: mode ?? 1, status: 'scheduled',
+      clock: { period: 1, running: false, remainingMs: periodLen(1), startedAt: null },
+      score: { h: 0, a: 0 }, events: []
+    };
+  }
+  function score(events) {
+    const s = { h: 0, a: 0 };
+    events.forEach(e => { const a = ACTIONS[e.type]; if (a && a.pts) s[e.team] += a.pts; });
+    return s;
+  }
+  function addEvent(g, ev) {
+    g.events.push(Object.assign({ id: uid('e'), p: g.clock.period, c: remaining(g), ts: Date.now() }, ev));
+    g.score = score(g.events);
+    if (g.status === 'scheduled') g.status = 'live';
+  }
+  function undo(g) { const e = g.events.pop(); g.score = score(g.events); return e; }
+  function startClock(g) {
+    if (g.clock.running || g.clock.remainingMs <= 0) return;
+    g.clock.running = true; g.clock.startedAt = Date.now();
+    if (g.status === 'scheduled') g.status = 'live';
+  }
+  function pauseClock(g) {
+    if (!g.clock.running) return;
+    g.clock.remainingMs = remaining(g); g.clock.running = false; g.clock.startedAt = null;
+  }
+  function setClock(g, ms) {
+    g.clock.remainingMs = Math.max(0, ms);
+    if (g.clock.running) g.clock.startedAt = Date.now();
+  }
+  function nextPeriod(g) {
+    pauseClock(g); g.clock.period++; g.clock.remainingMs = periodLen(g.clock.period);
+  }
+  function finishGame(g) { pauseClock(g); g.status = 'final'; g.score = score(g.events); }
+
+  const teamFouls = (g, team, period) => g.events.filter(e => e.team === team && e.type === 'FOUL' && e.p === period).length;
+  const timeoutsUsed = (g, team) => g.events.filter(e => e.team === team && e.type === 'TMO').length;
+
+  /* ---------- Estadísticas ---------- */
+  const blank = () => ({ gp: 0, pts: 0, p1m: 0, p1a: 0, p2m: 0, p2a: 0, p3m: 0, p3a: 0, oreb: 0, dreb: 0, ast: 0, stl: 0, to: 0, blk: 0, pf: 0, fd: 0 });
+  function applyEvent(s, t) {
+    switch (t) {
+      case 'P1': s.pts += 1; s.p1m++; s.p1a++; break;
+      case 'P2': s.pts += 2; s.p2m++; s.p2a++; break;
+      case 'P3': s.pts += 3; s.p3m++; s.p3a++; break;
+      case 'M1': s.p1a++; break;
+      case 'M2': s.p2a++; break;
+      case 'M3': s.p3a++; break;
+      case 'OREB': s.oreb++; break;
+      case 'DREB': s.dreb++; break;
+      case 'AST': s.ast++; break;
+      case 'STL': s.stl++; break;
+      case 'TO': s.to++; break;
+      case 'BLK': s.blk++; break;
+      case 'FOUL': s.pf++; break;
+      case 'FD': s.fd++; break;
+    }
+  }
+  function playerStats(events, into) {
+    const out = into || {};
+    events.forEach(e => { if (e.pid) applyEvent(out[e.pid] || (out[e.pid] = blank()), e.type); });
+    return out;
+  }
+  function derive(s) {
+    return Object.assign({}, s, { reb: s.oreb + s.dreb, fgm: s.p2m + s.p3m, fga: s.p2a + s.p3a });
+  }
+  function sumStats(list) {
+    const t = blank();
+    list.forEach(s => Object.keys(t).forEach(k => { if (k !== 'gp') t[k] += s[k] || 0; }));
+    return t;
+  }
+  const pct = (m, a) => (a ? Math.round((m / a) * 100) + '%' : '–');
+
+  function playerIndex(S) {
+    const idx = {};
+    S.teams.forEach(t => t.players.forEach(p => { idx[p.id] = { p, team: t }; }));
+    return idx;
+  }
+
+  /* Acumulado del torneo por jugador (partidos en vivo y finalizados) */
+  function tournamentStats(S, cat) {
+    const idx = playerIndex(S);
+    const acc = {};
+    S.games.filter(g => g.cat === cat && g.status !== 'scheduled').forEach(g => {
+      const per = playerStats(g.events);
+      Object.keys(per).forEach(pid => {
+        const a = acc[pid] || (acc[pid] = blank());
+        a.gp++;
+        Object.keys(per[pid]).forEach(k => { if (k !== 'gp') a[k] += per[pid][k]; });
+      });
+    });
+    return Object.keys(acc).filter(pid => idx[pid]).map(pid => Object.assign(derive(acc[pid]), { pid, player: idx[pid].p, team: idx[pid].team }));
+  }
+
+  /* ---------- Posiciones ---------- */
+  function standings(S, cat) {
+    const R = S.config.rules;
+    const rows = {};
+    S.teams.filter(t => t.cat === cat).forEach(t => { rows[t.id] = { team: t, pj: 0, g: 0, e: 0, p: 0, pf: 0, pc: 0, pts: 0 }; });
+    S.games.filter(g => g.cat === cat && g.status === 'final').forEach(g => {
+      const h = rows[g.home], a = rows[g.away];
+      if (!h || !a) return;
+      h.pj++; a.pj++;
+      h.pf += g.score.h; h.pc += g.score.a; a.pf += g.score.a; a.pc += g.score.h;
+      if (g.score.h > g.score.a) { h.g++; a.p++; h.pts += R.ptsWin; a.pts += R.ptsLoss; }
+      else if (g.score.h < g.score.a) { a.g++; h.p++; a.pts += R.ptsWin; h.pts += R.ptsLoss; }
+      else { h.e++; a.e++; h.pts += R.ptsDraw; a.pts += R.ptsDraw; }
+    });
+    return Object.values(rows).map(r => Object.assign(r, { dif: r.pf - r.pc }))
+      .sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.pf - x.pf || x.team.name.localeCompare(y.team.name));
+  }
+
+  w.T = {
+    KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
+    load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
+    periodLen, periodLabel, remaining, fmtClock,
+    newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, teamFouls, timeoutsUsed,
+    blank, playerStats, derive, sumStats, pct, playerIndex, tournamentStats, standings
+  };
+})(window);

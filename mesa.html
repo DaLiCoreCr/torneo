@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mesa de anotación · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main><div class="wrap mesa"><div id="app"></div></div></main>
+<script src="js/core.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/ui.js"></script>
+<script>
+T.load();
+UI.layout('');
+const { esc, ACTIONS } = T;
+const app = document.getElementById('app');
+let gid = new URLSearchParams(location.search).get('id');
+let side = 'h', sel = null, adjusting = false;
+
+
+function start() { render(); T.subscribe(render); setInterval(watchClock, 500); }
+
+/* Pausa sola al llegar a 0:00 */
+function watchClock() {
+  const g = gid && T.game(gid);
+  if (g && g.clock.running && T.remaining(g) <= 0) {
+    T.mutate(s => T.pauseClock(s.games.find(x => x.id === gid)));
+    UI.toast('Fin del período ' + T.periodLabel(g.clock.period));
+  }
+}
+
+function picker(S) {
+  const open = S.games.filter(g => g.status !== 'final').sort((a, b) => (a.status === 'live' ? 0 : 1) - (b.status === 'live' ? 0 : 1) || UI.byDate(a, b));
+  const fin = S.games.filter(g => g.status === 'final').sort((a, b) => UI.byDate(b, a));
+  const row = g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
+      <div class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · Captura ${T.MODES[g.mode]}</div></div>
+      <div class="row">${g.status === 'live' ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : ''}${g.status === 'final' ? `<span class="chip">${g.score.h}–${g.score.a}</span>` : ''}
+      <button class="btn gold sm" data-act="open" data-id="${esc(g.id)}">${g.status === 'final' ? 'Reabrir' : 'Abrir'}</button></div></div>`;
+  app.innerHTML = `<h1 class="page-title">Mesa de <b>anotación</b></h1>
+    <h3 class="gold" style="font-size:22px;margin-top:18px">Elige el partido</h3>
+    <div class="gm-list">${open.map(row).join('') || '<div class="empty">No hay partidos pendientes. Crea uno en Administración.</div>'}</div>
+    ${fin.length ? `<h3 class="muted" style="font-size:20px;margin-top:24px">Finalizados</h3><div class="gm-list">${fin.map(row).join('')}</div>` : ''}`;
+}
+
+function control(S, g) {
+  const R = S.config.rules;
+  const h = UI.team(S, g.home), a = UI.team(S, g.away);
+  const cur = side === 'h' ? h : a;
+  const stats = T.playerStats(g.events.filter(e => e.team === side));
+  const over = g.clock.period >= R.periods;
+  const tied = g.score.h === g.score.a;
+  const rem = T.remaining(g);
+  const periodOver = rem <= 0 && !g.clock.running;
+  const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
+    <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' · BONUS' : ''} · TM ${T.timeoutsUsed(g, k)}/${R.timeouts}</div></div>`;
+
+  let endBtn = '';
+  if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';
+  else if (!over) endBtn = `<button class="btn ghost" data-act="next">Siguiente período (${T.periodLabel(g.clock.period + 1)})</button>`;
+  else if (tied) endBtn = `<button class="btn gold" data-act="next">Empate: iniciar prórroga (${T.periodLabel(g.clock.period + 1)} · ${R.otMinutes} min)</button>`;
+  else endBtn = '<button class="btn gold" data-act="finish">Finalizar partido</button>';
+
+  const players = cur.players.map(p => {
+    const s = stats[p.id] || T.blank();
+    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i></button>`;
+  }).join('');
+
+  const selP = sel && cur.players.find(p => p.id === sel);
+  const acts = Object.entries(ACTIONS).filter(([k, v]) => !v.team && v.lvl <= g.mode);
+  const pad = selP ? `<div class="pad"><h3>#${selP.num} ${esc(selP.name)} <span class="muted" style="font-size:16px">· ${esc(cur.name)}</span></h3>
+      <div class="acts scores">${acts.filter(([, v]) => v.k === 'score').map(([k, v]) => `<button class="act score" data-act="ev" data-t="${k}">${v.l}</button>`).join('')}</div>
+      <div class="acts">${acts.filter(([, v]) => v.k !== 'score').map(([k, v]) => `<button class="act ${v.k}" data-act="ev" data-t="${k}">${v.l}</button>`).join('')}</div>
+      <div class="row" style="margin-top:10px"><button class="btn sm" data-act="clear">Cancelar selección</button></div></div>`
+    : '<div class="hint">Toca el número del jugador y luego la jugada.</div>';
+
+  const idx = T.playerIndex(S);
+  const log = g.events.slice(-8).reverse().map(e => {
+    const pl = e.pid && idx[e.pid];
+    return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(UI.team(S, e.team === 'h' ? g.home : g.away))}<span>${esc(ACTIONS[e.type].name)}${pl ? ' — #' + pl.p.num + ' ' + esc(pl.p.name) : ''}</span>${ACTIONS[e.type].pts ? `<span class="pts">+${ACTIONS[e.type].pts}</span>` : ''}</li>`;
+  }).join('');
+
+  const mm = Math.floor(rem / 60000), ss = Math.floor((rem % 60000) / 1000);
+  app.innerHTML = `
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
+      <span class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · Captura ${T.MODES[g.mode]}</span>
+      <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></div>
+    <div class="mboard">${teamBox('h', h)}${teamBox('a', a)}</div>
+    <div class="clkbox"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div>
+      <div class="row"><button class="btn ${g.clock.running ? '' : 'gold'}" data-act="toggle" ${g.status === 'final' ? 'disabled' : ''}>${g.clock.running ? 'Pausar' : 'Iniciar'}</button>
+      <button class="btn ghost" data-act="adjust">Ajustar</button></div>
+      ${adjusting ? `<div class="adj"><input class="inp" id="am" type="number" min="0" value="${mm}"> : <input class="inp" id="as" type="number" min="0" max="59" value="${ss}"><button class="btn sm gold" data-act="setclock">Fijar</button></div>` : ''}
+    </div>
+    ${periodOver && g.status !== 'final' ? '<div class="hint" style="margin:0 0 8px;border-color:var(--gold);color:var(--gold)">Fin del período.</div>' : ''}
+    <div class="row" style="margin-bottom:10px">${endBtn}${g.status !== 'final' && !(over && !tied) ? '<button class="btn sm danger" data-act="finish">Finalizar ya</button>' : ''}</div>
+    <div class="row" style="justify-content:space-between"><h3 style="font-size:22px">${esc(cur.name)}</h3>
+      <button class="btn sm" data-act="tmo" ${T.timeoutsUsed(g, side) >= R.timeouts ? 'disabled' : ''}>Tiempo muerto</button></div>
+    <div class="players">${players}</div>
+    ${g.status === 'final' ? '' : pad}
+    <div class="log"><div class="row" style="justify-content:space-between"><h3>Últimas jugadas</h3><button class="btn sm danger" data-act="undo" ${g.events.length ? '' : 'disabled'}>Deshacer última</button></div>
+      <ul class="plays">${log || '<li class="muted">Sin jugadas.</li>'}</ul></div>`;
+}
+
+function render() {
+  const S = T.state();
+  const g = gid && T.game(gid);
+  if (!g) return picker(S);
+  control(S, g);
+}
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const S = T.state();
+  const g = gid && T.game(gid);
+  const m = fn => T.mutate(s => fn(s.games.find(x => x.id === gid), s));
+  switch (b.dataset.act) {
+    case 'open': gid = b.dataset.id; sel = null; side = 'h'; history.replaceState(null, '', '?id=' + gid); render(); break;
+    case 'back': gid = null; sel = null; history.replaceState(null, '', 'mesa.html'); render(); break;
+    case 'side': side = b.dataset.s; sel = null; render(); break;
+    case 'pl': sel = sel === b.dataset.id ? null : b.dataset.id; render(); break;
+    case 'clear': sel = null; render(); break;
+    case 'toggle': m(x => (x.clock.running ? T.pauseClock(x) : T.startClock(x))); break;
+    case 'adjust': adjusting = !adjusting; render(); break;
+    case 'setclock': {
+      const ms = (Math.max(0, +document.getElementById('am').value || 0) * 60 + Math.min(59, Math.max(0, +document.getElementById('as').value || 0))) * 1000;
+      adjusting = false; m(x => T.setClock(x, ms)); break;
+    }
+    case 'ev': {
+      const type = b.dataset.t, pid = sel;
+      m(x => T.addEvent(x, { team: side, pid, type }));
+      const fresh = T.game(gid);
+      if (type === 'FOUL') {
+        const n = T.playerStats(fresh.events.filter(e2 => e2.team === side))[pid].pf;
+        const p = T.playerIndex(T.state())[pid].p;
+        if (n >= S.config.rules.foulsOut) UI.toast(`¡#${p.num} ${p.name} eliminado por faltas (${n})!`, 'bad');
+        else UI.toast(`Falta #${p.num} (${n})`);
+      } else UI.toast(ACTIONS[type].name + ' registrado');
+      sel = null; render(); break;
+    }
+    case 'tmo': m(x => { T.addEvent(x, { team: side, pid: null, type: 'TMO' }); T.pauseClock(x); }); UI.toast('Tiempo muerto'); break;
+    case 'undo': if (g.events.length) { m(x => T.undo(x)); UI.toast('Última jugada deshecha'); } break;
+    case 'next': m(x => T.nextPeriod(x)); break;
+    case 'finish':
+      if (confirm('¿Finalizar el partido con el marcador ' + g.score.h + '–' + g.score.a + '?')) { m(x => T.finishGame(x)); }
+      break;
+    case 'reopen': m(x => { x.status = 'live'; }); break;
+  }
+});
+
+UI.gate(app, start);
+</script>
+</body>
+</html>

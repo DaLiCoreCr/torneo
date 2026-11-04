@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Posiciones · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main><div class="wrap page">
+  <h1 class="page-title">Tabla de <b>posiciones</b></h1>
+  <div class="pills" id="cats"></div>
+  <div id="app" style="margin-top:12px"></div>
+</div></main>
+<script src="js/core.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/ui.js"></script>
+<script>
+T.load();
+UI.layout('pos');
+let cat = UI.catPicker(document.getElementById('cats'), { all: false }, c => { cat = c; render(); });
+const app = document.getElementById('app');
+function render() { app.innerHTML = UI.standingsTable(T.state(), cat, false); }
+render();
+UI.autoRefresh(render);
+</script>
+</body>
+</html>

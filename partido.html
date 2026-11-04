@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Partido · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main><div class="wrap page"><div id="app"></div></div></main>
+<script src="js/core.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/ui.js"></script>
+<script>
+T.load();
+UI.layout('res');
+const { esc, ACTIONS } = T;
+const gid = new URLSearchParams(location.search).get('id');
+let tab = 'box';
+const app = document.getElementById('app');
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]'); if (!b) return;
+  tab = b.dataset.tab; render();
+});
+
+function boxTable(S, g, side) {
+  const t = UI.team(S, side === 'h' ? g.home : g.away);
+  const per = T.playerStats(g.events.filter(e => e.team === side));
+  const out = S.config.rules.foulsOut;
+  const rows = t.players.map(p => ({ p, s: T.derive(per[p.id] || T.blank()) }));
+  const tot = T.derive(T.sumStats(rows.map(r => r.s)));
+  const mk = (m, a) => `${m}/${a}`;
+  const body = rows.map(({ p, s }) => `<tr class="${s.pf >= out ? 'out' : ''}"><td class="l">#${p.num} ${esc(p.name)}</td><td class="hl">${s.pts}</td><td>${mk(s.p1m, s.p1a)}</td><td>${mk(s.p2m, s.p2a)}</td><td>${mk(s.p3m, s.p3a)}</td><td>${s.reb}</td><td>${s.ast}</td><td>${s.stl}</td><td>${s.blk}</td><td>${s.to}</td><td>${s.pf}</td></tr>`).join('');
+  return `<div class="sec"><div class="sec-h"><h2 style="display:flex;align-items:center;gap:10px">${UI.badge(t)}${esc(t.name)}</h2><span class="muted" style="font-size:13px">${esc(t.coach || '')}</span></div>
+    <div class="tbl-wrap"><table class="tbl box"><thead><tr><th class="l">Jugador</th><th>PTS</th><th>TL</th><th>2P</th><th>3P</th><th>REB</th><th>AST</th><th>ROB</th><th>TAP</th><th>PER</th><th>FAL</th></tr></thead><tbody>${body}
+    <tr class="tot"><td class="l">Equipo</td><td class="hl">${tot.pts}</td><td>${mk(tot.p1m, tot.p1a)}</td><td>${mk(tot.p2m, tot.p2a)}</td><td>${mk(tot.p3m, tot.p3a)}</td><td>${tot.reb}</td><td>${tot.ast}</td><td>${tot.stl}</td><td>${tot.blk}</td><td>${tot.to}</td><td>${tot.pf}</td></tr></tbody></table></div></div>`;
+}
+
+function summary(S, g) {
+  const maxP = Math.max(g.clock.period, 1);
+  const ps = Array.from({ length: maxP }, (_, i) => i + 1);
+  const ptsBy = (side, p) => g.events.filter(e => e.team === side && e.p === p).reduce((s, e) => s + (ACTIONS[e.type].pts || 0), 0);
+  const line = side => {
+    const t = UI.team(S, side === 'h' ? g.home : g.away);
+    return `<tr><td class="tm">${UI.badge(t)}<span>${esc(t.name)}</span></td>${ps.map(p => `<td>${ptsBy(side, p)}</td>`).join('')}<td class="hl">${g.score[side]}</td></tr>`;
+  };
+  const stat = side => T.derive(T.sumStats(Object.values(T.playerStats(g.events.filter(e => e.team === side)))));
+  const H = stat('h'), A = stat('a');
+  const cmp = (label, a, b) => `<tr><td>${a}</td><td class="muted">${label}</td><td>${b}</td></tr>`;
+  return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Puntos por período</th>${ps.map(p => `<th>${T.periodLabel(p)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${line('h')}${line('a')}</tbody></table></div>
+    <div class="sec"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>${esc(UI.team(S, g.home).name)}</th><th></th><th>${esc(UI.team(S, g.away).name)}</th></tr></thead><tbody>
+    ${cmp('Tiros de campo', `${H.fgm}/${H.fga} (${T.pct(H.fgm, H.fga)})`, `${A.fgm}/${A.fga} (${T.pct(A.fgm, A.fga)})`)}
+    ${cmp('Triples', `${H.p3m}/${H.p3a} (${T.pct(H.p3m, H.p3a)})`, `${A.p3m}/${A.p3a} (${T.pct(A.p3m, A.p3a)})`)}
+    ${cmp('Tiros libres', `${H.p1m}/${H.p1a} (${T.pct(H.p1m, H.p1a)})`, `${A.p1m}/${A.p1a} (${T.pct(A.p1m, A.p1a)})`)}
+    ${cmp('Rebotes', H.reb, A.reb)}${cmp('Asistencias', H.ast, A.ast)}${cmp('Robos', H.stl, A.stl)}${cmp('Tapones', H.blk, A.blk)}${cmp('Pérdidas', H.to, A.to)}${cmp('Faltas', H.pf, A.pf)}
+    ${cmp('Tiempos muertos', T.timeoutsUsed(g, 'h'), T.timeoutsUsed(g, 'a'))}
+    </tbody></table></div></div>`;
+}
+
+function plays(S, g) {
+  const idx = T.playerIndex(S);
+  const list = g.events.slice().reverse().slice(0, 80);
+  if (!list.length) return '<div class="empty">Todavía no hay jugadas.</div>';
+  return `<ul class="plays">${list.map(e => {
+    const a = ACTIONS[e.type], pl = e.pid && idx[e.pid];
+    const t = UI.team(S, e.team === 'h' ? g.home : g.away);
+    return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(t)}
+      <span>${esc(a.name)}${pl ? ` — <b>#${pl.p.num} ${esc(pl.p.name)}</b>` : ` — ${esc(t.name)}`}</span>${a.pts ? `<span class="pts">+${a.pts}</span>` : ''}</li>`;
+  }).join('')}</ul>${g.events.length > 80 ? '<p class="note">Se muestran las últimas 80 jugadas.</p>' : ''}`;
+}
+
+function render() {
+  const S = T.state();
+  const g = gid && T.game(gid);
+  if (!g) { app.innerHTML = '<div class="empty">Partido no encontrado. <a class="gold" href="resultados.html">Ver resultados</a></div>'; return; }
+  const h = UI.team(S, g.home), a = UI.team(S, g.away);
+  const fin = g.status === 'final', live = g.status === 'live';
+  document.title = `${h.name} vs ${a.name} · Torneo Hoopz`;
+  const tabs = [['box', 'Box score'], ['plays', 'Jugada a jugada'], ['sum', 'Resumen']];
+  app.innerHTML = `
+    <a class="muted" href="resultados.html">← Resultados</a>
+    <div class="board ${live ? 'is-live' : ''}">
+      <div class="b-t ${fin && g.score.h > g.score.a ? 'win' : ''}">${UI.badge(h)}<h3>${esc(h.name)}</h3><div class="b-sc">${g.status === 'scheduled' ? '–' : g.score.h}</div></div>
+      <div class="b-mid">${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? '<span class="chip">FINAL</span>' : '<span class="chip soft">PRÓXIMO</span>'}
+        <div class="clk" data-gid="${esc(g.id)}" style="margin-top:8px">${UI.clockText(g)}</div>
+        <small>${esc(UI.catName(S, g.cat))}<br>${UI.fmtDate(g.date)} · ${UI.fmtTime(g.date)}</small></div>
+      <div class="b-t ${fin && g.score.a > g.score.h ? 'win' : ''}">${UI.badge(a)}<h3>${esc(a.name)}</h3><div class="b-sc">${g.status === 'scheduled' ? '–' : g.score.a}</div></div>
+    </div>
+    <div class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    ${g.status === 'scheduled' ? '<div class="empty">El partido aún no comienza.</div>'
+      : tab === 'box' ? `<div class="two">${boxTable(S, g, 'h')}${boxTable(S, g, 'a')}</div>`
+      : tab === 'plays' ? plays(S, g) : summary(S, g)}`;
+}
+render();
+UI.autoRefresh(render);
+</script>
+</body>
+</html>

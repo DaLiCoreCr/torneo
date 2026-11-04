@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resultados · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main><div class="wrap page">
+  <h1 class="page-title">Resultados y <b>calendario</b></h1>
+  <div class="pills" id="cats"></div>
+  <div id="app"></div>
+</div></main>
+<script src="js/core.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/ui.js"></script>
+<script>
+T.load();
+UI.layout('res');
+let cat = UI.catPicker(document.getElementById('cats'), { all: true }, c => { cat = c; render(); });
+const app = document.getElementById('app');
+
+function render() {
+  const S = T.state();
+  const games = S.games.filter(g => cat === 'all' || g.cat === cat).sort(UI.byDate);
+  if (!games.length) { app.innerHTML = '<div class="empty" style="margin-top:20px">No hay partidos.</div>'; return; }
+  const days = {};
+  games.forEach(g => (days[g.date.slice(0, 10)] = days[g.date.slice(0, 10)] || []).push(g));
+  app.innerHTML = Object.keys(days).map(d => `
+    <div class="sec"><div class="sec-h"><h2>${UI.fmtDate(d + 'T12:00')}</h2></div>
+    <div class="grid">${days[d].map(UI.gameCard).join('')}</div></div>`).join('');
+}
+render();
+UI.autoRefresh(render);
+</script>
+</body>
+</html>

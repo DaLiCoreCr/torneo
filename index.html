@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>En vivo · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<main>
+  <section class="hero" role="img" aria-label="Hoopz Academia de Baloncesto"></section>
+  <div class="wrap page">
+    <div class="intro"><h1 class="page-title">Torneo <b>Hoopz</b></h1>
+    <p>Marcadores en vivo, resultados, posiciones y estadísticas de todos los partidos.</p></div>
+    <div class="pills" id="cats"></div>
+    <div id="app"></div>
+  </div>
+</main>
+<script src="js/core.js"></script>
+<script src="js/seed.js"></script>
+<script src="js/ui.js"></script>
+<script>
+T.load();
+UI.layout('live');
+let cat = UI.catPicker(document.getElementById('cats'), { all: true }, c => { cat = c; render(); });
+const app = document.getElementById('app');
+
+function render() {
+  const S = T.state();
+  const games = S.games.filter(g => cat === 'all' || g.cat === cat);
+  const live = games.filter(g => g.status === 'live');
+  const next = games.filter(g => g.status === 'scheduled').sort(UI.byDate).slice(0, 4);
+  const last = games.filter(g => g.status === 'final').sort((a, b) => UI.byDate(b, a)).slice(0, 4);
+  const cats = S.config.categories.filter(c => cat === 'all' || c.id === cat);
+  const list = a => a.length ? `<div class="grid">${a.map(UI.gameCard).join('')}</div>` : '';
+  app.innerHTML = `
+    <div class="sec"><div class="sec-h"><h2>En <b>vivo</b></h2></div>
+      ${live.length ? list(live) : '<div class="empty">No hay partidos en juego ahora. Mira los próximos abajo.</div>'}</div>
+    <div class="sec"><div class="sec-h"><h2>Próximos <b>partidos</b></h2><a href="resultados.html">Ver todos</a></div>
+      ${next.length ? list(next) : '<div class="empty">No hay partidos programados.</div>'}</div>
+    <div class="sec"><div class="sec-h"><h2>Últimos <b>resultados</b></h2><a href="resultados.html">Ver todos</a></div>
+      ${last.length ? list(last) : '<div class="empty">Aún no hay resultados.</div>'}</div>
+    <div class="sec"><div class="sec-h"><h2><b>Posiciones</b></h2><a href="posiciones.html">Tabla completa</a></div>
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
+      ${cats.map(c => `<div><h3 class="gold" style="font-size:22px;margin-bottom:8px">${T.esc(c.name)}</h3>${UI.standingsTable(S, c.id, true)}</div>`).join('')}</div></div>`;
+}
+render();
+UI.autoRefresh(render);
+</script>
+</body>
+</html>
