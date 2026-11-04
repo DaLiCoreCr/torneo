@@ -50,6 +50,7 @@
          <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto</span>
          <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
+    if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();
     T.subscribe(renderTicker);
     setInterval(tick, 500);
@@ -131,8 +132,37 @@
     toast.t = setTimeout(() => { el.className = ''; }, 2600);
   }
 
-  /* Puerta de PIN para las pantallas de staff */
+  /* Acceso de staff: login con Firebase Auth en la nube, o PIN de prueba en modo local */
   function gate(root, start) {
+    if (!T.auth) return pinGate(root, start);
+    let started = false;
+    T.auth.onChange(user => {
+      if (!user) { started = false; return loginForm(root); }
+      if (started) return;
+      started = true; T.setStaff(true); start();
+      const s = document.querySelector('.staff');
+      if (s) {
+        s.insertAdjacentHTML('beforeend', ` · <a href="#" id="logout">Cerrar sesión</a>`);
+        document.getElementById('logout').onclick = e => { e.preventDefault(); T.auth.logout().then(() => location.reload()); };
+      }
+    });
+  }
+
+  function loginForm(root) {
+    root.innerHTML = `<form class="gate card" id="gate"><h2>Acceso de staff</h2>
+      <p class="muted">Ingresa el código de acceso de la mesa.</p>
+      <input class="inp" id="pw" type="password" autocomplete="off" placeholder="Código de acceso" required autofocus>
+      <button class="btn gold" type="submit">Entrar</button><p class="err" id="perr"></p></form>`;
+    document.getElementById('gate').addEventListener('submit', e => {
+      e.preventDefault();
+      const err = document.getElementById('perr');
+      err.textContent = 'Entrando…';
+      T.auth.login(w.STAFF_EMAIL, document.getElementById('pw').value)
+        .catch(ex => { err.textContent = /invalid-credential|wrong-password|user-not-found|invalid-email/.test(ex.code) ? 'Código incorrecto' : /too-many/.test(ex.code) ? 'Demasiados intentos, espera unos minutos' : 'No se pudo iniciar sesión (' + ex.code + ')'; });
+    });
+  }
+
+  function pinGate(root, start) {
     let ok = false;
     try { ok = sessionStorage.getItem('torneo.auth') === '1'; } catch (e) { /* ignore */ }
     if (ok) return start();

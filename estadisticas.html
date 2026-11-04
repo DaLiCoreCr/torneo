@@ -16,11 +16,12 @@
   <div style="margin:10px 0"><span class="seg" id="mode"><button data-m="avg" class="on">Promedio</button><button data-m="tot">Total</button></span></div>
   <div id="app"></div>
 </div></main>
+<script src="js/firebase-config.js"></script>
 <script src="js/core.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/ui.js"></script>
 <script>
-T.load();
+T.load().then(() => {
 UI.layout('est');
 const { esc } = T;
 let cat = UI.catPicker(document.getElementById('cats'), { all: false }, c => { cat = c; render(); });
@@ -70,6 +71,7 @@ function render() {
 }
 render();
 UI.autoRefresh(render);
+});
 </script>
 </body>
 </html>

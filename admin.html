@@ -11,11 +11,12 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
+<script src="js/firebase-config.js"></script>
 <script src="js/core.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/ui.js"></script>
 <script>
-T.load();
+T.load().then(() => {
 UI.layout('');
 const { esc } = T;
 const app = document.getElementById('app');
@@ -87,7 +88,7 @@ function rulesView(S) {
     <div class="card"><div class="frm">${num('foulsOut', 'Faltas para eliminar al jugador')}${num('bonusFouls', 'Faltas de equipo por período para bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
     <div class="card"><div class="frm">${num('ptsWin', 'Victoria')}${num('ptsDraw', 'Empate')}${num('ptsLoss', 'Derrota (participación)')}
-      ${field('Actualización del público (segundos)', `<input class="inp" type="number" min="5" id="r-refresh" value="${S.config.refreshSec}">`)}</div></div>
+      ${T.cloud ? '' : field('Actualización del público (segundos)', `<input class="inp" type="number" min="5" id="r-refresh" value="${S.config.refreshSec}">`)}</div></div>
     <p class="note">Los cambios de duración aplican a los partidos que aún no han iniciado.</p>
     <button class="btn gold" data-act="saverules" style="margin-top:12px">Guardar reglas</button>`;
 }
@@ -96,7 +97,7 @@ function dataView() {
   return `<div class="card" style="display:grid;gap:14px">
     <div><h3 class="gold" style="font-size:22px">Respaldo</h3><p class="muted">Descarga todo el torneo en un archivo JSON, o restaura uno anterior. Sirve también para migrar a la versión del próximo año.</p>
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
-    <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">Este prototipo guarda todo en este navegador. Con Firebase quedará en la nube y se compartirá entre dispositivos.</p>
+    <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button><button class="btn danger" data-act="wipe">Empezar torneo vacío</button></div></div></div>`;
 }
 
@@ -149,7 +150,7 @@ app.addEventListener('click', e => {
         s.config.name = val('r-name') || s.config.name;
         s.config.categories.forEach((c, i) => { c.name = val('r-cat' + i) || c.name; });
         keys.forEach(k => { s.config.rules[k] = Math.max(0, +document.getElementById('r-' + k).value || 0); });
-        s.config.refreshSec = Math.max(5, +document.getElementById('r-refresh').value || 15);
+        if (document.getElementById('r-refresh')) s.config.refreshSec = Math.max(5, +document.getElementById('r-refresh').value || 15);
         s.games.filter(g => g.status === 'scheduled').forEach(g => { g.clock.remainingMs = T.periodLen(1); });
       });
       UI.toast('Reglas guardadas'); break;
@@ -159,8 +160,8 @@ app.addEventListener('click', e => {
       a.href = URL.createObjectURL(new Blob([JSON.stringify(T.state(), null, 2)], { type: 'application/json' }));
       a.download = 'torneo-respaldo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
     }
-    case 'seed': if (confirm('Esto reemplaza todos los datos actuales por los de ejemplo. ¿Continuar?')) { T.replaceAll(Seed.build()); render(); UI.toast('Datos de ejemplo restaurados'); } break;
-    case 'wipe': if (confirm('Esto borra equipos, partidos y estadísticas. ¿Continuar?')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [] }); render(); UI.toast('Torneo vacío'); } break;
+    case 'seed': if (confirm((T.cloud ? 'ATENCIÓN: son los datos reales del torneo. ' : '') + 'Esto reemplaza todos los datos actuales por los de ejemplo. ¿Continuar?')) { T.replaceAll(Seed.build()); render(); UI.toast('Datos de ejemplo restaurados'); } break;
+    case 'wipe': if (confirm((T.cloud ? 'ATENCIÓN: son los datos reales del torneo. ' : '') + 'Esto borra equipos, partidos y estadísticas. ¿Continuar?')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [] }); render(); UI.toast('Torneo vacío'); } break;
   }
 });
 
@@ -178,6 +179,7 @@ app.addEventListener('change', e => {
 });
 
 UI.gate(app, start);
+});
 </script>
 </body>
 </html>

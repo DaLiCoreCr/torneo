@@ -44,16 +44,41 @@
   function readRaw() {
     try { const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
   }
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ } }
+  let backend = null;
+  const notify = () => subs.forEach(f => f(state));
+  function persist() {
+    if (backend) return backend.save(state);
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ }
+  }
+  /* Con Firebase configurado se usa la nube; con ?local=1 se usan datos de ejemplo en este navegador */
+  function useCloud() {
+    try {
+      if (/[?&]local=1/.test(location.search)) sessionStorage.setItem('torneo.local', '1');
+      if (/[?&]local=0/.test(location.search)) sessionStorage.removeItem('torneo.local');
+      return !!w.FIREBASE_CONFIG && sessionStorage.getItem('torneo.local') !== '1';
+    } catch (e) { return !!w.FIREBASE_CONFIG; }
+  }
   function load() {
+    if (useCloud()) {
+      const emptyState = () => ({ v: 1, config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), teams: [], games: [] });
+      state = emptyState();
+      return import(new URL('js/store-firebase.js', document.baseURI).href)
+        .then(m => m.connect(w.FIREBASE_CONFIG, {
+          DEFAULT_CONFIG,
+          setState: s => { state = s; notify(); },
+          onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
+        }))
+        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; return state; })
+        .catch(err => { console.error(err); w.T.offline = true; return state; });
+    }
     state = readRaw();
     if (!state) { state = w.Seed.build(); persist(); }
-    return state;
+    return Promise.resolve(state);
   }
-  function reload() { const s = readRaw(); if (s) state = s; return state; }
+  function reload() { if (backend) return state; const s = readRaw(); if (s) state = s; return state; }
   function mutate(fn) { fn(state); persist(); subs.forEach(f => f(state)); }
   function subscribe(f) { subs.push(f); }
-  function replaceAll(s) { state = s; persist(); subs.forEach(f => f(state)); }
+  function replaceAll(s) { state = s; persist(); notify(); }
   w.addEventListener('storage', e => {
     if (e.key === KEY && e.newValue) { state = JSON.parse(e.newValue); subs.forEach(f => f(state)); }
   });
@@ -186,6 +211,7 @@
   }
 
   w.T = {
+    cloud: false, offline: false, auth: null, setStaff: () => {},
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodLabel, remaining, fmtClock,

@@ -19,11 +19,12 @@
     <div id="app"></div>
   </div>
 </main>
+<script src="js/firebase-config.js"></script>
 <script src="js/core.js"></script>
 <script src="js/seed.js"></script>
 <script src="js/ui.js"></script>
 <script>
-T.load();
+T.load().then(() => {
 UI.layout('live');
 let cat = UI.catPicker(document.getElementById('cats'), { all: true }, c => { cat = c; render(); });
 const app = document.getElementById('app');
@@ -49,6 +50,7 @@ function render() {
 }
 render();
 UI.autoRefresh(render);
+});
 </script>
 </body>
 </html>

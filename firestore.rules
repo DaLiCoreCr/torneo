@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Solo la cuenta compartida de la mesa (creada en Authentication) puede escribir.
+    function isStaff() {
+      return request.auth != null
+        && request.auth.token.email == 'mesa@torneo.hoopz';
+    }
+
+    // Cualquier persona puede leer; solo el staff escribe.
+    match /config/{id} { allow read: if true; allow write: if isStaff(); }
+    match /teams/{id}  { allow read: if true; allow write: if isStaff(); }
+    match /games/{id}  { allow read: if true; allow write: if isStaff(); }
+
+    // Todo lo demás queda denegado.
+  }
+}
