@@ -174,6 +174,7 @@
   function loginForm(root) {
     root.innerHTML = `<form class="gate card" id="gate"><h2>Acceso de staff</h2>
       <p class="muted">Ingresa el código de acceso de la mesa.</p>
+      <p class="note">Modo: <b>nube (Firebase)</b>. El PIN 1234 solo sirve en modo local: abre esta página con <b>?local=1</b> al final de la dirección.</p>
       <input class="inp" id="pw" type="password" autocomplete="off" placeholder="Código de acceso" required autofocus>
       <button class="btn gold" type="submit">Entrar</button><p class="err" id="perr"></p></form>`;
     document.getElementById('gate').addEventListener('submit', e => {
