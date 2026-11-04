@@ -25,6 +25,13 @@ let tab = 'teams', cat = UI.getCat(false), openTeam = null;
 const TABS = [['teams', 'Equipos y jugadores'], ['games', 'Partidos'], ['rules', 'Reglas'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
+function confirmDanger(msg) {
+  const aviso = T.cloud ? 'ATENCIÓN: son los datos reales y los ve todo el público.\n' : '';
+  const r = prompt(aviso + msg + '\n\nEscribe REINICIAR para confirmar:');
+  if (r === null) return false;
+  if (r.trim().toUpperCase() !== 'REINICIAR') { UI.toast('No se confirmó: debes escribir REINICIAR', 'bad'); return false; }
+  return true;
+}
 const nowLocal = () => { const d = new Date(Date.now() + 3600e3); d.setMinutes(0, 0, 0); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:00`; };
 
 function start() { render(); }
@@ -98,7 +105,10 @@ function dataView() {
     <div><h3 class="gold" style="font-size:22px">Respaldo</h3><p class="muted">Descarga todo el torneo en un archivo JSON, o restaura uno anterior. Sirve también para migrar a la versión del próximo año.</p>
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
-      <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button><button class="btn danger" data-act="wipe">Empezar torneo vacío</button></div></div></div>`;
+      <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
+    <div><h3 class="gold" style="font-size:22px">Reiniciar torneo</h3>
+      <p class="muted"><b>Reiniciar resultados</b> conserva equipos, jugadores y calendario, pero borra marcadores, jugadas y estadísticas: todos los partidos vuelven a "Programado" con el reloj en cero y la tabla de posiciones queda en ceros. <b>Borrar todo</b> elimina además los equipos y los partidos.</p>
+      <div class="row"><button class="btn danger" data-act="resetgames">Reiniciar resultados</button><button class="btn danger" data-act="wipe">Borrar todo (torneo vacío)</button></div></div></div>`;
 }
 
 function render() {
@@ -160,8 +170,17 @@ app.addEventListener('click', e => {
       a.href = URL.createObjectURL(new Blob([JSON.stringify(T.state(), null, 2)], { type: 'application/json' }));
       a.download = 'torneo-respaldo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
     }
-    case 'seed': if (confirm((T.cloud ? 'ATENCIÓN: son los datos reales del torneo. ' : '') + 'Esto reemplaza todos los datos actuales por los de ejemplo. ¿Continuar?')) { T.replaceAll(Seed.build()); render(); UI.toast('Datos de ejemplo restaurados'); } break;
-    case 'wipe': if (confirm((T.cloud ? 'ATENCIÓN: son los datos reales del torneo. ' : '') + 'Esto borra equipos, partidos y estadísticas. ¿Continuar?')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [] }); render(); UI.toast('Torneo vacío'); } break;
+    case 'seed': if (confirmDanger('Se reemplazará todo por los datos de ejemplo.')) { T.replaceAll(Seed.build()); render(); UI.toast('Datos de ejemplo restaurados'); } break;
+    case 'resetgames':
+      if (confirmDanger('Se borrarán marcadores, jugadas y estadísticas de TODOS los partidos. Los equipos y el calendario se conservan.')) {
+        mt(s => s.games.forEach(g => {
+          g.status = 'scheduled'; g.score = { h: 0, a: 0 }; g.events = [];
+          g.clock = { period: 1, running: false, remainingMs: T.periodLen(1), startedAt: null };
+        }));
+        UI.toast('Torneo reiniciado: todos los partidos en cero');
+      }
+      break;
+    case 'wipe': if (confirmDanger('Se borrarán equipos, jugadores, partidos y estadísticas.')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [] }); render(); UI.toast('Torneo vacío'); } break;
   }
 });
 
