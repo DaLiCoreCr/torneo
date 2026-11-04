@@ -33,6 +33,7 @@
   }
 
   function layout(active) {
+    document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="assets/logo.jpg">');
     const S = T.state();
     const links = [['index.html', 'live', 'En vivo'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['estadisticas.html', 'est', 'Estadísticas']]
       .map(([h, k, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${l}</a>`).join('');
@@ -40,7 +41,7 @@
       `<div class="ticker" id="ticker"></div>
        <header class="top"><div class="wrap top-in">
          <a class="brand" href="index.html">
-           <img class="brand-logo" src="assets/logo.png" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-mark',textContent:'H'}))">
+           <img class="brand-logo" src="assets/logo.jpg" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'brand-mark',textContent:'H'}))">
            <span class="brand-txt">HOOPZ<small>${esc(S.config.name)}</small></span>
          </a>
          <nav>${links}</nav>
