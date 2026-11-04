@@ -7,20 +7,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8">
+<link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=8"></script>
-<script src="js/core.js?v=8"></script>
-<script src="js/seed.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
+<script src="js/firebase-config.js?v=14"></script>
+<script src="js/core.js?v=14"></script>
+<script src="js/seed.js?v=14"></script>
+<script src="js/ui.js?v=14"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
 const { esc } = T;
 const app = document.getElementById('app');
 let cat = UI.getCat(false), sel = null, query = '';
+let drawTeam = null, drawN = null, balance = true;
 
 function start() { render(); T.subscribe(render); }
 
@@ -34,20 +35,34 @@ function render() {
   if (sel && !d.pool.some(p => p.id === sel)) sel = null;
   const active = document.activeElement && document.activeElement.id === 'q';
 
+  const done = d.done || [];
+  const eligible = d.pool.filter(p => !p.captain);
+  const left = teams.filter(t => !done.includes(t.id));
+  if (!teams.some(t => t.id === drawTeam)) drawTeam = null;
+  const dTeam = drawTeam || (left[0] || teams[0] || {}).id;
+  const dN = drawN || Math.max(1, Math.ceil(eligible.length / Math.max(1, left.length)));
+  const drawPanel = `<div class="card" style="margin-bottom:16px"><h3 class="gold" style="font-size:24px">🎲 Sorteo al azar por equipo</h3>
+    <div class="frm" style="margin-top:10px">
+      <div><label class="lbl">Equipo a formar</label><select class="inp" id="draw-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === dTeam ? 'selected' : ''}>${esc(t.name)}${done.includes(t.id) ? ' ✓' : ''}</option>`).join('')}</select></div>
+      <div><label class="lbl">Jugadores a sortear</label><input class="inp" id="draw-n" type="number" min="1" value="${dN}"></div>
+      <label class="chk" style="padding-bottom:10px"><input type="checkbox" id="draw-bal" ${balance ? 'checked' : ''}> Equilibrar niñas y niños</label>
+      <button class="btn gold" data-act="drawteam" ${eligible.length ? '' : 'disabled'}>Sortear equipo</button></div>
+    <p class="note">Participan <b>${eligible.length}</b> jugadores. Los capitanes sin equipo no entran al sorteo: asígnalos tú tocando la C y el equipo. ✓ = equipo ya sorteado.</p></div>`;
+
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
       <h1 class="page-title">Sorteo de <b>equipos</b></h1>
       <div class="row"><a class="btn ghost" href="presentacion.html?cat=${esc(cat)}" target="_blank">Abrir presentación ↗</a>
-        <button class="btn" data-act="undo" ${d.last ? '' : 'disabled'}>Deshacer última</button></div></div>
+        <button class="btn" data-act="undo" ${(d.last || d.group) ? '' : 'disabled'}>Deshacer última</button></div></div>
     <div class="pills">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-act="cat" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
     <p class="note">Toca un jugador y luego el equipo (o arrástralo). La pantalla de presentación se actualiza sola. Marca capitanes con la <b>C</b>.</p>
     ${!teams.length ? `<div class="empty">No hay equipos en esta categoría. Créalos en <a class="gold" href="admin.html">Administración</a> (nombre y logo) y vuelve aquí.</div>` : `
+    ${drawPanel}
     <div class="draft">
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3>
-          <button class="btn sm ghost" data-act="random" ${d.pool.length ? '' : 'disabled'}>🎲 Al azar</button></div>
+        <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3></div>
         <input class="inp" id="q" placeholder="Buscar jugador…" value="${esc(query)}" style="margin-top:10px">
-        <div class="dp-list">${pool.map(p => `<div class="dp ${sel === p.id ? 'on' : ''} ${d.spot && d.spot.pid === p.id ? 'spot' : ''}" draggable="true" data-act="sel" data-id="${esc(p.id)}">
+        <div class="dp-list">${pool.map(p => `<div class="dp ${sel === p.id ? 'on' : ''}" draggable="true" data-act="sel" data-id="${esc(p.id)}">
             <span class="nm">${esc(p.name)}</span><small>${p.gender === 'F' ? 'Niña' : p.gender === 'M' ? 'Niño' : ''}</small>
             <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button></div>`).join('')
           || `<div class="empty">${d.pool.length ? 'Sin resultados.' : (placed ? '¡Todos los jugadores ya tienen equipo!' : 'No hay jugadores. Cárgalos en Administración → Jugadores y sorteo.')}</div>`}</div>
@@ -82,13 +97,25 @@ app.addEventListener('click', e => {
     case 'assign':
       if (!sel) return UI.toast('Primero toca un jugador de la lista', 'bad');
       { const pid = sel; sel = null; m(s => T.draftAssign(s, cat, pid, b.dataset.team)); } break;
-    case 'random': {
-      let pid = null;
-      m(s => { pid = T.draftRandom(s, cat); });
-      sel = pid; render(); break;
+    case 'drawteam': {
+      const tid = document.getElementById('draw-team').value;
+      const n = parseInt(document.getElementById('draw-n').value, 10) || 0;
+      if (n < 1) return UI.toast('Indica cuántos jugadores sortear', 'bad');
+      if ((T.draft(T.state(), cat).done || []).includes(tid) && !confirm('Este equipo ya fue sorteado. ¿Agregarle más jugadores?')) return;
+      let got = 0;
+      m(s => { got = T.draftGroup(s, cat, tid, n, document.getElementById('draw-bal').checked); });
+      drawTeam = null; drawN = null;
+      UI.toast(got ? `Equipo formado con ${got} jugadores` : 'No hay jugadores disponibles para sortear', got ? '' : 'bad');
+      render(); break;
     }
-    case 'undo': { const d = T.draft(T.state(), cat); if (d.last) m(s => T.draftReturn(s, cat, d.last.pid)); break; }
+    case 'undo': m(s => T.draftUndo(s, cat)); break;
   }
+});
+
+app.addEventListener('change', e => {
+  if (e.target.id === 'draw-team') { drawTeam = e.target.value; drawN = null; render(); }
+  else if (e.target.id === 'draw-n') drawN = parseInt(e.target.value, 10) || null;
+  else if (e.target.id === 'draw-bal') balance = e.target.checked;
 });
 
 /* Arrastrar y soltar (escritorio) */

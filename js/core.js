@@ -212,11 +212,11 @@
   }
 
   /* ---------- Sorteo de equipos ----------
-     state.draft[cat] = { pool: [jugadores sin equipo], last: última asignación, spot: jugador en turno } */
-  const draftOf = (S, cat) => Object.assign({ pool: [], last: null, spot: null }, (S.draft || {})[cat]);
+     state.draft[cat] = { pool: [jugadores sin equipo], last: última asignación suelta, group: último equipo sorteado, done: [equipos ya sorteados] } */
+  const draftOf = (S, cat) => Object.assign({ pool: [], last: null, group: null, done: [] }, (S.draft || {})[cat]);
   function draftW(S, cat) {
     S.draft = S.draft || {};
-    const d = S.draft[cat] || (S.draft[cat] = { pool: [], last: null, spot: null });
+    const d = S.draft[cat] || (S.draft[cat] = { pool: [], last: null, group: null, done: [] });
     d.pool = d.pool || [];
     return d;
   }
@@ -241,7 +241,6 @@
     p.num = freeNum(t, p.num);
     t.players.push(p);
     d.last = { pid: p.id, name: p.name, teamId, cap: !!p.captain, ts: Date.now() };
-    d.spot = null;
     return true;
   }
   function draftReturn(S, cat, pid) {
@@ -253,16 +252,51 @@
     d.pool.push(p); d.last = null;
     return true;
   }
-  function draftRandom(S, cat) {
+  /* Sorteo al azar de un equipo completo: toma n jugadores de la lista (sin capitanes) y los asigna */
+  function draftGroup(S, cat, teamId, n, balance) {
+    const t = S.teams.find(x => x.id === teamId);
     const d = draftW(S, cat);
-    if (!d.pool.length) return null;
-    const p = d.pool[Math.floor(Math.random() * d.pool.length)];
-    d.spot = { pid: p.id, name: p.name, ts: Date.now() };
-    return p.id;
+    if (!t) return 0;
+    const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const elig = d.pool.filter(p => !p.captain);
+    n = Math.min(n, elig.length);
+    if (n <= 0) return 0;
+    const F = shuffle(elig.filter(p => p.gender === 'F')), M = shuffle(elig.filter(p => p.gender === 'M'));
+    const O = shuffle(elig.filter(p => p.gender !== 'F' && p.gender !== 'M'));
+    let picked;
+    if (balance && F.length && M.length) {
+      let nf = Math.min(F.length, Math.round(n * F.length / (F.length + M.length)));
+      const nm = Math.min(M.length, n - nf);
+      nf = Math.min(F.length, n - nm);
+      picked = F.slice(0, nf).concat(M.slice(0, nm));
+      picked = picked.concat(shuffle(F.slice(nf).concat(M.slice(nm), O)).slice(0, n - picked.length));
+    } else picked = shuffle(elig).slice(0, n);
+    picked.forEach(p => {
+      d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
+      p.num = freeNum(t, p.num);
+      t.players.push(p);
+    });
+    d.done = (d.done || []).filter(x => x !== teamId).concat(teamId);
+    d.group = { teamId, pids: picked.map(p => p.id), roster: t.players.map(p => ({ id: p.id, name: p.name, cap: !!p.captain })), ts: Date.now() };
+    d.last = null;
+    return picked.length;
+  }
+  /* Deshace lo más reciente: el equipo sorteado completo o la última asignación suelta */
+  function draftUndo(S, cat) {
+    const d = draftW(S, cat), g = d.group, l = d.last;
+    if (g && (!l || g.ts >= l.ts)) {
+      const team = S.teams.find(x => x.id === g.teamId);
+      g.pids.forEach(pid => { if (team && team.players.some(y => y.id === pid)) draftReturn(S, cat, pid); });
+      d.done = (d.done || []).filter(x => x !== g.teamId);
+      d.group = null; d.last = null;
+      return true;
+    }
+    if (l) return draftReturn(S, cat, l.pid);
+    return false;
   }
 
   w.T = {
-    draft: draftOf, draftW, draftAssign, draftReturn, draftRandom,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftUndo,
     cloud: false, offline: false, auth: null, setStaff: () => {},
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,

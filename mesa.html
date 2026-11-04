@@ -7,14 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=8">
+<link rel="stylesheet" href="css/styles.css?v=14">
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=8"></script>
-<script src="js/core.js?v=8"></script>
-<script src="js/seed.js?v=8"></script>
-<script src="js/ui.js?v=8"></script>
+<script src="js/firebase-config.js?v=14"></script>
+<script src="js/core.js?v=14"></script>
+<script src="js/seed.js?v=14"></script>
+<script src="js/ui.js?v=14"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -73,11 +73,11 @@ function control(S, g) {
 
   const selP = sel && cur.players.find(p => p.id === sel);
   const acts = Object.entries(ACTIONS).filter(([k, v]) => !v.team && v.lvl <= g.mode);
-  const pad = selP ? `<div class="pad"><h3>#${selP.num} ${esc(selP.name)} <span class="muted" style="font-size:16px">· ${esc(cur.name)}</span></h3>
-      <div class="acts scores">${acts.filter(([, v]) => v.k === 'score').map(([k, v]) => `<button class="act score" data-act="ev" data-t="${k}">${v.l}</button>`).join('')}</div>
-      <div class="acts">${acts.filter(([, v]) => v.k !== 'score').map(([k, v]) => `<button class="act ${v.k}" data-act="ev" data-t="${k}">${v.l}</button>`).join('')}</div>
-      <div class="row" style="margin-top:10px"><button class="btn sm" data-act="clear">Cancelar selección</button></div></div>`
-    : '<div class="hint">Toca el número del jugador y luego la jugada.</div>';
+  const off = selP ? '' : 'disabled';
+  const pad = `<div class="pad ${selP ? '' : 'idle'}"><h3>${selP ? `#${selP.num} ${esc(selP.name)} <span class="muted" style="font-size:16px">· ${esc(cur.name)}</span>` : 'Elige un jugador'}</h3>
+      <div class="acts scores">${acts.filter(([, v]) => v.k === 'score').map(([k, v]) => `<button class="act score" data-act="ev" data-t="${k}" ${off}>${v.l}</button>`).join('')}</div>
+      <div class="acts">${acts.filter(([, v]) => v.k !== 'score').map(([k, v]) => `<button class="act ${v.k}" data-act="ev" data-t="${k}" ${off}>${v.l}</button>`).join('')}</div>
+      <div class="row" style="margin-top:10px">${selP ? '<button class="btn sm" data-act="clear">Cancelar selección</button>' : '<span class="muted" style="font-size:13px">Toca el número de un jugador y luego la jugada.</span>'}</div></div>`;
 
   const idx = T.playerIndex(S);
   const log = g.events.slice(-8).reverse().map(e => {
@@ -100,8 +100,8 @@ function control(S, g) {
     <div class="row" style="margin-bottom:10px">${endBtn}${g.status !== 'final' && !(over && !tied) ? '<button class="btn sm danger" data-act="finish">Finalizar ya</button>' : ''}</div>
     <div class="row" style="justify-content:space-between"><h3 style="font-size:22px">${esc(cur.name)}</h3>
       <button class="btn sm" data-act="tmo" ${T.timeoutsUsed(g, side) >= R.timeouts ? 'disabled' : ''}>Tiempo muerto</button></div>
-    <div class="players">${players}</div>
-    ${g.status === 'final' ? '' : pad}
+    <div class="mwork"><div class="players">${players}</div>
+    ${g.status === 'final' ? '' : pad}${g.status === 'final' || selP ? '' : '<div class="hint">Toca el número del jugador y luego la jugada.</div>'}</div>
     <div class="log"><div class="row" style="justify-content:space-between"><h3>Últimas jugadas</h3><button class="btn sm danger" data-act="undo" ${g.events.length ? '' : 'disabled'}>Deshacer última</button></div>
       <ul class="plays">${log || '<li class="muted">Sin jugadas.</li>'}</ul></div>`;
 }
@@ -109,8 +109,15 @@ function control(S, g) {
 function render() {
   const S = T.state();
   const g = gid && T.game(gid);
+  document.body.style.paddingBottom = '';
   if (!g) return picker(S);
   control(S, g);
+  const padEl = document.querySelector('.pad');
+  if (padEl && !padEl.classList.contains('idle') && getComputedStyle(padEl).position === 'fixed') {
+    document.body.style.paddingBottom = (padEl.offsetHeight + 16) + 'px';
+    const on = document.querySelector('.pl.on');
+    if (on) { on.style.scrollMarginBottom = (padEl.offsetHeight + 12) + 'px'; on.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }
 }
 
 app.addEventListener('click', e => {
