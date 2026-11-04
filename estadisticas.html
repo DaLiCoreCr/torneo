@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
 <main><div class="wrap page">
@@ -16,10 +16,10 @@
   <div style="margin:10px 0"><span class="seg" id="mode"><button data-m="avg" class="on">Promedio</button><button data-m="tot">Total</button></span></div>
   <div id="app"></div>
 </div></main>
-<script src="js/firebase-config.js"></script>
-<script src="js/core.js"></script>
-<script src="js/seed.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/firebase-config.js?v=7"></script>
+<script src="js/core.js?v=7"></script>
+<script src="js/seed.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
 <script>
 T.load().then(() => {
 UI.layout('est');
@@ -29,7 +29,8 @@ let mode = 'avg', sortKey = 'pts';
 const app = document.getElementById('app');
 
 const LEADERS = [['pts', 'Puntos'], ['p3m', 'Triples'], ['reb', 'Rebotes'], ['ast', 'Asistencias'], ['stl', 'Robos'], ['blk', 'Tapones']];
-const COLS = [['pts', 'PTS'], ['p1', 'TL'], ['p2', '2P'], ['p3', '3P'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'ROB'], ['blk', 'TAP'], ['to', 'PER'], ['pf', 'FAL']];
+const TIPS = { FC: 'Faltas cometidas', FR: 'Faltas recibidas' };
+const COLS = [['pts', 'PTS'], ['p1', 'TL'], ['p2', '2P'], ['p3', '3P'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'ROB'], ['blk', 'TAP'], ['to', 'PER'], ['pf', 'FC'], ['fd', 'FR']];
 
 const val = (r, k) => (mode === 'avg' ? r[k] / r.gp : r[k]);
 const fmt = v => (mode === 'avg' ? v.toFixed(1) : String(v));
@@ -58,8 +59,8 @@ function render() {
   }).join('');
   const sortVal = r => (sortKey === 'p1' || sortKey === 'p2' || sortKey === 'p3' ? val({ ...r, [sortKey]: r[sortKey + 'm'] }, sortKey) : val(r, sortKey));
   const sorted = rows.slice().sort((a, b) => sortVal(b) - sortVal(a));
-  const head = COLS.map(([k, l]) => `<th class="sort ${k === sortKey ? 'cur' : ''}" data-k="${k}">${l}</th>`).join('');
-  const body = sorted.map(r => `<tr><td class="tm">${UI.badge(r.team)}<span>#${r.player.num} ${esc(r.player.name)}<small class="muted" style="display:block;font-weight:400">${esc(r.team.name)}</small></span></td><td>${r.gp}</td>
+  const head = COLS.map(([k, l]) => `<th class="sort ${k === sortKey ? 'cur' : ''}" data-k="${k}" title="${TIPS[l] || ''}">${l}</th>`).join('');
+  const body = sorted.map(r => `<tr><td class="tm">${UI.badge(r.team)}<span>#${r.player.num} ${esc(r.player.name)}${UI.capMark(r.player)}<small class="muted" style="display:block;font-weight:400">${esc(r.team.name)}</small></span></td><td>${r.gp}</td>
     ${COLS.map(([k]) => {
       if (k === 'p1' || k === 'p2' || k === 'p3') return `<td>${mode === 'avg' ? (r[k + 'm'] / r.gp).toFixed(1) : r[k + 'm'] + '/' + r[k + 'a']}</td>`;
       return `<td class="${k === 'pts' ? 'hl' : ''}">${fmt(val(r, k))}</td>`;
@@ -67,7 +68,7 @@ function render() {
   app.innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:8px">${leaders}</div>
     <div class="sec"><div class="sec-h"><h2>Todos los <b>jugadores</b></h2></div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Jugador</th><th>PJ</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
-    <p class="note">${mode === 'avg' ? 'Promedios por partido.' : 'Totales; TL, 2P y 3P como anotados/intentados.'} Toca una columna para ordenar. PJ = partidos jugados, TL = tiros libres, ROB = robos, TAP = tapones, PER = pérdidas, FAL = faltas.</p></div>`;
+    <p class="note">${mode === 'avg' ? 'Promedios por partido.' : 'Totales; TL, 2P y 3P como anotados/intentados.'} Toca una columna para ordenar. PJ = partidos jugados, TL = tiros libres, ROB = robos, TAP = tapones, PER = pérdidas, FC = faltas cometidas, FR = faltas recibidas (solo se registran en captura Completa).</p></div>`;
 }
 render();
 UI.autoRefresh(render);

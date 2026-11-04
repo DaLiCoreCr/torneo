@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sorteo de equipos · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=7">
+</head>
+<body>
+<main><div class="wrap page"><div id="app"></div></div></main>
+<script src="js/firebase-config.js?v=7"></script>
+<script src="js/core.js?v=7"></script>
+<script src="js/seed.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
+<script>
+T.load().then(() => {
+UI.layout('');
+const { esc } = T;
+const app = document.getElementById('app');
+let cat = UI.getCat(false), sel = null, query = '';
+
+function start() { render(); T.subscribe(render); }
+
+function render() {
+  const S = T.state();
+  const teams = S.teams.filter(t => t.cat === cat);
+  const d = T.draft(S, cat);
+  const q = query.trim().toLowerCase();
+  const pool = d.pool.filter(p => !q || p.name.toLowerCase().includes(q));
+  const placed = teams.reduce((n, t) => n + t.players.length, 0);
+  if (sel && !d.pool.some(p => p.id === sel)) sel = null;
+  const active = document.activeElement && document.activeElement.id === 'q';
+
+  app.innerHTML = `
+    <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
+      <h1 class="page-title">Sorteo de <b>equipos</b></h1>
+      <div class="row"><a class="btn ghost" href="presentacion.html?cat=${esc(cat)}" target="_blank">Abrir presentación ↗</a>
+        <button class="btn" data-act="undo" ${d.last ? '' : 'disabled'}>Deshacer última</button></div></div>
+    <div class="pills">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-act="cat" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
+    <p class="note">Toca un jugador y luego el equipo (o arrástralo). La pantalla de presentación se actualiza sola. Marca capitanes con la <b>C</b>.</p>
+    ${!teams.length ? `<div class="empty">No hay equipos en esta categoría. Créalos en <a class="gold" href="admin.html">Administración</a> (nombre y logo) y vuelve aquí.</div>` : `
+    <div class="draft">
+      <div class="card">
+        <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3>
+          <button class="btn sm ghost" data-act="random" ${d.pool.length ? '' : 'disabled'}>🎲 Al azar</button></div>
+        <input class="inp" id="q" placeholder="Buscar jugador…" value="${esc(query)}" style="margin-top:10px">
+        <div class="dp-list">${pool.map(p => `<div class="dp ${sel === p.id ? 'on' : ''} ${d.spot && d.spot.pid === p.id ? 'spot' : ''}" draggable="true" data-act="sel" data-id="${esc(p.id)}">
+            <span class="nm">${esc(p.name)}</span><small>${p.gender === 'F' ? 'Niña' : p.gender === 'M' ? 'Niño' : ''}</small>
+            <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button></div>`).join('')
+          || `<div class="empty">${d.pool.length ? 'Sin resultados.' : (placed ? '¡Todos los jugadores ya tienen equipo!' : 'No hay jugadores. Cárgalos en Administración → Jugadores y sorteo.')}</div>`}</div>
+      </div>
+      <div class="dteams">${teams.map(t => `<div class="dt ${sel ? 'ready' : ''}" data-act="assign" data-team="${esc(t.id)}">
+          <div class="dt-h">${UI.badge(t)}<h3>${esc(t.name)}</h3><small>${t.players.length}</small></div>
+          ${t.players.map(p => `<div class="dr" draggable="true" data-pid="${esc(p.id)}"><span class="n">${p.num}</span><span class="nm">${esc(p.name)}</span>
+            <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button>
+            <button class="x" data-act="back" data-id="${esc(p.id)}" title="Devolver a la lista">✕</button></div>`).join('') || '<div class="muted" style="font-size:13px">Sin jugadores</div>'}
+        </div>`).join('')}</div>
+    </div>`}`;
+  if (active) { const i = document.getElementById('q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+}
+
+const m = fn => T.mutate(s => fn(s));
+
+app.addEventListener('input', e => { if (e.target.id === 'q') { query = e.target.value; render(); } });
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const id = b.dataset.id;
+  switch (b.dataset.act) {
+    case 'cat': cat = id; sel = null; try { localStorage.setItem('torneo.cat', id); } catch (er) { /* ignore */ } render(); break;
+    case 'sel': sel = sel === id ? null : id; render(); break;
+    case 'cap': e.stopPropagation(); m(s => {
+      const dd = T.draftW(s, cat);
+      const p = dd.pool.find(x => x.id === id) || s.teams.flatMap(t => t.players).find(x => x.id === id);
+      if (p) p.captain = !p.captain;
+    }); break;
+    case 'back': e.stopPropagation(); m(s => T.draftReturn(s, cat, id)); break;
+    case 'assign':
+      if (!sel) return UI.toast('Primero toca un jugador de la lista', 'bad');
+      { const pid = sel; sel = null; m(s => T.draftAssign(s, cat, pid, b.dataset.team)); } break;
+    case 'random': {
+      let pid = null;
+      m(s => { pid = T.draftRandom(s, cat); });
+      sel = pid; render(); break;
+    }
+    case 'undo': { const d = T.draft(T.state(), cat); if (d.last) m(s => T.draftReturn(s, cat, d.last.pid)); break; }
+  }
+});
+
+/* Arrastrar y soltar (escritorio) */
+app.addEventListener('dragstart', e => {
+  const el = e.target.closest('[data-id].dp, .dr[data-pid]');
+  if (!el) return;
+  e.dataTransfer.setData('text/plain', el.dataset.id || el.dataset.pid);
+  e.dataTransfer.effectAllowed = 'move';
+});
+app.addEventListener('dragover', e => { const t = e.target.closest('.dt'); if (t) { e.preventDefault(); t.classList.add('over'); } });
+app.addEventListener('dragleave', e => { const t = e.target.closest('.dt'); if (t) t.classList.remove('over'); });
+app.addEventListener('drop', e => {
+  const t = e.target.closest('.dt');
+  if (!t) return;
+  e.preventDefault();
+  const pid = e.dataTransfer.getData('text/plain');
+  if (pid) { sel = null; m(s => T.draftAssign(s, cat, pid, t.dataset.team)); }
+});
+
+UI.gate(app, start);
+});
+</script>
+</body>
+</html>

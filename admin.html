@@ -7,14 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js"></script>
-<script src="js/core.js"></script>
-<script src="js/seed.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/firebase-config.js?v=7"></script>
+<script src="js/core.js?v=7"></script>
+<script src="js/seed.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -22,7 +22,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null;
 
-const TABS = [['teams', 'Equipos y jugadores'], ['games', 'Partidos'], ['rules', 'Reglas'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['rules', 'Reglas'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -54,15 +54,61 @@ function teamsView(S) {
         <div class="frm">${field('Nombre', `<input class="inp" data-f="name" data-id="${esc(t.id)}" value="${esc(t.name)}">`)}
           ${field('Coach', `<input class="inp" data-f="coach" data-id="${esc(t.id)}" value="${esc(t.coach || '')}">`)}
           ${field('Color', `<input class="inp" type="color" data-f="color" data-id="${esc(t.id)}" value="${esc(t.color || '#c9a84c')}" style="height:42px;padding:4px">`)}
+          ${field('Logo', `<div class="row">${t.logo ? UI.badge(t) : ''}<label class="btn sm ghost" style="cursor:pointer">${t.logo ? 'Cambiar' : 'Subir'}<input type="file" accept="image/*" data-logo="${esc(t.id)}" hidden></label>${t.logo ? `<button class="btn sm danger" data-act="dellogo" data-id="${esc(t.id)}">Quitar</button>` : ''}</div>`)}
           <button class="btn danger" data-act="delteam" data-id="${esc(t.id)}">Eliminar equipo</button></div>
         <div><label class="lbl">Jugadores</label>
         ${t.players.map(p => `<div class="pl-row" style="margin-bottom:6px"><input class="inp" type="number" data-pf="num" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${p.num}"><input class="inp" data-pf="name" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${esc(p.name)}">
-          <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
+          <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
+          <label class="chk" title="Capitán"><input type="checkbox" data-pf="captain" data-id="${esc(t.id)}" data-p="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
           <button class="btn danger sm" data-act="delpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}">✕</button></div>`).join('')}
-        <div class="pl-row" style="margin-top:10px"><input class="inp" type="number" id="np-num" placeholder="#"><input class="inp" id="np-name" placeholder="Nombre del jugador">
+        <div class="pl-row" style="margin-top:10px;grid-template-columns:70px 1fr 90px auto"><input class="inp" type="number" id="np-num" placeholder="#"><input class="inp" id="np-name" placeholder="Nombre del jugador">
           <select class="inp" id="np-g"><option value="F">Niña</option><option value="M">Niño</option></select><button class="btn gold sm" data-act="addpl" data-id="${esc(t.id)}">Agregar</button></div></div>
       </div>` : ''}</div>`;
     }).join('') || '<div class="empty">No hay equipos en esta categoría.</div>'}</div>`;
+}
+
+function poolView(S) {
+  const d = T.draft(S, cat);
+  const inTeams = S.teams.filter(t => t.cat === cat).reduce((n, t) => n + t.players.length, 0);
+  return `${catBar(S)}
+    <div class="card" style="margin:12px 0">
+      <label class="lbl">Pega la lista de jugadores: uno por línea, "Nombre Apellido, F o M" (el género es opcional)</label>
+      <textarea class="inp" id="pool-text" rows="6" placeholder="Valeria Rojas, F&#10;Mateo Mora, M"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn gold" data-act="addpool">Agregar a la lista</button>
+        <label class="btn ghost" style="cursor:pointer">Cargar archivo CSV o TXT<input type="file" id="pool-file" accept=".csv,.txt,text/plain" hidden></label>
+        <a class="btn" href="sorteo.html">Ir al sorteo →</a></div>
+      <p class="note"><b>${d.pool.length}</b> sin equipo · <b>${inTeams}</b> ya en equipos. Si un nombre ya existe se omite. Puedes marcar capitanes aquí o durante el sorteo.</p></div>
+    <div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 class="gold" style="font-size:22px">Jugadores sin equipo</h3>
+      ${d.pool.length ? '<button class="btn sm danger" data-act="clearpool">Vaciar lista</button>' : ''}</div>
+    <div class="cols">${d.pool.map(p => `<div class="pl-row" style="grid-template-columns:1fr 90px 52px auto">
+      <input class="inp" data-pool="name" data-pid="${esc(p.id)}" value="${esc(p.name)}">
+      <select class="inp" data-pool="gender" data-pid="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
+      <label class="chk" title="Capitán"><input type="checkbox" data-pool="captain" data-pid="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
+      <button class="btn danger sm" data-act="delpool" data-pid="${esc(p.id)}">✕</button></div>`).join('') || '<div class="empty">No hay jugadores sin equipo. Pega una lista arriba.</div>'}</div>`;
+}
+
+function parsePlayers(text) {
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(l => {
+    const parts = l.split(/[,;\t]/).map(x => x.trim());
+    const g = (parts[1] || '').toLowerCase();
+    return { name: parts[0], gender: /^(f|ni(ñ|n)a|fem)/.test(g) ? 'F' : /^(m|ni(ñ|n)o|masc)/.test(g) ? 'M' : '' };
+  }).filter(p => p.name && !/^(nombre|jugador|name)$/i.test(p.name));
+}
+
+function readLogo(file) {
+  return new Promise((ok, bad) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, 160 / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      ok(c.toDataURL('image/webp', 0.85));
+    };
+    img.onerror = () => bad(new Error('imagen no válida'));
+    img.src = url;
+  });
 }
 
 function gamesView(S) {
@@ -115,7 +161,7 @@ function render() {
   const S = T.state();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'games' ? gamesView(S) : tab === 'rules' ? rulesView(S) : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'rules' ? rulesView(S) : dataView()}`;
 }
 
 app.addEventListener('click', e => {
@@ -146,6 +192,18 @@ app.addEventListener('click', e => {
       mt(s => s.teams.find(x => x.id === id).players.push({ id: T.uid('p'), num, name, gender: document.getElementById('np-g').value })); break;
     }
     case 'delpl': if (confirm('¿Quitar al jugador? Sus estadísticas en partidos ya jugados se conservan en el historial.')) mt(s => { const t = s.teams.find(x => x.id === id); t.players = t.players.filter(p => p.id !== b.dataset.p); }); break;
+    case 'addpool': {
+      const items = parsePlayers(document.getElementById('pool-text').value);
+      if (!items.length) return UI.toast('Pega al menos un nombre', 'bad');
+      const S2 = T.state();
+      const seen = new Set(S2.teams.flatMap(t => t.players).concat(T.draft(S2, cat).pool, ...Object.values(S2.draft || {}).map(x => x.pool || [])).map(p => p.name.toLowerCase()));
+      const fresh = items.filter(p => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
+      mt(s => { const dd = T.draftW(s, cat); fresh.forEach(p => dd.pool.push({ id: T.uid('p'), name: p.name, gender: p.gender, captain: false })); });
+      UI.toast(`${fresh.length} agregados` + (items.length - fresh.length ? `, ${items.length - fresh.length} repetidos omitidos` : '')); break;
+    }
+    case 'delpool': mt(s => { const dd = T.draftW(s, cat); dd.pool = dd.pool.filter(p => p.id !== b.dataset.pid); }); break;
+    case 'clearpool': if (confirmDanger('Se vaciará la lista de jugadores sin equipo.')) mt(s => { T.draftW(s, cat).pool = []; }); break;
+    case 'dellogo': mt(s => { delete s.teams.find(t => t.id === id).logo; }); break;
     case 'addgame': {
       const h = val('ng-h'), a = val('ng-a'), d = val('ng-d');
       if (!h || !a || h === a) return UI.toast('Elige dos equipos distintos', 'bad');
@@ -180,7 +238,7 @@ app.addEventListener('click', e => {
         UI.toast('Torneo reiniciado: todos los partidos en cero');
       }
       break;
-    case 'wipe': if (confirmDanger('Se borrarán equipos, jugadores, partidos y estadísticas.')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [] }); render(); UI.toast('Torneo vacío'); } break;
+    case 'wipe': if (confirmDanger('Se borrarán equipos, jugadores, partidos y estadísticas.')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [], draft: {} }); render(); UI.toast('Torneo vacío'); } break;
   }
 });
 
@@ -193,8 +251,21 @@ app.addEventListener('change', e => {
     r.onload = () => { try { const s = JSON.parse(r.result); if (!s.teams || !s.games || !s.config) throw 0; T.replaceAll(s); render(); UI.toast('Respaldo restaurado'); } catch (er) { UI.toast('Archivo no válido', 'bad'); } };
     r.readAsText(f); return;
   }
+  if (el.id === 'pool-file') {
+    const f = el.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { document.getElementById('pool-text').value = String(r.result); };
+    r.readAsText(f); return;
+  }
+  if (el.dataset.logo) {
+    const f = el.files[0]; if (!f) return;
+    readLogo(f).then(url => { T.mutate(s => { s.teams.find(t => t.id === el.dataset.logo).logo = url; }); render(); UI.toast('Logo guardado'); })
+      .catch(() => UI.toast('No se pudo leer la imagen', 'bad'));
+    return;
+  }
+  if (el.dataset.pool) { T.mutate(s => { const p = T.draftW(s, cat).pool.find(x => x.id === el.dataset.pid); p[el.dataset.pool] = el.dataset.pool === 'captain' ? el.checked : el.value; }); return; }
   if (el.dataset.f) T.mutate(s => { s.teams.find(t => t.id === el.dataset.id)[el.dataset.f] = el.value; });
-  if (el.dataset.pf) T.mutate(s => { const p = s.teams.find(t => t.id === el.dataset.id).players.find(x => x.id === el.dataset.p); p[el.dataset.pf] = el.dataset.pf === 'num' ? parseInt(el.value, 10) || 0 : el.value; });
+  if (el.dataset.pf) T.mutate(s => { const p = s.teams.find(t => t.id === el.dataset.id).players.find(x => x.id === el.dataset.p); p[el.dataset.pf] = el.dataset.pf === 'num' ? parseInt(el.value, 10) || 0 : el.dataset.pf === 'captain' ? el.checked : el.value; });
 });
 
 UI.gate(app, start);

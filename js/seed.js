@@ -15,7 +15,7 @@
   const BOYS = ['Mateo', 'Santiago', 'Diego', 'Emiliano', 'Sebastián', 'Gael', 'Thiago', 'Lucas', 'Andrés', 'Nicolás'];
   const LAST = ['Rojas', 'Mora', 'Vargas', 'Castro', 'Jiménez', 'Solís', 'Araya', 'Brenes', 'Quesada', 'Chaves', 'Salas', 'Méndez', 'Campos', 'Ulate'];
   const NAMES = {
-    u13: ['Águilas', 'Halcones', 'Pumas', 'Tigres'],
+    u13: ['Rayos', 'Halcones', 'Pumas', 'Tigres'],
     o13: ['Lobos', 'Dragones', 'Panteras', 'Toros']
   };
   const COLORS = ['#c9a84c', '#e53935', '#1e88e5', '#43a047', '#8e24aa', '#fb8c00', '#00acc1', '#d81b60'];
@@ -124,7 +124,7 @@
         games.push(g);
       });
     });
-    return { v: 1, config, teams, games };
+    return { v: 1, config, teams, games, draft: {} };
   }
 
   w.Seed = { build };

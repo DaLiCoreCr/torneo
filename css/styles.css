@@ -25,7 +25,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 @keyframes pulse { 50% { opacity: .3; } }
 
 /* Cabecera */
-.top { background: var(--bg); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.top { background: rgba(10, 10, 10, .86); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
 .top-in { display: flex; align-items: center; gap: 24px; padding-top: 10px; padding-bottom: 10px; }
 .brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .brand-logo { height: 46px; mix-blend-mode: lighten; }
@@ -42,10 +42,12 @@ nav a.on { color: var(--gold); border-bottom-color: var(--gold); }
   nav { margin-left: 0; width: 100%; }
 }
 
-/* Hero: el arte completo, centrado sobre negro y con degradado hacia el fondo de la página */
-.hero { position: relative; background: #000; }
-.hero img { display: block; width: 100%; max-width: 1200px; margin: 0 auto; height: auto; }
-.hero::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 70px; background: linear-gradient(transparent, var(--bg)); pointer-events: none; }
+/* Fondo con canasta (parallax suave) y hero compacto */
+.bg-fx { position: fixed; left: 0; right: 0; top: -12vh; bottom: -12vh; z-index: -1; background: #000 url('../assets/bg-hoop.jpg') 32% 50% / cover no-repeat; will-change: transform; }
+.bg-fx::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,10,.30) 0%, rgba(10,10,10,.72) 45%, rgba(10,10,10,.90) 100%); }
+.hero { padding: 14px 0 0; }
+.hero img { display: block; width: auto; height: auto; max-width: 100%; max-height: 230px; margin: 0 auto; mix-blend-mode: lighten; }
+@media (max-width: 560px) { .hero img { width: 100%; max-height: none; } }
 .intro { margin-top: 18px; }
 .intro p { margin: 6px 0 0; color: #d6d6d6; }
 
@@ -208,3 +210,89 @@ nav a.on { color: var(--gold); border-bottom-color: var(--gold); }
 .team-b { border-top: 1px solid var(--line); padding: 14px; display: grid; gap: 12px; }
 .pl-row { display: grid; grid-template-columns: 70px 1fr 90px auto; gap: 8px; align-items: center; }
 .chk { display: inline-flex; gap: 8px; align-items: center; }
+
+/* Logos de equipo y capitanes */
+.badge.has-img { background: #000; border-color: var(--gold-soft); padding: 0; overflow: hidden; }
+.badge img { width: 100%; height: 100%; object-fit: contain; }
+.cap { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: #000; font: 700 11px Inter, sans-serif; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
+.pl { position: relative; }
+.pl .cap { position: absolute; top: 4px; right: 4px; margin: 0; }
+.pl-row { grid-template-columns: 70px 1fr 90px 52px auto; }
+
+/* Sorteo (pantalla del organizador) */
+.draft { display: grid; gap: 16px; grid-template-columns: 320px 1fr; align-items: start; }
+@media (max-width: 900px) { .draft { grid-template-columns: 1fr; } }
+.dp-list { display: grid; gap: 6px; max-height: 68vh; overflow: auto; margin-top: 10px; }
+.dp { display: flex; align-items: center; gap: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); padding: 9px 10px; cursor: pointer; user-select: none; }
+.dp.on { border-color: var(--gold); background: var(--gold-soft); }
+.dp.spot { border-color: var(--live); }
+.dp .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dp small { color: var(--muted); }
+.cbtn { background: transparent; border: 1px solid var(--line); color: var(--muted); border-radius: 50%; width: 26px; height: 26px; font: 700 11px Inter, sans-serif; padding: 0; flex-shrink: 0; }
+.cbtn.on { background: var(--gold); color: #000; border-color: var(--gold); }
+.dteams { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.dt { background: var(--card); border: 2px solid var(--line); border-radius: var(--r); padding: 12px; }
+.dt.ready { border-color: var(--gold); cursor: pointer; }
+.dt.over { background: var(--gold-soft); }
+.dt-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.dt-h h3 { font-size: 24px; line-height: 1; flex: 1; }
+.dt-h small { color: var(--muted); }
+.dr { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+.dr .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dr .x { background: none; border: 0; color: var(--muted); padding: 2px 6px; }
+.dr .x:hover { color: var(--live); }
+.dr .n { color: var(--muted); font-variant-numeric: tabular-nums; width: 24px; }
+
+/* Presentación del sorteo (para proyectar) */
+body.tv .ticker, body.tv .foot, body.tv .top nav { display: none; }
+.pres { padding-top: 14px; padding-bottom: 40px; }
+.pres-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pres-h h1 { font-size: clamp(34px, 6vw, 76px); line-height: .95; }
+.pres-h h1 b { color: var(--gold); font-weight: 400; }
+.pres-h .cnt { font: 400 clamp(22px, 3vw, 40px) 'Bebas Neue', sans-serif; color: var(--muted); letter-spacing: .05em; }
+.pres-h .cnt b { color: var(--gold); font-weight: 400; }
+.pt-grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); margin-top: 18px; }
+.pt { background: rgba(20, 20, 20, .84); border: 1px solid var(--line); border-radius: 10px; padding: 16px; backdrop-filter: blur(4px); }
+.pt-h { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.pt-h .badge { width: 64px; height: 64px; font-size: 28px; }
+.pt-h h2 { font-size: clamp(26px, 3vw, 40px); line-height: 1; }
+.pt-h small { color: var(--muted); display: block; font-size: 13px; }
+.pt ul { margin: 0; padding: 0; }
+.pt li { list-style: none; display: flex; align-items: center; padding: 8px 6px; border-top: 1px solid var(--line); font-size: clamp(15px, 1.6vw, 21px); border-radius: 4px; }
+.pt li.fresh { animation: fresh 3s ease-out 1; }
+.pt li.capi { color: var(--gold); font-weight: 600; }
+@keyframes fresh { 0% { background: var(--gold); color: #000; transform: scale(1.05); } 100% { background: transparent; } }
+.spot { margin-top: 16px; text-align: center; background: rgba(229, 57, 53, .14); border: 1px solid var(--live); border-radius: 10px; padding: 14px; }
+.spot small { display: block; color: var(--muted); letter-spacing: .12em; text-transform: uppercase; font-size: 12px; }
+.spot b { font: 400 clamp(32px, 6vw, 72px) 'Bebas Neue', sans-serif; letter-spacing: .04em; }
+.pool-strip { margin-top: 20px; display: flex; flex-wrap: wrap; gap: 6px; }
+.pool-strip span { background: rgba(28, 28, 28, .85); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 14px; color: var(--muted); }
+.reveal { position: fixed; inset: 0; z-index: 60; display: none; place-items: center; background: rgba(0, 0, 0, .88); text-align: center; padding: 20px; }
+.reveal.show { display: grid; animation: fadein .35s; }
+@keyframes fadein { from { opacity: 0; } }
+.reveal .badge { width: min(38vw, 220px); height: min(38vw, 220px); font-size: 80px; margin: 0 auto 16px; animation: pop .6s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes pop { from { transform: scale(.3); opacity: 0; } }
+.reveal small { display: block; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-size: clamp(14px, 2vw, 22px); }
+.reveal .who { font: 400 clamp(44px, 9vw, 120px)/1 'Bebas Neue', sans-serif; letter-spacing: .03em; margin: 6px 0; animation: pop .6s .15s both cubic-bezier(.2, 1.4, .4, 1); }
+.reveal .tm { font: 400 clamp(30px, 6vw, 76px)/1 'Bebas Neue', sans-serif; color: var(--gold); }
+
+/* Destellos al asignar un jugador */
+.reveal::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 50% 42%, rgba(201, 168, 76, .38), transparent 55%); animation: glow 1.8s ease-in-out infinite alternate; pointer-events: none; }
+@keyframes glow { from { opacity: .5; transform: scale(.92); } to { opacity: 1; transform: scale(1.06); } }
+.rv { position: relative; }
+.burst { position: absolute; left: 50%; top: 38%; width: 0; height: 0; pointer-events: none; }
+.burst i { position: absolute; left: 0; top: 0; font-style: normal; font-size: var(--s); color: var(--gold); text-shadow: 0 0 14px #ffd86b, 0 0 30px rgba(255, 200, 80, .7); opacity: 0; transform: translate(-50%, -50%) scale(0); animation: starfly 2.2s var(--d) cubic-bezier(.15, .8, .3, 1) forwards; }
+@keyframes starfly {
+  0% { opacity: 0; transform: translate(-50%, -50%) rotate(0) scale(0); }
+  15% { opacity: 1; }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--x)), calc(-50% + var(--y))) rotate(var(--r)) scale(1); }
+}
+.reveal .who { background: linear-gradient(100deg, #fff 35%, #ffe7a0 50%, #fff 65%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: pop .6s .15s both cubic-bezier(.2, 1.4, .4, 1), shine 2.2s .8s linear infinite; text-shadow: none; filter: drop-shadow(0 0 18px rgba(201, 168, 76, .6)); }
+@keyframes shine { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+.pt li.fresh { position: relative; overflow: hidden; }
+.pt li.fresh::after { content: ''; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, .6) 50%, transparent 70%); transform: translateX(-120%); animation: sweep 1.2s .25s 3; pointer-events: none; }
+.pt li.fresh::before { content: '✦'; position: absolute; right: 12px; top: 50%; margin-top: -.6em; color: var(--gold); text-shadow: 0 0 10px #ffd86b; animation: twinkle .7s ease-in-out 9; }
+@keyframes sweep { to { transform: translateX(120%); } }
+@keyframes twinkle { 0%, 100% { opacity: .15; transform: scale(.6) rotate(0); } 50% { opacity: 1; transform: scale(1.4) rotate(45deg); } }
+@media (prefers-reduced-motion: reduce) { .burst, .reveal::before, .pt li.fresh::after, .pt li.fresh::before { display: none; } .reveal .who { animation: none; } }

@@ -9,7 +9,10 @@
   const fmtTime = iso => new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
   const catName = (S, id) => (S.config.categories.find(c => c.id === id) || { name: id }).name;
   const team = (S, id) => S.teams.find(t => t.id === id) || { id, name: '—', players: [], color: '#555' };
-  const badge = t => `<span class="badge" style="--c:${esc(t.color || '#c9a84c')}">${esc(initials(t.name))}</span>`;
+  const badge = t => t.logo
+    ? `<span class="badge has-img" style="--c:${esc(t.color || '#c9a84c')}"><img src="${esc(t.logo)}" alt=""></span>`
+    : `<span class="badge" style="--c:${esc(t.color || '#c9a84c')}">${esc(initials(t.name))}</span>`;
+  const capMark = p => (p && p.captain ? '<span class="cap" title="Capitán">C</span>' : '');
   const byDate = (a, b) => a.date.localeCompare(b.date);
 
   function clockText(g) {
@@ -34,6 +37,7 @@
 
   function layout(active) {
     document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="assets/logo.jpg">');
+    parallax();
     const S = T.state();
     const links = [['index.html', 'live', 'En vivo'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['estadisticas.html', 'est', 'Estadísticas']]
       .map(([h, k, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${l}</a>`).join('');
@@ -49,12 +53,30 @@
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
          <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto</span>
-         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="admin.html">Administración</a></span>
+         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();
     T.subscribe(renderTicker);
     setInterval(tick, 500);
+  }
+
+  /* Fondo fijo que se desplaza despacio mientras se baja la página (funciona también en iPhone) */
+  function parallax() {
+    const fx = document.createElement('div');
+    fx.className = 'bg-fx'; fx.setAttribute('aria-hidden', 'true');
+    document.body.prepend(fx);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let queued = false;
+    const move = () => {
+      queued = false;
+      const max = Math.max(1, document.documentElement.scrollHeight - innerHeight);
+      const p = Math.min(1, Math.max(0, scrollY / max));
+      fx.style.transform = `translate3d(0, ${((0.5 - p) * 0.2 * innerHeight).toFixed(1)}px, 0)`;
+    };
+    addEventListener('scroll', () => { if (!queued) { queued = true; requestAnimationFrame(move); } }, { passive: true });
+    addEventListener('resize', move);
+    move();
   }
 
   function tick() {
@@ -180,5 +202,5 @@
     });
   }
 
-  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, standingsTable, toast, gate };
+  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, standingsTable, toast, gate };
 })(window);

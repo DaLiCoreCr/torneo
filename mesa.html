@@ -7,14 +7,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=7">
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js"></script>
-<script src="js/core.js"></script>
-<script src="js/seed.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/firebase-config.js?v=7"></script>
+<script src="js/core.js?v=7"></script>
+<script src="js/seed.js?v=7"></script>
+<script src="js/ui.js?v=7"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -68,7 +68,7 @@ function control(S, g) {
 
   const players = cur.players.map(p => {
     const s = stats[p.id] || T.blank();
-    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i></button>`;
+    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i>${UI.capMark(p)}</button>`;
   }).join('');
 
   const selP = sel && cur.players.find(p => p.id === sel);

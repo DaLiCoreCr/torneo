@@ -14,7 +14,7 @@ export function connect(cfg, host) {
   const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
   const auth = getAuth(app);
 
-  const remote = { config: null, teams: new Map(), games: new Map() };
+  const remote = { config: null, teams: new Map(), games: new Map(), draft: new Map() };
   const known = new Map(); // 'teams/id' -> json canónico de lo que hay en el servidor
   let unsubs = [], pending = 0, staff = false, onReady = null;
 
@@ -23,7 +23,8 @@ export function connect(cfg, host) {
       v: 1,
       config: remote.config || clone(host.DEFAULT_CONFIG),
       teams: [...remote.teams.values()].sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name)),
-      games: [...remote.games.values()].sort((a, b) => a.date.localeCompare(b.date))
+      games: [...remote.games.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      draft: Object.fromEntries([...remote.draft.entries()])
     });
   }
   function firstDone() {
@@ -43,8 +44,8 @@ export function connect(cfg, host) {
     }, err => { console.error(name, err); if (first) { first = false; firstDone(); } });
   }
   function attach() {
-    pending = 3;
-    remote.teams.clear(); remote.games.clear(); known.clear();
+    pending = 4;
+    remote.teams.clear(); remote.games.clear(); remote.draft.clear(); known.clear();
     let firstCfg = true;
     unsubs = [
       onSnapshot(doc(db, 'config', 'main'), snap => {
@@ -53,7 +54,8 @@ export function connect(cfg, host) {
         if (firstCfg) { firstCfg = false; firstDone(); } else if (pending === 0) rebuild();
       }, err => { console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } }),
       watch('teams', remote.teams),
-      watch('games', remote.games)
+      watch('games', remote.games),
+      watch('draft', remote.draft)
     ];
   }
   function detach() { unsubs.forEach(u => u()); unsubs = []; }
@@ -73,6 +75,7 @@ export function connect(cfg, host) {
     consider('config/main', state.config);
     state.teams.forEach(t => consider('teams/' + t.id, t));
     state.games.forEach(g => consider('games/' + g.id, g));
+    Object.entries(state.draft || {}).forEach(([c, d]) => consider('draft/' + c, Object.assign({}, d, { id: c })));
     const dels = [...known.keys()].filter(p => !seen.has(p) && known.get(p) !== '');
     dels.forEach(p => known.delete(p));
     const ops = sets.map(([p, d]) => b => b.set(doc(db, p), d)).concat(dels.map(p => b => b.delete(doc(db, p))));

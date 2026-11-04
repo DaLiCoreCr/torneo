@@ -12,6 +12,7 @@ service cloud.firestore {
     match /config/{id} { allow read: if true; allow write: if isStaff(); }
     match /teams/{id}  { allow read: if true; allow write: if isStaff(); }
     match /games/{id}  { allow read: if true; allow write: if isStaff(); }
+    match /draft/{id}  { allow read: if true; allow write: if isStaff(); }
 
     // Todo lo demás queda denegado.
   }

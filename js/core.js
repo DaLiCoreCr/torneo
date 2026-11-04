@@ -31,7 +31,7 @@
     STL: { l: 'Robo', name: 'Robo de balón', lvl: 1, k: 'stat' },
     BLK: { l: 'Tapón', name: 'Tapón', lvl: 1, k: 'stat' },
     TO: { l: 'Pérdida', name: 'Pérdida de balón', lvl: 1, k: 'stat' },
-    FOUL: { l: 'Falta', name: 'Falta personal', lvl: 0, k: 'foul' },
+    FOUL: { l: 'Falta cometida', name: 'Falta cometida', lvl: 0, k: 'foul' },
     FD: { l: 'Falta recibida', name: 'Falta recibida', lvl: 2, k: 'stat' },
     TMO: { l: 'Tiempo muerto', name: 'Tiempo muerto', lvl: 0, team: true }
   };
@@ -60,7 +60,7 @@
   }
   function load() {
     if (useCloud()) {
-      const emptyState = () => ({ v: 1, config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), teams: [], games: [] });
+      const emptyState = () => ({ v: 1, config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), teams: [], games: [], draft: {} });
       state = emptyState();
       return import(new URL('js/store-firebase.js', document.baseURI).href)
         .then(m => m.connect(w.FIREBASE_CONFIG, {
@@ -73,6 +73,7 @@
     }
     state = readRaw();
     if (!state) { state = w.Seed.build(); persist(); }
+    state.draft = state.draft || {};
     return Promise.resolve(state);
   }
   function reload() { if (backend) return state; const s = readRaw(); if (s) state = s; return state; }
@@ -210,7 +211,58 @@
       .sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.pf - x.pf || x.team.name.localeCompare(y.team.name));
   }
 
+  /* ---------- Sorteo de equipos ----------
+     state.draft[cat] = { pool: [jugadores sin equipo], last: última asignación, spot: jugador en turno } */
+  const draftOf = (S, cat) => Object.assign({ pool: [], last: null, spot: null }, (S.draft || {})[cat]);
+  function draftW(S, cat) {
+    S.draft = S.draft || {};
+    const d = S.draft[cat] || (S.draft[cat] = { pool: [], last: null, spot: null });
+    d.pool = d.pool || [];
+    return d;
+  }
+  function freeNum(t, want) {
+    const used = new Set(t.players.map(p => p.num));
+    if (Number.isInteger(want) && want > 0 && !used.has(want)) return want;
+    let n = 1; while (used.has(n)) n++;
+    return n;
+  }
+  function draftAssign(S, cat, pid, teamId) {
+    const t = S.teams.find(x => x.id === teamId);
+    if (!t) return false;
+    const d = draftW(S, cat);
+    let p = null;
+    const i = d.pool.findIndex(x => x.id === pid);
+    if (i >= 0) p = d.pool.splice(i, 1)[0];
+    else {
+      const from = S.teams.find(x => x.players.some(y => y.id === pid));
+      if (!from || from.id === teamId) return false;
+      p = from.players.splice(from.players.findIndex(y => y.id === pid), 1)[0];
+    }
+    p.num = freeNum(t, p.num);
+    t.players.push(p);
+    d.last = { pid: p.id, name: p.name, teamId, cap: !!p.captain, ts: Date.now() };
+    d.spot = null;
+    return true;
+  }
+  function draftReturn(S, cat, pid) {
+    const from = S.teams.find(x => x.players.some(y => y.id === pid));
+    if (!from) return false;
+    const p = from.players.splice(from.players.findIndex(y => y.id === pid), 1)[0];
+    delete p.num;
+    const d = draftW(S, cat);
+    d.pool.push(p); d.last = null;
+    return true;
+  }
+  function draftRandom(S, cat) {
+    const d = draftW(S, cat);
+    if (!d.pool.length) return null;
+    const p = d.pool[Math.floor(Math.random() * d.pool.length)];
+    d.spot = { pid: p.id, name: p.name, ts: Date.now() };
+    return p.id;
+  }
+
   w.T = {
+    draft: draftOf, draftW, draftAssign, draftReturn, draftRandom,
     cloud: false, offline: false, auth: null, setStaff: () => {},
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
