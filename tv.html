@@ -55,7 +55,7 @@ function render() {
       ${UI.badge(t)}<h2>${esc(t.name)}</h2>
       <div class="tv-sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : g.score[side]}</div>
       <div class="tv-meta"><span class="fouls">${Array.from({ length: R.bonusFouls }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>
-        ${n >= R.bonusFouls ? '<span class="bonus">BONUS</span>' : '<small>COLECTIVAS</small>'}<small>T. MUERTOS ${tm(side)}</small></div></div>`;
+        ${n >= R.bonusFouls ? '<span class="bonus">EN COLECTIVAS</span>' : '<small>COLECTIVAS</small>'}<small>T. MUERTOS ${tm(side)}</small></div></div>`;
   };
   const idx = T.playerIndex(S);
   const plays = g.events.filter(e => ACTIONS[e.type].pts).slice(-4).reverse().map(e => {
