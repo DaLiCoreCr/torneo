@@ -65,7 +65,7 @@ function control(S, g) {
   const rem = T.remaining(g);
   const periodOver = rem <= 0 && !g.clock.running;
   const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
-    <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">BONUS</span>' : ''} · TM ${T.timeoutsUsed(g, k)}/${R.timeouts}</div></div>`;
+    <div class="meta">Colectivas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">BONUS</span>' : ''} · T. muertos: quedan ${Math.max(0, R.timeouts - T.timeoutsUsed(g, k))}</div></div>`;
 
   let endBtn = '';
   if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';

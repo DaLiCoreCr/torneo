@@ -129,7 +129,7 @@ function gamesView(S) {
       ${field('Fecha y hora', `<input class="inp" type="datetime-local" id="ng-d" value="${nowLocal()}">`)}
       ${field('Modo de captura', `<select class="inp" id="ng-m">${T.MODES.map((m, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${m}</option>`).join('')}</select>`)}
       <button class="btn gold" data-act="addgame">Programar</button></div>
-      <p class="note">Básico: puntos, faltas, tiempos muertos. Intermedio: + rebotes, asistencias, robos, pérdidas, tapones y tiros fallados. Completo: + faltas recibidas.</p></div>
+      <p class="note">Básico: puntos, faltas, tiempos muertos (las colectivas se cuentan solas). Intermedio: + rebotes, asistencias, robos, pérdidas, tapones y tiros fallados. Completo: + faltas recibidas.</p></div>
     <div class="gm-list">${games.map(g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
       <div class="muted" style="font-size:13px">${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · ${T.MODES[g.mode]} · ${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : 'Programado'}</div></div>
       <div class="row"><a class="btn sm gold" href="mesa.html?id=${esc(g.id)}">Mesa</a><button class="btn sm danger" data-act="delgame" data-id="${esc(g.id)}">Eliminar</button></div></div>`).join('') || '<div class="empty">No hay partidos en esta categoría.</div>'}</div>`;
@@ -145,7 +145,7 @@ function rulesView(S) {
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Tiempo de juego</h3>
     <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Faltas</h3>
-    <div class="card"><div class="frm">${num('foulsOut', 'Faltas para eliminar al jugador')}${num('bonusFouls', 'Faltas de equipo por período para bonus')}</div></div>
+    <div class="card"><div class="frm">${num('foulsOut', 'Faltas personales para eliminar al jugador')}${num('bonusFouls', 'Faltas colectivas por período para activar el bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
     <div class="card"><div class="frm">${num('ptsWin', 'Victoria')}${num('ptsDraw', 'Empate')}${num('ptsLoss', 'Derrota (participación)')}
       ${T.cloud ? '' : field('Actualización del público (segundos)', `<input class="inp" type="number" min="5" id="r-refresh" value="${S.config.refreshSec}">`)}</div></div>
