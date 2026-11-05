@@ -70,7 +70,7 @@
           setState: s => { state = s; notify(); },
           onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
         }))
-        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; return state; })
+        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; return state; })
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
     state = readRaw();
@@ -334,7 +334,7 @@
 
   w.T = {
     draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftUndo,
-    cloud: false, offline: false, auth: null, setStaff: () => {},
+    cloud: false, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodLabel, remaining, fmtClock,

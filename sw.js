@@ -2,9 +2,9 @@
    - Archivos propios: red primero, con copia guardada como respaldo.
    - Librerías de Firebase y fuentes (versionadas): copia primero.
    - Las consultas a Firestore no pasan por aquí; su propio caché guarda los datos. */
-const CACHE = 'hoopz-v16';
+const CACHE = 'hoopz-v17';
 const SHELL = ['./', 'index.html', 'resultados.html', 'posiciones.html', 'estadisticas.html', 'partido.html', 'tv.html', 'mesa.html', 'sorteo.html', 'presentacion.html', 'admin.html',
-  'css/styles.css?v=16', 'js/firebase-config.js?v=16', 'js/core.js?v=16', 'js/seed.js?v=16', 'js/ui.js?v=16', 'js/store-firebase.js',
+  'css/styles.css?v=17', 'js/firebase-config.js?v=17', 'js/core.js?v=17', 'js/seed.js?v=17', 'js/ui.js?v=17', 'js/store-firebase.js',
   'assets/logo.jpg', 'assets/hero.webp', 'assets/bg-hoop.jpg', 'icons/icon-192.png'];
 const STATIC_HOSTS = ['www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 

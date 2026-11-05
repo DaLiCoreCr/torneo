@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=16">
+<link rel="stylesheet" href="css/styles.css?v=17">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=16"></script>
-<script src="js/core.js?v=16"></script>
-<script src="js/seed.js?v=16"></script>
-<script src="js/ui.js?v=16"></script>
+<script src="js/firebase-config.js?v=17"></script>
+<script src="js/core.js?v=17"></script>
+<script src="js/seed.js?v=17"></script>
+<script src="js/ui.js?v=17"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -29,7 +29,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null;
 
-const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['rules', 'Reglas'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -164,11 +164,48 @@ function dataView() {
       <div class="row"><button class="btn danger" data-act="resetgames">Reiniciar resultados</button><button class="btn danger" data-act="wipe">Borrar todo (torneo vacío)</button></div></div></div>`;
 }
 
+/* Monitoreo: dispositivos conectados ahora y lecturas/escrituras del día (suma de lo que reporta cada dispositivo) */
+const ONLINE_MS = 300000, QUOTA = { reads: 50000, writes: 20000 };
+const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación' };
+let unUsage = null, lastUsage = null;
+function monitorView() {
+  if (!T.cloud || !T.watchUsage) return '<div class="card"><p class="muted">El monitoreo solo funciona con los datos en la nube (no en modo local).</p></div>';
+  return '<div id="mon">' + monitorHtml(lastUsage) + '</div>';
+}
+function monitorHtml(m) {
+  if (!m) return '<div class="empty">Cargando…</div>';
+  if (m.err) return `<div class="card"><p class="muted">No se pudo leer el monitoreo (${esc(m.err.code || m.err.message)}). Revisa que las reglas de Firestore incluyan la colección <b>presence</b>.</p></div>`;
+  const now = Date.now(), list = m.docs;
+  const online = list.filter(d => now - d.t < ONLINE_MS);
+  const reads = list.reduce((n, d) => n + (d.reads || 0), 0), writes = list.reduce((n, d) => n + (d.writes || 0), 0);
+  const byPage = {}; online.forEach(d => { byPage[d.page] = (byPage[d.page] || 0) + 1; });
+  const bar = (v, max) => { const p = Math.min(100, v / max * 100); return `<div style="height:8px;background:#222;border-radius:4px;margin-top:6px"><div style="height:8px;width:${p}%;background:${p > 70 ? '#e53935' : 'var(--gold,#c9a84c)'};border-radius:4px"></div></div>`; };
+  const tile = (label, v, extra) => `<div class="card" style="text-align:center"><div class="muted" style="font-size:13px">${label}</div><div class="gold" style="font-family:'Bebas Neue',sans-serif;font-size:44px;line-height:1.1">${v.toLocaleString('es')}</div>${extra || ''}</div>`;
+  return `<div class="cols">
+      ${tile('Conectados ahora', online.length, `<div class="muted" style="font-size:12px">${Object.entries(byPage).map(([k, n]) => `${esc(PAGES[k] || k)}: ${n}`).join(' · ') || 'nadie'}</div>`)}
+      ${tile('Dispositivos hoy', list.length, '<div class="muted" style="font-size:12px">distintos que abrieron la app</div>')}
+      ${tile('Lecturas hoy', reads, bar(reads, QUOTA.reads) + `<div class="muted" style="font-size:12px">${(reads / QUOTA.reads * 100).toFixed(1)}% de ${QUOTA.reads.toLocaleString('es')}</div>`)}
+      ${tile('Escrituras hoy', writes, bar(writes, QUOTA.writes) + `<div class="muted" style="font-size:12px">${(writes / QUOTA.writes * 100).toFixed(1)}% de ${QUOTA.writes.toLocaleString('es')}</div>`)}
+    </div>
+    <p class="note">"Conectado" = latido en los últimos 5 min con la pantalla visible. Las lecturas y escrituras son la suma de lo que reporta cada dispositivo (con hasta ~2 min de retraso) e incluyen los latidos de este monitoreo. Es una estimación: la cifra exacta está en Firebase → Uso. Las cuotas se reinician a medianoche (hora del Pacífico). Mientras esta sección está abierta, cada latido recibido cuenta como una lectura.</p>`;
+}
+function stopUsage() { if (unUsage) { unUsage(); unUsage = null; } }
+function startUsage() {
+  if (unUsage || !T.cloud || !T.watchUsage) return;
+  unUsage = T.watchUsage((docs, mine, err) => {
+    lastUsage = err ? { err } : { docs: docs || [], mine };
+    const el = document.getElementById('mon');
+    if (el) el.innerHTML = monitorHtml(lastUsage);
+  });
+}
+setInterval(() => { const el = document.getElementById('mon'); if (el && lastUsage && !lastUsage.err) el.innerHTML = monitorHtml(lastUsage); }, 30000);
+
 function render() {
   const S = T.state();
+  if (tab === 'monitor') startUsage(); else stopUsage();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'rules' ? rulesView(S) : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
 }
 
 app.addEventListener('click', e => {

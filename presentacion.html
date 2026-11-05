@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=16">
+<link rel="stylesheet" href="css/styles.css?v=17">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,10 +19,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=16"></script>
-<script src="js/core.js?v=16"></script>
-<script src="js/seed.js?v=16"></script>
-<script src="js/ui.js?v=16"></script>
+<script src="js/firebase-config.js?v=17"></script>
+<script src="js/core.js?v=17"></script>
+<script src="js/seed.js?v=17"></script>
+<script src="js/ui.js?v=17"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -93,7 +93,7 @@ function render() {
     <div class="pres-h"><h1>Sorteo de equipos<br><b>${esc(catName)}</b></h1>
       <div class="row"><div class="cnt">Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length}</b></div>
         ${S.config.categories.length > 1 ? `<div class="pills" style="margin:0">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>` : ''}
-        <button class="btn sm ghost" id="fs">Pantalla completa</button></div></div>
+        <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>
     ${teams.length ? `<div class="pt-grid">${teams.map(t => {
       const ps = t.players.slice().sort((a, b) => (b.captain ? 1 : 0) - (a.captain ? 1 : 0));
       return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${t.coach ? 'Coach ' + esc(t.coach.replace(/^coach\s+/i, '')) + ' · ' : ''}${t.players.length} jugador${t.players.length === 1 ? '' : 'es'}</small></div></div>
@@ -108,6 +108,7 @@ app.addEventListener('click', e => {
   if (e.target.id === 'fs') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
 });
 
+document.addEventListener('fullscreenchange', () => render());
 render();
 T.subscribe(render);
 });

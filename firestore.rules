@@ -14,6 +14,16 @@ service cloud.firestore {
     match /games/{id}  { allow read: if true; allow write: if isStaff(); }
     match /draft/{id}  { allow read: if true; allow write: if isStaff(); }
 
+    // Monitoreo: cualquier dispositivo reporta su latido (solo esos campos, tamaño acotado); solo el staff lee.
+    match /presence/{id} {
+      allow read: if isStaff();
+      allow create, update: if request.resource.data.keys().hasOnly(['t', 'day', 'page', 'reads', 'writes'])
+        && request.resource.data.t is number && request.resource.data.reads is number
+        && request.resource.data.writes is number && request.resource.data.day is string
+        && request.resource.data.day.size() <= 10 && request.resource.data.page is string
+        && request.resource.data.page.size() <= 30;
+    }
+
     // Todo lo demás queda denegado.
   }
 }
