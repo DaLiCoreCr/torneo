@@ -14,6 +14,9 @@ service cloud.firestore {
     match /games/{id}  { allow read: if true; allow write: if isStaff(); }
     match /draft/{id}  { allow read: if true; allow write: if isStaff(); }
 
+    // Aviso de resultados: la mesa lo actualiza al finalizar/cambiar un partido; las páginas sin tiempo real lo escuchan.
+    match /meta/{id}   { allow read: if true; allow write: if isStaff(); }
+
     // Monitoreo: cualquier dispositivo reporta su latido (solo esos campos, tamaño acotado); solo el staff lee.
     match /presence/{id} {
       allow read: if isStaff();

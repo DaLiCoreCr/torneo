@@ -36,7 +36,14 @@ export function connect(cfg, host, opts) {
   const known = new Map(); // 'teams/id' -> json canónico de lo que hay en el servidor
   let unsubs = [], pending = 0, staff = false, onReady = null;
 
+  const sigOf = games => {
+    const str = games.filter(g => g.status === 'final').sort((a, b) => a.id.localeCompare(b.id)).map(g => g.id + ':' + g.score.h + '-' + g.score.a + ':' + g.events.length).join('|');
+    let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return h + '-' + str.length;
+  };
+  let lastSig = null;
   function rebuild() {
+    if (lastSig === null) lastSig = sigOf([...remote.games.values()]);
     host.setState({
       v: 1,
       config: remote.config || clone(host.DEFAULT_CONFIG),
@@ -62,23 +69,57 @@ export function connect(cfg, host, opts) {
       if (first) { first = false; firstDone(); } else if (pending === 0) rebuild();
     }, err => { console.error(name, err); if (first) { first = false; firstDone(); } retry(); });
   }
-  /* Modo sin tiempo real: una lectura de config, equipos y partidos (sin draft); equipos solo la primera vez */
-  let teamsLoaded = false, lastFetch = 0, fetching = false;
-  function fetchOnce() {
-    if (fetching) return; fetching = true; lastFetch = Date.now();
+  /* Modo sin tiempo real: config, equipos y partidos se leen una vez (sin draft) y se guardan en el navegador (compartido entre páginas):
+     si alguien navega seguido, se reutiliza lo guardado durante 2 min (equipos, 30 min) en vez de volver a leer. */
+  const SNAP = 'torneo.snap', FRESH_MS = 120000, TEAMS_MS = 1800000;
+  let lastFetch = 0, fetching = false;
+  const readSnap = () => { try { return JSON.parse(localStorage.getItem(SNAP) || 'null'); } catch (e) { return null; } };
+  const saveSnap = c => { try { localStorage.setItem(SNAP, JSON.stringify(c)); } catch (e) { /* sin espacio: se ignora */ } };
+  const isReload = () => { try { const n = performance.getEntriesByType('navigation')[0]; return !!n && n.type === 'reload'; } catch (e) { return false; } };
+  /* opts.fresh: antigüedad (ms) bajo la cual se reutiliza lo guardado; opts.force: leer siempre */
+  function fetchOnce(opts) {
+    opts = opts || {};
+    if (fetching) return;
+    const cache = readSnap();
+    if (cache) {
+      remote.config = cache.config; remote.teams.clear(); remote.games.clear();
+      (cache.teams || []).forEach(t => remote.teams.set(t.id, t)); (cache.games || []).forEach(g => remote.games.set(g.id, g));
+      rebuild();
+      if (!opts.force && Date.now() - cache.t < (opts.fresh || FRESH_MS)) {
+        lastFetch = cache.t;
+        if (onReady) { onReady(); onReady = null; }
+        return;
+      }
+    }
+    fetching = true; lastFetch = Date.now();
+    const needTeams = !cache || !cache.tt || Date.now() - cache.tt > TEAMS_MS || (opts.force && !cache.teams);
     const count = snap => { if (!snap.metadata.fromCache) usage.reads(snap.size === undefined ? (snap.exists() ? 1 : 0) : snap.size); };
-    Promise.all([getDoc(doc(db, 'config', 'main')), teamsLoaded ? null : getDocs(collection(db, 'teams')), getDocs(collection(db, 'games'))])
+    Promise.all([getDoc(doc(db, 'config', 'main')), needTeams ? getDocs(collection(db, 'teams')) : null, getDocs(collection(db, 'games'))])
       .then(([c, t, g]) => {
         count(c); remote.config = c.exists() ? c.data() : null;
-        if (t) { count(t); remote.teams.clear(); t.forEach(d => remote.teams.set(d.id, d.data())); teamsLoaded = true; }
+        if (t) { count(t); remote.teams.clear(); t.forEach(d => remote.teams.set(d.id, d.data())); }
         count(g); remote.games.clear(); g.forEach(d => remote.games.set(d.id, d.data()));
         rebuild();
+        saveSnap({ t: Date.now(), sig: metaSig, tt: t ? Date.now() : (cache ? cache.tt : Date.now()), config: remote.config, teams: [...remote.teams.values()], games: [...remote.games.values()] });
       })
       .catch(err => console.error('lectura', err))
       .finally(() => { fetching = false; if (onReady) { onReady(); onReady = null; } });
   }
+  /* Aviso de resultados: documento diminuto meta/results que la mesa actualiza al cambiar un partido finalizado.
+     Las páginas sin tiempo real lo escuchan (1 lectura al abrir + 1 por cambio) y recargan los datos solo cuando cambia. */
+  let metaUn = null, metaSig = null;
+  function metaWatch() {
+    if (liveMode || metaUn) return;
+    metaUn = onSnapshot(doc(db, 'meta', 'results'), snap => {
+      if (!snap.metadata.fromCache) usage.reads(1);
+      const sig = snap.exists() ? String(snap.data().sig) : '';
+      if (metaSig === null) { metaSig = sig; const c = readSnap(); if (c && c.sig == null) saveSnap(Object.assign(c, { sig })); else if (c && c.sig !== sig) fetchOnce({ force: true }); }
+      else if (sig !== metaSig) { metaSig = sig; fetchOnce({ force: true }); }
+    }, err => console.warn('meta', err.code || err));
+  }
+  function metaStop() { if (metaUn) { metaUn(); metaUn = null; } }
   function attach() {
-    if (!liveMode) { fetchOnce(); return; }
+    if (!liveMode) { fetchOnce(isReload() ? { fresh: 20000 } : {}); metaWatch(); return; }
     pending = 4;
     remote.teams.clear(); remote.games.clear(); remote.draft.clear(); known.clear();
     let firstCfg = true;
@@ -120,7 +161,7 @@ export function connect(cfg, host, opts) {
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) beatStop(); else beatStart();
-    if (!liveMode) { if (!document.hidden && Date.now() - lastFetch > 120000) fetchOnce(); return; }
+    if (!liveMode) { if (document.hidden) metaStop(); else { metaWatch(); if (Date.now() - lastFetch > 120000) fetchOnce(); } return; }
     if (staff) return;
     if (document.hidden) detach(); else attach();
   });
@@ -146,6 +187,12 @@ export function connect(cfg, host, opts) {
     state.teams.forEach(t => consider('teams/' + t.id, t));
     state.games.forEach(g => consider('games/' + g.id, g));
     Object.entries(state.draft || {}).forEach(([c, d]) => consider('draft/' + c, Object.assign({}, d, { id: c })));
+    const sig = sigOf(state.games);
+    if (lastSig !== null && sig !== lastSig) {
+      lastSig = sig;
+      setDoc(doc(db, 'meta', 'results'), { sig }).catch(err => console.warn('meta', err.code || err));
+      usage.writes(1);
+    }
     const dels = [...known.keys()].filter(p => !seen.has(p) && known.get(p) !== '');
     dels.forEach(p => known.delete(p));
     const ops = sets.map(([p, d]) => b => b.set(doc(db, p), d)).concat(dels.map(p => b => b.delete(doc(db, p))));
