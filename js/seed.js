@@ -51,7 +51,10 @@
   function simulate(r, g, th, ta, periods, lastRemaining) {
     const evs = [];
     const len = T.periodLen;
+    const court = { h: th.players.slice(0, 5).map(p => p.id), a: ta.players.slice(0, 5).map(p => p.id) };
+    ['h', 'a'].forEach(k => court[k].forEach(pid => evs.push({ id: 's' + pid + g.id, p: 1, c: len(1), team: k, pid, type: 'SUB_IN', ts: 0 })));
     for (let p = 1; p <= periods; p++) {
+      const segStart = evs.length;
       const n = 28 + Math.floor(r() * 10);
       const times = [];
       const floor = p === periods && lastRemaining != null ? lastRemaining : 0;
@@ -82,6 +85,18 @@
       if (r() < 0.6) {
         evs.push({ id: 'tm2' + p + g.id, p, c: Math.round(floor + (len(p) - floor) * 0.3), team: 'a', pid: null, type: 'TMO', ts: 0 });
       }
+      /* un cambio por equipo a mitad de cada período */
+      const mid = Math.round(floor + (len(p) - floor) * 0.5);
+      ['h', 'a'].forEach(k => {
+        const roster = (k === 'h' ? th : ta).players.map(x => x.id);
+        const bench = roster.filter(id => !court[k].includes(id));
+        if (!bench.length) return;
+        const out = court[k][Math.floor(r() * court[k].length)], inn = bench[Math.floor(r() * bench.length)];
+        court[k] = court[k].filter(id => id !== out).concat(inn);
+        evs.push({ id: 'so' + k + p + g.id, p, c: mid, team: k, pid: out, type: 'SUB_OUT', ts: 0 });
+        evs.push({ id: 'si' + k + p + g.id, p, c: mid, team: k, pid: inn, type: 'SUB_IN', ts: 0 });
+      });
+      evs.push(...evs.splice(segStart).sort((a, b) => b.c - a.c));
     }
     return evs;
   }

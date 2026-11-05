@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="stylesheet" href="css/styles.css?v=16">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap tvwrap"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=15"></script>
-<script src="js/core.js?v=15"></script>
-<script src="js/seed.js?v=15"></script>
-<script src="js/ui.js?v=15"></script>
+<script src="js/firebase-config.js?v=16"></script>
+<script src="js/core.js?v=16"></script>
+<script src="js/seed.js?v=16"></script>
+<script src="js/ui.js?v=16"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -48,6 +48,7 @@ function render() {
   const per = g.clock.period;
   const tf = side => T.teamFouls(g, side, per);
   const tm = side => Math.max(0, R.timeouts - T.timeoutsUsed(g, side));
+  const ocs = live && T.hasSubs(g) ? T.onCourt(g) : null;
   const box = (t, side) => {
     const other = side === 'h' ? 'a' : 'h';
     const n = tf(side);
@@ -55,7 +56,8 @@ function render() {
       ${UI.badge(t)}<h2>${esc(t.name)}</h2>
       <div class="tv-sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : g.score[side]}</div>
       <div class="tv-meta"><span class="fouls">${Array.from({ length: R.bonusFouls }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>
-        ${n >= R.bonusFouls ? '<span class="bonus">EN COLECTIVAS</span>' : '<small>COLECTIVAS</small>'}<small>T. MUERTOS ${tm(side)}</small></div></div>`;
+        ${n >= R.bonusFouls ? '<span class="bonus">EN COLECTIVAS</span>' : '<small>COLECTIVAS</small>'}<small>T. MUERTOS ${tm(side)}</small></div>
+      ${ocs ? `<div class="tv-on">${t.players.filter(p => ocs[side].has(p.id)).map(p => `<span>${p.num}</span>`).join('')}</div>` : ''}</div>`;
   };
   const idx = T.playerIndex(S);
   const plays = g.events.filter(e => ACTIONS[e.type].pts).slice(-4).reverse().map(e => {

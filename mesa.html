@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="stylesheet" href="css/styles.css?v=16">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,17 +18,17 @@
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=15"></script>
-<script src="js/core.js?v=15"></script>
-<script src="js/seed.js?v=15"></script>
-<script src="js/ui.js?v=15"></script>
+<script src="js/firebase-config.js?v=16"></script>
+<script src="js/core.js?v=16"></script>
+<script src="js/seed.js?v=16"></script>
+<script src="js/ui.js?v=16"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
 const { esc, ACTIONS } = T;
 const app = document.getElementById('app');
 let gid = new URLSearchParams(location.search).get('id');
-let side = 'h', sel = null, adjusting = false;
+let side = 'h', sel = null, adjusting = false, subMode = false;
 
 
 function start() { render(); T.subscribe(render); setInterval(watchClock, 500); }
@@ -64,6 +64,7 @@ function control(S, g) {
   const tied = g.score.h === g.score.a;
   const rem = T.remaining(g);
   const periodOver = rem <= 0 && !g.clock.running;
+  const oc = T.onCourt(g), N = R.onCourt || 5;
   const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
     <div class="meta">Colectivas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">EN COLECTIVAS</span>' : ''} · T. muertos: quedan ${Math.max(0, R.timeouts - T.timeoutsUsed(g, k))}</div></div>`;
 
@@ -75,11 +76,11 @@ function control(S, g) {
 
   const players = cur.players.map(p => {
     const s = stats[p.id] || T.blank();
-    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : (s.pf > 0 && s.pf === R.foulsOut - 1) ? 'warn' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i>${UI.capMark(p)}</button>`;
+    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : (s.pf > 0 && s.pf === R.foulsOut - 1) ? 'warn' : ''} ${oc[side].has(p.id) ? 'oc' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i>${UI.capMark(p)}</button>`;
   }).join('');
 
   const selP = sel && cur.players.find(p => p.id === sel);
-  const acts = Object.entries(ACTIONS).filter(([k, v]) => !v.team && v.lvl <= g.mode);
+  const acts = Object.entries(ACTIONS).filter(([k, v]) => !v.team && !v.sub && v.lvl <= g.mode);
   const off = selP ? '' : 'disabled';
   const pad = `<div class="pad ${selP ? '' : 'idle'}"><h3>${selP ? `#${selP.num} ${esc(selP.name)} <span class="muted" style="font-size:16px">· ${esc(cur.name)}</span>` : 'Elige un jugador'}</h3>
       <div class="acts scores">${acts.filter(([, v]) => v.k === 'score').map(([k, v]) => `<button class="act score" data-act="ev" data-t="${k}" ${off}>${v.l}</button>`).join('')}</div>
@@ -92,6 +93,10 @@ function control(S, g) {
     return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(UI.team(S, e.team === 'h' ? g.home : g.away))}<span>${esc(ACTIONS[e.type].name)}${pl ? ' — #' + pl.p.num + ' ' + esc(pl.p.name) : ''}</span>${ACTIONS[e.type].pts ? `<span class="pts">+${ACTIONS[e.type].pts}</span>` : ''}</li>`;
   }).join('');
 
+  const cnt = oc[side].size;
+  const modeBar = `<div class="row" style="justify-content:space-between;margin:10px 0 0"><span class="seg"><button data-act="mode" data-m="play" class="${subMode ? '' : 'on'}">Jugadas</button><button data-act="mode" data-m="subs" class="${subMode ? 'on' : ''}">Cambios</button></span>
+    <span class="ocnt">En cancha: <b class="${cnt === N ? 'ok' : 'bad'}">${cnt}/${N}</b></span></div>`;
+  const subCard = `<div class="subcard"><h3 class="gold" style="font-size:22px">Modo cambios</h3><p class="muted" style="font-size:14px;margin:6px 0 0">Toca un jugador para <b>meterlo</b> a la cancha o <b>sacarlo</b>. Los que están en cancha llevan el punto verde. Marca el quinteto inicial antes de iniciar el reloj.</p></div>`;
   const mm = Math.floor(rem / 60000), ss = Math.floor((rem % 60000) / 1000);
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
@@ -107,8 +112,9 @@ function control(S, g) {
     <div class="row" style="margin-bottom:10px">${endBtn}${g.status !== 'final' && !(over && !tied) ? '<button class="btn sm danger" data-act="finish">Finalizar ya</button>' : ''}</div>
     <div class="row" style="justify-content:space-between"><h3 style="font-size:22px">${esc(cur.name)}</h3>
       <button class="btn sm" data-act="tmo" ${T.timeoutsUsed(g, side) >= R.timeouts ? 'disabled' : ''}>Tiempo muerto</button></div>
+    ${g.status === 'final' ? '' : modeBar}
     <div class="mwork"><div class="players">${players}</div>
-    ${g.status === 'final' ? '' : pad}${g.status === 'final' || selP ? '' : '<div class="hint">Toca el número del jugador y luego la jugada.</div>'}</div>
+    ${g.status === 'final' ? '' : subMode ? subCard : pad}${g.status === 'final' || selP || subMode ? '' : '<div class="hint">Toca el número del jugador y luego la jugada.</div>'}</div>
     <div class="log"><div class="row" style="justify-content:space-between"><h3>Últimas jugadas</h3><button class="btn sm danger" data-act="undo" ${g.events.length ? '' : 'disabled'}>Deshacer última</button></div>
       <ul class="plays">${log || '<li class="muted">Sin jugadas.</li>'}</ul></div>`;
 }
@@ -137,9 +143,24 @@ app.addEventListener('click', e => {
     case 'open': gid = b.dataset.id; sel = null; side = 'h'; history.replaceState(null, '', '?id=' + gid); render(); break;
     case 'back': gid = null; sel = null; history.replaceState(null, '', 'mesa.html'); render(); break;
     case 'side': side = b.dataset.s; sel = null; render(); break;
-    case 'pl': sel = sel === b.dataset.id ? null : b.dataset.id; render(); break;
+    case 'mode': subMode = b.dataset.m === 'subs'; sel = null; render(); break;
+    case 'pl': {
+      if (!subMode) { sel = sel === b.dataset.id ? null : b.dataset.id; render(); break; }
+      const pid = b.dataset.id, N = S.config.rules.onCourt || 5;
+      const wasOn = T.onCourt(g)[side].has(pid);
+      m(x => T.addEvent(x, { team: side, pid, type: wasOn ? 'SUB_OUT' : 'SUB_IN' }));
+      const n = T.onCourt(T.game(gid))[side].size;
+      if (!wasOn && n > N) UI.toast(`Hay ${n} jugadores en cancha (deberían ser ${N})`, 'bad');
+      break;
+    }
     case 'clear': sel = null; render(); break;
-    case 'toggle': m(x => (x.clock.running ? T.pauseClock(x) : T.startClock(x))); break;
+    case 'toggle': {
+      if (!g.clock.running && (T.hasSubs(g) || !g.events.length)) {
+        const oc2 = T.onCourt(g), N = S.config.rules.onCourt || 5;
+        if (oc2.h.size !== N || oc2.a.size !== N) UI.toast(`Jugadores en cancha: local ${oc2.h.size}, visitante ${oc2.a.size} (deberían ser ${N}). Usa el modo Cambios.`, 'bad');
+      }
+      m(x => (x.clock.running ? T.pauseClock(x) : T.startClock(x))); break;
+    }
     case 'adjust': adjusting = !adjusting; render(); break;
     case 'setclock': {
       const ms = (Math.max(0, +document.getElementById('am').value || 0) * 60 + Math.min(59, Math.max(0, +document.getElementById('as').value || 0))) * 1000;

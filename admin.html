@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="stylesheet" href="css/styles.css?v=16">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=15"></script>
-<script src="js/core.js?v=15"></script>
-<script src="js/seed.js?v=15"></script>
-<script src="js/ui.js?v=15"></script>
+<script src="js/firebase-config.js?v=16"></script>
+<script src="js/core.js?v=16"></script>
+<script src="js/seed.js?v=16"></script>
+<script src="js/ui.js?v=16"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -137,13 +137,13 @@ function gamesView(S) {
 
 function rulesView(S) {
   const R = S.config.rules;
-  const num = (k, label) => field(label, `<input class="inp" type="number" min="0" id="r-${k}" value="${R[k]}">`);
+  const num = (k, label) => field(label, `<input class="inp" type="number" min="0" id="r-${k}" value="${R[k] ?? (k === 'onCourt' ? 5 : '')}">`);
   return `<div class="card"><div class="frm">
       ${field('Nombre del torneo', `<input class="inp" id="r-name" value="${esc(S.config.name)}">`)}
       ${S.config.categories.map((c, i) => field('Categoría ' + (i + 1), `<input class="inp" id="r-cat${i}" value="${esc(c.name)}">`)).join('')}
     </div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Tiempo de juego</h3>
-    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}</div></div>
+    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}${num('onCourt', 'Jugadores en cancha por equipo')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Faltas</h3>
     <div class="card"><div class="frm">${num('foulsOut', 'Faltas personales para eliminar al jugador')}${num('bonusFouls', 'Faltas colectivas por período para activar el bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
@@ -220,7 +220,7 @@ app.addEventListener('click', e => {
     }
     case 'delgame': if (confirm('¿Eliminar el partido y sus jugadas?')) mt(s => { s.games = s.games.filter(g => g.id !== id); }); break;
     case 'saverules': {
-      const keys = ['periods', 'minutes', 'otMinutes', 'timeouts', 'foulsOut', 'bonusFouls', 'ptsWin', 'ptsDraw', 'ptsLoss'];
+      const keys = ['periods', 'minutes', 'otMinutes', 'timeouts', 'onCourt', 'foulsOut', 'bonusFouls', 'ptsWin', 'ptsDraw', 'ptsLoss'];
       mt(s => {
         s.config.name = val('r-name') || s.config.name;
         s.config.categories.forEach((c, i) => { c.name = val('r-cat' + i) || c.name; });

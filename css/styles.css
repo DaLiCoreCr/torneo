@@ -378,3 +378,14 @@ body.tv .tvwrap ~ * { }
 
 /* App instalada: respeta la zona segura del teléfono */
 @supports (padding: env(safe-area-inset-top)) { .ticker { padding-top: env(safe-area-inset-top); } .foot { padding-bottom: calc(18px + env(safe-area-inset-bottom)); } }
+
+/* Jugadores en cancha */
+.pl.oc { box-shadow: inset 4px 0 0 #43a047; }
+.pl.oc::before { content: ''; position: absolute; top: 7px; left: 9px; width: 10px; height: 10px; border-radius: 50%; background: #43a047; box-shadow: 0 0 8px #43a047; }
+.ocnt { font-size: 14px; color: var(--muted); }
+.ocnt b.ok { color: #43a047; }
+.ocnt b.bad { color: var(--live); }
+.subcard { background: var(--card); border: 1px solid #43a047; border-radius: var(--r); padding: 14px; margin-top: 8px; }
+.oc-dot { color: #43a047; margin-right: 6px; font-size: 12px; }
+.tv-on { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+.tv-on span { min-width: 2.2em; text-align: center; padding: 2px 10px; border-radius: 999px; background: rgba(67, 160, 71, .2); border: 1px solid #43a047; font: 400 clamp(16px, 2.4vw, 34px) 'Bebas Neue', sans-serif; }

@@ -13,7 +13,7 @@
       { id: 'u13', name: 'Menores de 13' },
       { id: 'o13', name: 'Mayores de 13' }
     ],
-    rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, ptsWin: 3, ptsDraw: 2, ptsLoss: 1 },
+    rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, onCourt: 5, ptsWin: 3, ptsDraw: 2, ptsLoss: 1 },
     refreshSec: 15
   };
 
@@ -33,7 +33,9 @@
     TO: { l: 'Pérdida', name: 'Pérdida de balón', lvl: 1, k: 'stat' },
     FOUL: { l: 'Falta cometida', name: 'Falta cometida', lvl: 0, k: 'foul' },
     FD: { l: 'Falta recibida', name: 'Falta recibida', lvl: 2, k: 'stat' },
-    TMO: { l: 'Tiempo muerto', name: 'Tiempo muerto', lvl: 0, team: true }
+    TMO: { l: 'Tiempo muerto', name: 'Tiempo muerto', lvl: 0, team: true },
+    SUB_IN: { l: 'Entra', name: 'Entra a cancha', lvl: 0, sub: true },
+    SUB_OUT: { l: 'Sale', name: 'Sale a la banca', lvl: 0, sub: true }
   };
   const MODES = ['Básico', 'Intermedio', 'Completo'];
 
@@ -134,6 +136,39 @@
   }
   function finishGame(g) { pauseClock(g); g.status = 'final'; g.score = score(g.events); }
 
+  /* ---------- En cancha, minutos y +/- (se calculan recorriendo los cambios registrados) ---------- */
+  const elapsed = (p, c) => { let t = 0; for (let i = 1; i < p; i++) t += periodLen(i); return t + periodLen(p) - c; };
+  const hasSubs = g => g.events.some(e => e.type === 'SUB_IN');
+  function onCourt(g) {
+    const on = { h: new Set(), a: new Set() };
+    g.events.forEach(e => {
+      if (e.type === 'SUB_IN') on[e.team].add(e.pid);
+      else if (e.type === 'SUB_OUT') on[e.team].delete(e.pid);
+    });
+    return on;
+  }
+  function minutesPM(g) {
+    const out = {}, open = {}, sc = { h: 0, a: 0 };
+    const acc = pid => out[pid] || (out[pid] = { ms: 0, pm: 0 });
+    const diff = team => sc[team] - sc[team === 'h' ? 'a' : 'h'];
+    const close = (pid, t) => {
+      const o = open[pid];
+      if (!o) return;
+      const a = acc(pid);
+      a.ms += Math.max(0, t - o.t); a.pm += diff(o.team) - o.diff;
+      delete open[pid];
+    };
+    g.events.forEach(e => {
+      const a = ACTIONS[e.type];
+      if (a && a.pts) sc[e.team] += a.pts;
+      if (e.type === 'SUB_IN' && !open[e.pid]) { open[e.pid] = { t: elapsed(e.p, e.c), diff: diff(e.team), team: e.team }; acc(e.pid); }
+      else if (e.type === 'SUB_OUT') close(e.pid, elapsed(e.p, e.c));
+    });
+    const now = elapsed(g.clock.period, remaining(g));
+    Object.keys(open).forEach(pid => close(pid, now));
+    return out;
+  }
+
   const teamFouls = (g, team, period) => g.events.filter(e => e.team === team && e.type === 'FOUL' && e.p === period).length;
   const timeoutsUsed = (g, team) => g.events.filter(e => e.team === team && e.type === 'TMO').length;
 
@@ -184,9 +219,11 @@
     const acc = {};
     S.games.filter(g => g.cat === cat && g.status !== 'scheduled').forEach(g => {
       const per = playerStats(g.events);
+      const mp = hasSubs(g) ? minutesPM(g) : {};
       Object.keys(per).forEach(pid => {
-        const a = acc[pid] || (acc[pid] = blank());
+        const a = acc[pid] || (acc[pid] = Object.assign(blank(), { ms: 0, pm: 0, mgp: 0 }));
         a.gp++;
+        if (mp[pid]) { a.ms += mp[pid].ms; a.pm += mp[pid].pm; a.mgp++; }
         Object.keys(per[pid]).forEach(k => { if (k !== 'gp') a[k] += per[pid][k]; });
       });
     });
@@ -301,7 +338,7 @@
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodLabel, remaining, fmtClock,
-    newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, teamFouls, timeoutsUsed,
+    onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, teamFouls, timeoutsUsed,
     blank, playerStats, derive, sumStats, pct, playerIndex, tournamentStats, standings
   };
 })(window);
