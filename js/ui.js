@@ -25,7 +25,7 @@
     const S = T.state();
     const items = [];
     S.games.filter(g => g.status === 'live').forEach(g => {
-      items.push(`<span class="tk live"><i class="dot"></i>EN VIVO · ${esc(team(S, g.home).name)} ${g.score.h}–${g.score.a} ${esc(team(S, g.away).name)}</span>`);
+      items.push(`<span class="tk live"><i class="dot"></i>EN VIVO · ${esc(team(S, g.home).name)}${T.live ? ` ${g.score.h}–${g.score.a} ` : ' vs '}${esc(team(S, g.away).name)}</span>`);
     });
     S.games.filter(g => g.status === 'scheduled').sort(byDate).slice(0, 4).forEach(g => {
       items.push(`<span class="tk">Próximo · ${esc(team(S, g.home).name)} vs ${esc(team(S, g.away).name)} · ${fmtDate(g.date)} ${fmtTime(g.date)}</span>`);

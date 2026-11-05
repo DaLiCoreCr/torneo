@@ -60,7 +60,9 @@
       return !!w.FIREBASE_CONFIG && sessionStorage.getItem('torneo.local') !== '1';
     } catch (e) { return !!w.FIREBASE_CONFIG; }
   }
-  function load() {
+  /* load({ live: false }): páginas que no necesitan tiempo real (leen una vez y refrescan cada tanto, para ahorrar lecturas) */
+  function load(opts) {
+    w.T.live = !(opts && opts.live === false);
     if (useCloud()) {
       const emptyState = () => ({ v: 1, config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), teams: [], games: [], draft: {} });
       state = emptyState();
@@ -69,7 +71,7 @@
           DEFAULT_CONFIG,
           setState: s => { state = s; notify(); },
           onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
-        }))
+        }, opts))
         .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; return state; })
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
@@ -217,7 +219,7 @@
   function tournamentStats(S, cat) {
     const idx = playerIndex(S);
     const acc = {};
-    S.games.filter(g => g.cat === cat && g.status !== 'scheduled').forEach(g => {
+    S.games.filter(g => g.cat === cat && g.status === 'final').forEach(g => {
       const per = playerStats(g.events);
       const mp = hasSubs(g) ? minutesPM(g) : {};
       Object.keys(per).forEach(pid => {
@@ -334,7 +336,7 @@
 
   w.T = {
     draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftUndo,
-    cloud: false, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
+    cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodLabel, remaining, fmtClock,

@@ -2,7 +2,7 @@
    escucha config / teams / games y, al guardar, escribe solo los documentos que cambiaron.
    Los visitantes sueltan los listeners cuando la pestaña se oculta para no gastar lecturas. */
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js';
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, writeBatch, setDoc, query, where } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, doc, onSnapshot, writeBatch, setDoc, query, where, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js';
 
 const canon = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)
@@ -26,7 +26,8 @@ const usage = (() => {
   return { cid, get: () => { roll(); return u; }, reads: n => { roll(); u.reads += n; save(); }, writes: n => { roll(); u.writes += n; save(); } };
 })();
 
-export function connect(cfg, host) {
+export function connect(cfg, host, opts) {
+  const liveMode = !opts || opts.live !== false; // false: páginas sin tiempo real (posiciones, estadísticas) leen una vez y refrescan por tiempo
   const app = initializeApp(cfg);
   const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
   const auth = getAuth(app);
@@ -61,7 +62,23 @@ export function connect(cfg, host) {
       if (first) { first = false; firstDone(); } else if (pending === 0) rebuild();
     }, err => { console.error(name, err); if (first) { first = false; firstDone(); } retry(); });
   }
+  /* Modo sin tiempo real: una lectura de config, equipos y partidos (sin draft); equipos solo la primera vez */
+  let teamsLoaded = false, lastFetch = 0, fetching = false;
+  function fetchOnce() {
+    if (fetching) return; fetching = true; lastFetch = Date.now();
+    const count = snap => { if (!snap.metadata.fromCache) usage.reads(snap.size === undefined ? (snap.exists() ? 1 : 0) : snap.size); };
+    Promise.all([getDoc(doc(db, 'config', 'main')), teamsLoaded ? null : getDocs(collection(db, 'teams')), getDocs(collection(db, 'games'))])
+      .then(([c, t, g]) => {
+        count(c); remote.config = c.exists() ? c.data() : null;
+        if (t) { count(t); remote.teams.clear(); t.forEach(d => remote.teams.set(d.id, d.data())); teamsLoaded = true; }
+        count(g); remote.games.clear(); g.forEach(d => remote.games.set(d.id, d.data()));
+        rebuild();
+      })
+      .catch(err => console.error('lectura', err))
+      .finally(() => { fetching = false; if (onReady) { onReady(); onReady = null; } });
+  }
   function attach() {
+    if (!liveMode) { fetchOnce(); return; }
     pending = 4;
     remote.teams.clear(); remote.games.clear(); remote.draft.clear(); known.clear();
     let firstCfg = true;
@@ -84,8 +101,8 @@ export function connect(cfg, host) {
     if (retryTimer || (!staff && document.hidden)) return;
     retryTimer = setTimeout(() => { retryTimer = null; if (staff || !document.hidden) { detach(); attach(); } }, 5000);
   }
-  window.addEventListener('online', () => { if (staff || !document.hidden) { detach(); attach(); } });
-  window.addEventListener('pageshow', e => { if (e.persisted && (staff || !document.hidden)) { detach(); attach(); } });
+  window.addEventListener('online', () => { if (!liveMode) return; if (staff || !document.hidden) { detach(); attach(); } });
+  window.addEventListener('pageshow', e => { if (liveMode && e.persisted && (staff || !document.hidden)) { detach(); attach(); } });
 
   let beatTimer = null, lastBeat = 0;
   function beat(force) {
@@ -103,9 +120,11 @@ export function connect(cfg, host) {
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) beatStop(); else beatStart();
+    if (!liveMode) { if (!document.hidden && Date.now() - lastFetch > 120000) fetchOnce(); return; }
     if (staff) return;
     if (document.hidden) detach(); else attach();
   });
+  if (!liveMode) setInterval(() => { if (!document.hidden && Date.now() - lastFetch > 600000) fetchOnce(); }, 60000);
   beatStart();
 
   /* Para administración: dispositivos con latido hoy (cada cambio cuesta una lectura mientras se mira la sección) */
