@@ -339,7 +339,7 @@ body.tv .ticker, body.tv .foot, body.tv .top nav { display: none; }
 .game.is-live .g-clock { font-size: 32px; animation: clockpulse 2s ease-in-out infinite; }
 @keyframes clockpulse { 50% { opacity: .7; } }
 .tbl tbody tr:first-child td { background: linear-gradient(90deg, rgba(201, 168, 76, .12), transparent); }
-.tbl tbody tr:first-child td.tm span::after { content: ' 🏆'; font-size: 13px; }
+.tbl td.tm.leader .nm::after { content: ' 🏆'; font-size: 13px; }
 
 /* Destello al anotar */
 .sc, .b-sc, .tv-sc { position: relative; }

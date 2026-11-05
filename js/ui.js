@@ -141,8 +141,8 @@
     const rows = T.standings(S, cat);
     const R = S.config.rules;
     const body = rows.map((r, i) => compact
-      ? `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td class="hl">${r.pts}</td></tr>`
-      : `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.pf}</td><td>${r.pc}</td><td>${r.dif > 0 ? '+' : ''}${r.dif}</td><td class="hl">${r.pts}</td></tr>`).join('');
+      ? `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm${i === 0 && r.pj > 0 ? ' leader' : ''}">${badge(r.team)}<span class="nm">${esc(r.team.name)}</span></td><td>${r.pj}</td><td class="hl">${r.pts}</td></tr>`
+      : `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm${i === 0 && r.pj > 0 ? ' leader' : ''}">${badge(r.team)}<span class="nm">${esc(r.team.name)}</span></td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.pf}</td><td>${r.pc}</td><td>${r.dif > 0 ? '+' : ''}${r.dif}</td><td class="hl">${r.pts}</td></tr>`).join('');
     const head = compact
       ? '<th>#</th><th class="l">Equipo</th><th>PJ</th><th>PTS</th>'
       : '<th>#</th><th class="l">Equipo</th><th title="Partidos jugados">PJ</th><th title="Ganados">G</th><th title="Empatados">E</th><th title="Perdidos">P</th><th title="Puntos a favor">PF</th><th title="Puntos en contra">PC</th><th title="Diferencia">DIF</th><th>PTS</th>';
