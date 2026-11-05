@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marcador TV · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hoopz">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+</head>
+<body>
+<main><div class="wrap tvwrap"><div id="app"></div></div></main>
+<script src="js/firebase-config.js?v=15"></script>
+<script src="js/core.js?v=15"></script>
+<script src="js/seed.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
+<script>
+T.load().then(() => {
+UI.layout('');
+document.body.classList.add('tv');
+const { esc, ACTIONS } = T;
+const app = document.getElementById('app');
+const fixed = new URLSearchParams(location.search).get('id');
+
+/* Partido a mostrar: el indicado en ?id=, o los que están en vivo (rotando cada 15 s), o el próximo, o el último */
+function pick(S) {
+  if (fixed && T.game(fixed)) return T.game(fixed);
+  const live = S.games.filter(g => g.status === 'live');
+  if (live.length) return live[Math.floor(Date.now() / 15000) % live.length];
+  const next = S.games.filter(g => g.status === 'scheduled').sort(UI.byDate)[0];
+  return next || S.games.filter(g => g.status === 'final').sort((a, b) => UI.byDate(b, a))[0];
+}
+
+function render() {
+  const S = T.state();
+  const g = pick(S);
+  if (!g) { app.innerHTML = '<div class="empty" style="margin-top:30px">No hay partidos para mostrar.</div>'; return; }
+  const R = S.config.rules, h = UI.team(S, g.home), a = UI.team(S, g.away);
+  const live = g.status === 'live', fin = g.status === 'final';
+  const per = g.clock.period;
+  const tf = side => T.teamFouls(g, side, per);
+  const tm = side => Math.max(0, R.timeouts - T.timeoutsUsed(g, side));
+  const box = (t, side) => {
+    const other = side === 'h' ? 'a' : 'h';
+    const n = tf(side);
+    return `<div class="tv-t ${fin && g.score[side] > g.score[other] ? 'win' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">
+      ${UI.badge(t)}<h2>${esc(t.name)}</h2>
+      <div class="tv-sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : g.score[side]}</div>
+      <div class="tv-meta"><span class="fouls">${Array.from({ length: R.bonusFouls }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</span>
+        ${n >= R.bonusFouls ? '<span class="bonus">BONUS</span>' : '<small>FALTAS</small>'}<small>TM ${tm(side)}</small></div></div>`;
+  };
+  const idx = T.playerIndex(S);
+  const plays = g.events.filter(e => ACTIONS[e.type].pts).slice(-4).reverse().map(e => {
+    const p = idx[e.pid];
+    return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(UI.team(S, e.team === 'h' ? g.home : g.away))}<span>${p ? '#' + p.p.num + ' ' + esc(p.p.name) : ''}</span><span class="pts">+${ACTIONS[e.type].pts}</span></li>`;
+  }).join('');
+  app.innerHTML = `
+    <div class="tv-top"><span>${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)}</span>
+      ${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? '<span class="chip">FINAL</span>' : '<span class="chip soft">PRÓXIMO</span>'}
+      <button class="btn sm ghost" id="fs">Pantalla completa</button></div>
+    <div class="tv-board ${live ? 'is-live' : ''}">${box(h, 'h')}
+      <div class="tv-mid"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div></div>${box(a, 'a')}</div>
+    ${plays ? `<ul class="plays tv-plays">${plays}</ul>` : ''}`;
+  UI.scoreFx();
+}
+
+app.addEventListener('click', e => {
+  if (e.target.id === 'fs') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
+});
+render();
+T.subscribe(render);
+setInterval(render, 5000);
+});
+</script>
+</body>
+</html>

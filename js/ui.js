@@ -52,13 +52,14 @@
        </div></header>`);
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
-         <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto</span>
+         <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
          <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();
     T.subscribe(renderTicker);
     setInterval(tick, 500);
+    pwa();
   }
 
   /* Fondo fijo que se desplaza despacio mientras se baja la página (funciona también en iPhone) */
@@ -88,8 +89,10 @@
 
   /* Refresca la vista cada N segundos (solo con la pestaña visible), como lo haría el sondeo contra Firebase */
   function autoRefresh(render) {
-    T.subscribe(render);
-    setInterval(() => { if (!document.hidden) { T.reload(); render(); renderTicker(); } }, T.state().config.refreshSec * 1000);
+    const run = () => { render(); scoreFx(); };
+    T.subscribe(run);
+    setInterval(() => { if (!document.hidden) { T.reload(); run(); renderTicker(); } }, T.state().config.refreshSec * 1000);
+    scoreFx(); // marca el punto de partida: solo se anima lo que cambie después
   }
 
   function getCat(allowAll) {
@@ -125,11 +128,11 @@
     const fin = g.status === 'final', live = g.status === 'live';
     const status = live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>'
       : fin ? '<span class="chip">FINAL</span>' : `<span class="chip soft">${fmtTime(g.date)}</span>`;
-    const row = (t, sc, win) => `<div class="g-row ${win ? 'win' : ''}">${badge(t)}<span class="tname">${esc(t.name)}</span><span class="sc">${g.status === 'scheduled' ? '–' : sc}</span></div>`;
+    const row = (t, sc, win, side) => `<div class="g-row ${win ? 'win' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">${badge(t)}<span class="tname">${esc(t.name)}</span><span class="sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : sc}</span></div>`;
     return `<a class="game ${live ? 'is-live' : ''}" href="partido.html?id=${esc(g.id)}">
       <div class="g-meta"><span>${esc(catName(S, g.cat))} · ${fmtDate(g.date)}</span>${status}</div>
-      ${row(h, g.score.h, fin && g.score.h > g.score.a)}
-      ${row(a, g.score.a, fin && g.score.a > g.score.h)}
+      ${row(h, g.score.h, fin && g.score.h > g.score.a, 'h')}
+      ${row(a, g.score.a, fin && g.score.a > g.score.h, 'a')}
       ${live ? `<div class="g-clock"><span class="clk" data-gid="${esc(g.id)}">${clockText(g)}</span></div>` : ''}
     </a>`;
   }
@@ -138,13 +141,130 @@
     const rows = T.standings(S, cat);
     const R = S.config.rules;
     const body = rows.map((r, i) => compact
-      ? `<tr><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td class="hl">${r.pts}</td></tr>`
-      : `<tr><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.pf}</td><td>${r.pc}</td><td>${r.dif > 0 ? '+' : ''}${r.dif}</td><td class="hl">${r.pts}</td></tr>`).join('');
+      ? `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td class="hl">${r.pts}</td></tr>`
+      : `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm">${badge(r.team)}<span>${esc(r.team.name)}</span></td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.pf}</td><td>${r.pc}</td><td>${r.dif > 0 ? '+' : ''}${r.dif}</td><td class="hl">${r.pts}</td></tr>`).join('');
     const head = compact
       ? '<th>#</th><th class="l">Equipo</th><th>PJ</th><th>PTS</th>'
       : '<th>#</th><th class="l">Equipo</th><th title="Partidos jugados">PJ</th><th title="Ganados">G</th><th title="Empatados">E</th><th title="Perdidos">P</th><th title="Puntos a favor">PF</th><th title="Puntos en contra">PC</th><th title="Diferencia">DIF</th><th>PTS</th>';
     return `<div class="tbl-wrap"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
       ${compact ? '' : `<p class="note">Victoria ${R.ptsWin} pts · Empate ${R.ptsDraw} pts · Derrota (participación) ${R.ptsLoss} pt. Desempate: diferencia de puntos, luego puntos a favor.</p>`}`;
+  }
+
+  /* Destello y "+N" flotante cuando sube un marcador (elementos con data-sc="partido:lado") */
+  const lastScore = {};
+  function scoreFx() {
+    document.querySelectorAll('[data-sc]').forEach(el => {
+      const k = el.dataset.sc, v = parseInt(el.textContent, 10);
+      if (isNaN(v)) return;
+      const prev = lastScore[k];
+      lastScore[k] = v;
+      if (prev !== undefined && v > prev) {
+        el.classList.add('bump');
+        el.insertAdjacentHTML('beforeend', `<i class="plus">+${v - prev}</i>`);
+        setTimeout(() => { el.classList.remove('bump'); const p = el.querySelector('.plus'); if (p) p.remove(); }, 1400);
+      }
+    });
+  }
+
+  /* Instalar como app (Android) o instrucciones (iPhone) y copia sin conexión */
+  function pwa() {
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { /* sin soporte */ });
+    const link = document.getElementById('install');
+    if (!link || matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+    let deferred = null;
+    addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; link.hidden = false; });
+    if (/iphone|ipad|ipod/i.test(navigator.userAgent)) link.hidden = false;
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      if (deferred) { deferred.prompt(); deferred = null; link.hidden = true; }
+      else toast('En iPhone: toca Compartir y luego "Añadir a pantalla de inicio".');
+    });
+  }
+
+  const loadImg = src => new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+
+  /* Tarjeta del resultado como imagen, para compartir por WhatsApp (o descargar en computador) */
+  async function shareResult(gid) {
+    const S = T.state(), g = T.game(gid);
+    if (!g) return;
+    const h = team(S, g.home), a = team(S, g.away);
+    try { await Promise.all([document.fonts.load('120px "Bebas Neue"'), document.fonts.load('600 30px Inter')]); } catch (e) { /* fuentes del sistema */ }
+    const W = 1080, H = 1350, BEB = '"Bebas Neue", Impact, sans-serif', INT = 'Inter, system-ui, sans-serif';
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#0a0a0a'; x.fillRect(0, 0, W, H);
+    const rg = x.createRadialGradient(W / 2, 680, 40, W / 2, 680, 860);
+    rg.addColorStop(0, 'rgba(201,168,76,.30)'); rg.addColorStop(1, 'rgba(10,10,10,0)');
+    x.fillStyle = rg; x.fillRect(0, 0, W, H);
+    x.fillStyle = '#c9a84c'; x.fillRect(0, 0, W, 10); x.fillRect(0, H - 10, W, 10);
+    const logo = await loadImg('assets/logo.jpg');
+    if (logo) { const lw = 230, lh = lw * logo.height / logo.width; x.globalCompositeOperation = 'lighten'; x.drawImage(logo, (W - lw) / 2, 48, lw, lh); x.globalCompositeOperation = 'source-over'; }
+    x.textAlign = 'center';
+    const text = (t, px, y, font, color, max) => {
+      const f = s => (font === BEB ? '' : '600 ') + s + 'px ' + font;
+      let size = px;
+      x.font = f(size);
+      while (max && x.measureText(t).width > max && size > 14) { size -= 2; x.font = f(size); }
+      x.fillStyle = color; x.fillText(t, W / 2, y);
+    };
+    const fin = g.status === 'final', live = g.status === 'live';
+    text(S.config.name.toUpperCase(), 66, 370, BEB, '#f5f5f5', 900);
+    text((catName(S, g.cat) + ' · ' + fmtDate(g.date)).toUpperCase(), 28, 418, INT, '#c9a84c', 900);
+    text(fin ? 'FINAL' : live ? 'EN VIVO · ' + T.periodLabel(g.clock.period) + ' ' + T.fmtClock(T.remaining(g)) : 'PRÓXIMO PARTIDO', 58, 492, BEB, fin ? '#f5f5f5' : '#e53935');
+
+    const drawBadge = async (t, cx, cy, r) => {
+      x.save();
+      x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.closePath();
+      x.fillStyle = '#000'; x.fill(); x.lineWidth = 8; x.strokeStyle = t.color || '#c9a84c'; x.stroke();
+      const img = t.logo ? await loadImg(t.logo) : null;
+      if (img) {
+        x.clip();
+        const k = Math.min(2 * r * 0.92 / img.width, 2 * r * 0.92 / img.height);
+        x.drawImage(img, cx - img.width * k / 2, cy - img.height * k / 2, img.width * k, img.height * k);
+      } else {
+        x.fillStyle = '#f5f5f5'; x.font = Math.round(r * 0.95) + 'px ' + BEB; x.textBaseline = 'middle';
+        x.fillText(initials(t.name), cx, cy + 4);
+      }
+      x.restore();
+    };
+    const L = 270, Rr = 810;
+    await drawBadge(h, L, 680, 140); await drawBadge(a, Rr, 680, 140);
+    x.textBaseline = 'alphabetic';
+    const names = (t, cx) => { let s = 76; x.font = s + 'px ' + BEB; while (x.measureText(t.name.toUpperCase()).width > 460 && s > 30) { s -= 2; x.font = s + 'px ' + BEB; } x.fillStyle = '#f5f5f5'; x.fillText(t.name.toUpperCase(), cx, 900); };
+    names(h, L); names(a, Rr);
+    const hw = fin && g.score.h > g.score.a, aw = fin && g.score.a > g.score.h;
+    x.font = '280px ' + BEB;
+    x.fillStyle = hw ? '#c9a84c' : '#f5f5f5'; x.fillText(g.status === 'scheduled' ? '–' : String(g.score.h), L, 1130);
+    x.fillStyle = aw ? '#c9a84c' : '#f5f5f5'; x.fillText(g.status === 'scheduled' ? '–' : String(g.score.a), Rr, 1130);
+    x.fillStyle = '#9a9a9a'; x.font = '150px ' + BEB; x.fillText('–', W / 2, 1100);
+
+    const idx = T.playerIndex(S);
+    const top = side => {
+      const st = T.playerStats(g.events.filter(e => e.team === side));
+      const best = Object.keys(st).filter(id => idx[id]).sort((p, q) => st[q].pts - st[p].pts)[0];
+      return best && st[best].pts > 0 ? `Máx.: ${idx[best].p.name} · ${st[best].pts} pts` : '';
+    };
+    // máximo anotador de cada equipo, centrado bajo su marcador
+    const under = (t, cx, y) => {
+      if (!t) return;
+      let s = 28; x.font = '600 ' + s + 'px ' + INT;
+      while (x.measureText(t).width > 470 && s > 16) { s--; x.font = '600 ' + s + 'px ' + INT; }
+      x.fillStyle = '#c9a84c'; x.fillText(t, cx, y);
+    };
+    under(top('h'), L, 1200); under(top('a'), Rr, 1200);
+    x.fillStyle = '#9a9a9a'; x.font = '600 26px ' + INT; x.fillText('HOOPZ · ACADEMIA DE BALONCESTO', W / 2, 1296);
+
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.92));
+    const name = ('resultado-' + h.name + '-vs-' + a.name + '.jpg').replace(/\s+/g, '-').toLowerCase();
+    const file = new File([blob], name, { type: 'image/jpeg' });
+    const msg = `${h.name} ${g.score.h} - ${g.score.a} ${a.name} · ${S.config.name}`;
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: S.config.name, text: msg }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(blob), link = document.createElement('a');
+    link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    toast('Imagen descargada');
   }
 
   function toast(msg, kind) {
@@ -203,5 +323,5 @@
     });
   }
 
-  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, standingsTable, toast, gate };
+  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, standingsTable, toast, gate, scoreFx, shareResult };
 })(window);

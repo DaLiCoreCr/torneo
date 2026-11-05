@@ -7,14 +7,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=14">
+<link rel="stylesheet" href="css/styles.css?v=15">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hoopz">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=14"></script>
-<script src="js/core.js?v=14"></script>
-<script src="js/seed.js?v=14"></script>
-<script src="js/ui.js?v=14"></script>
+<script src="js/firebase-config.js?v=15"></script>
+<script src="js/core.js?v=15"></script>
+<script src="js/seed.js?v=15"></script>
+<script src="js/ui.js?v=15"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -58,7 +65,7 @@ function control(S, g) {
   const rem = T.remaining(g);
   const periodOver = rem <= 0 && !g.clock.running;
   const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
-    <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' · BONUS' : ''} · TM ${T.timeoutsUsed(g, k)}/${R.timeouts}</div></div>`;
+    <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">BONUS</span>' : ''} · TM ${T.timeoutsUsed(g, k)}/${R.timeouts}</div></div>`;
 
   let endBtn = '';
   if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';
@@ -68,7 +75,7 @@ function control(S, g) {
 
   const players = cur.players.map(p => {
     const s = stats[p.id] || T.blank();
-    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i>${UI.capMark(p)}</button>`;
+    return `<button class="pl ${sel === p.id ? 'on' : ''} ${s.pf >= R.foulsOut ? 'out' : (s.pf > 0 && s.pf === R.foulsOut - 1) ? 'warn' : ''}" data-act="pl" data-id="${esc(p.id)}"><b>${p.num}</b><span>${esc(p.name)}</span><i>${s.pts} pts · ${s.pf} F${s.pf >= R.foulsOut ? ' ✖' : ''}</i>${UI.capMark(p)}</button>`;
   }).join('');
 
   const selP = sel && cur.players.find(p => p.id === sel);
