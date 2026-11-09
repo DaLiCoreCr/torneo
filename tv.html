@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=21">
+<link rel="stylesheet" href="css/styles.css?v=22">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap tvwrap"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=21"></script>
-<script src="js/core.js?v=21"></script>
-<script src="js/seed.js?v=21"></script>
-<script src="js/ui.js?v=21"></script>
+<script src="js/firebase-config.js?v=22"></script>
+<script src="js/core.js?v=22"></script>
+<script src="js/seed.js?v=22"></script>
+<script src="js/ui.js?v=22"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -62,11 +62,11 @@ function render() {
   const idx = T.playerIndex(S);
   const plays = g.events.filter(e => ACTIONS[e.type].pts).slice(-4).reverse().map(e => {
     const p = idx[e.pid];
-    return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(UI.team(S, e.team === 'h' ? g.home : g.away))}<span>${p ? '#' + p.p.num + ' ' + esc(p.p.name) : ''}</span><span class="pts">+${ACTIONS[e.type].pts}</span></li>`;
+    return `<li><span class="t">${e.nt ? '–' : T.periodLabel(e.p) + ' ' + T.fmtClock(e.c)}</span>${UI.badge(UI.team(S, e.team === 'h' ? g.home : g.away))}<span>${p ? '#' + p.p.num + ' ' + esc(p.p.name) : ''}</span><span class="pts">+${ACTIONS[e.type].pts}</span></li>`;
   }).join('');
   app.innerHTML = `
     <div class="tv-top"><span>${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)}</span>
-      ${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? '<span class="chip">FINAL</span>' : '<span class="chip soft">PRÓXIMO</span>'}
+      ${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : '<span class="chip soft">PRÓXIMO</span>'}
       <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div>
     <div class="tv-board ${live ? 'is-live' : ''}">${box(h, 'h')}
       <div class="tv-mid"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div></div>${box(a, 'a')}</div>

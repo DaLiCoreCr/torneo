@@ -389,3 +389,62 @@ body.tv .tvwrap ~ * { }
 .oc-dot { color: #43a047; margin-right: 6px; font-size: 12px; }
 .tv-on { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
 .tv-on span { min-width: 2.2em; text-align: center; padding: 2px 10px; border-radius: 999px; background: rgba(67, 160, 71, .2); border: 1px solid #43a047; font: 400 clamp(16px, 2.4vw, 34px) 'Bebas Neue', sans-serif; }
+
+/* Mesa en tablet: marcador y reloj siempre visibles arriba, jugadas al alcance del pulgar */
+body.mesa-on .ticker, body.mesa-on .foot, body.mesa-on .bg-fx { display: none; }
+body.mesa-on .top { position: static; }
+body.mesa-on .top-in { padding-top: 4px; padding-bottom: 4px; }
+body.mesa-on .brand-logo { height: 30px; }
+body.mesa-on .brand-txt { font-size: 22px; }
+body.mesa-on { background: var(--bg); }
+.mesa { padding-top: 8px; }
+.mhead { position: sticky; top: 0; z-index: 30; display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: stretch; background: var(--bg); padding: 6px 0 8px; margin: 0 0 6px; border-bottom: 1px solid var(--line); }
+.mhead .m-team { padding: 6px 8px; display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.mhead .m-team h3 { font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mhead .m-team .s { font-size: 56px; }
+.mhead .m-team .meta { font-size: 12px; }
+.mhead .clkbox { flex-direction: column; gap: 6px; margin: 0; padding: 6px 12px; flex-wrap: nowrap; }
+.mhead .clkbox .clk { font-size: 40px; min-width: 0; }
+.mhead .clkbox .btn { padding: 8px 14px; font-size: 13px; }
+@media (max-width: 560px) {
+  .mhead { grid-template-columns: 1fr 1fr; }
+  .mhead .clkbox { grid-column: 1 / -1; order: -1; flex-direction: row; justify-content: space-between; padding: 4px 10px; }
+  .mhead .m-team .s { font-size: 44px; }
+}
+@media (max-height: 820px) {
+  .mhead .m-team .s { font-size: 46px; }
+  .mhead .m-team small { display: none; }
+  .mhead .clkbox .clk { font-size: 34px; }
+  .pl { min-height: 70px; }
+  .pl b { font-size: 30px; }
+}
+/* Tablet horizontal: jugadores a la izquierda, panel de jugadas fijo a la derecha bajo el marcador */
+@media (min-width: 900px) and (orientation: landscape) {
+  .mwork { display: grid; grid-template-columns: 1fr 360px; gap: 14px; align-items: start; }
+  .mwork .hint { display: none; }
+  .mwork .pad, .mwork .pad.idle { display: block; position: sticky; left: auto; bottom: auto; top: calc(var(--mh, 100px) + 8px); transform: none; width: auto; margin-top: 8px; border-radius: var(--r); border-bottom: 1px solid var(--gold); max-height: calc(100vh - var(--mh, 100px) - 20px); box-shadow: none; }
+  .mwork .pad.idle { border-color: var(--line); }
+  .mwork .pad .acts:not(.scores) { grid-template-columns: repeat(3, 1fr); }
+  .mwork .pad .act { font-size: 13px; min-height: 44px; }
+  .mwork .pad .act.score { font-size: 30px; min-height: 52px; }
+  .players { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+}
+
+/* Captura final (sin reloj): tabla de jugadores x jugadas */
+.cap-wrap { max-height: none; }
+.cap-tbl { min-width: 760px; }
+.cap-tbl th.pn { position: sticky; left: 0; z-index: 2; background: var(--bg2); min-width: 130px; text-align: left; padding-left: 10px; }
+.cap-tbl tbody th.pn { background: var(--card); font: 400 14px Inter, sans-serif; text-transform: none; letter-spacing: 0; color: var(--text); white-space: nowrap; }
+.cap-tbl tbody th.pn b { font: 400 24px 'Bebas Neue', sans-serif; margin-right: 6px; }
+.cap-tbl tbody th.pn i { display: block; font-style: normal; font-size: 11px; color: var(--muted); }
+.cap-tbl thead th { font-size: 13px; padding: 8px 4px; }
+.cap-tbl thead th.score { color: var(--gold); }
+.cap-tbl thead th.foul { color: #ff7b78; }
+.cap-tbl td { padding: 4px; }
+.cap-tbl .cp { display: block; width: 100%; min-width: 52px; height: 44px; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r); font: 400 24px 'Bebas Neue', sans-serif; }
+.cap-tbl .cp.score { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+.cap-tbl .cp.foul { border-color: var(--live); color: #ff7b78; }
+.cap-tbl .cp:active { background: var(--gold); color: #000; }
+.cap-tbl .cm { display: block; width: 100%; height: 22px; margin-top: 3px; background: transparent; border: 0; color: var(--muted); font-size: 16px; line-height: 1; }
+.cap-tbl .cm:disabled { opacity: .2; }
+.cap-head .m-team .s { font-size: 52px; }

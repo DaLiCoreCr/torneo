@@ -53,7 +53,7 @@
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
          <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
-         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="admin.html">Administración</a></span>
+         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();
@@ -127,7 +127,7 @@
     const h = team(S, g.home), a = team(S, g.away);
     const fin = g.status === 'final', live = g.status === 'live';
     const status = live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>'
-      : fin ? '<span class="chip">FINAL</span>' : `<span class="chip soft">${fmtTime(g.date)}</span>`;
+      : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : `<span class="chip soft">${fmtTime(g.date)}</span>`;
     const row = (t, sc, win, side) => `<div class="g-row ${win ? 'win' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">${badge(t)}<span class="tname">${esc(t.name)}</span><span class="sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : sc}</span></div>`;
     return `<a class="game ${live ? 'is-live' : ''}" href="partido.html?id=${esc(g.id)}">
       <div class="g-meta"><span>${esc(catName(S, g.cat))} · ${fmtDate(g.date)}</span>${status}</div>

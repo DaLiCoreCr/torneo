@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Captura final · Torneo Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=22">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+</head>
+<body>
+<main><div class="wrap mesa"><div id="app"></div></div></main>
+<script src="js/firebase-config.js?v=22"></script>
+<script src="js/core.js?v=22"></script>
+<script src="js/seed.js?v=22"></script>
+<script src="js/ui.js?v=22"></script>
+<script>
+/* Captura final: marcador y jugadas por jugador, sin reloj ni minuto (para cargar un partido ya jugado) y no presentación (W.O.) */
+T.load().then(() => {
+UI.layout('');
+const { esc, ACTIONS } = T;
+const app = document.getElementById('app');
+let gid = new URLSearchParams(location.search).get('id');
+let side = 'h';
+
+function start() { render(); T.subscribe(render); }
+
+function picker(S) {
+  const open = S.games.filter(g => g.status !== 'final').sort(UI.byDate);
+  const fin = S.games.filter(g => g.status === 'final').sort((a, b) => UI.byDate(b, a));
+  const row = g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
+      <div class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)}</div></div>
+      <div class="row">${g.status === 'final' ? `<span class="chip">${g.forfeit ? 'W.O. ' : ''}${g.score.h}–${g.score.a}</span>` : ''}
+      <button class="btn gold sm" data-act="open" data-id="${esc(g.id)}">${g.status === 'final' ? 'Editar' : 'Capturar'}</button></div></div>`;
+  app.innerHTML = `<h1 class="page-title">Captura <b>final</b></h1>
+    <p class="muted" style="margin:6px 0 0">Para cargar los datos de un partido ya jugado, sin reloj ni minutos. También aquí se registra si un equipo no se presentó.</p>
+    <h3 class="gold" style="font-size:22px;margin-top:18px">Elige el partido</h3>
+    <div class="gm-list">${open.map(row).join('') || '<div class="empty">No hay partidos pendientes.</div>'}</div>
+    ${fin.length ? `<h3 class="muted" style="font-size:20px;margin-top:24px">Finalizados</h3><div class="gm-list">${fin.map(row).join('')}</div>` : ''}`;
+}
+
+function control(S, g) {
+  const R = S.config.rules;
+  const h = UI.team(S, g.home), a = UI.team(S, g.away);
+  const cur = side === 'h' ? h : a;
+  const fin = g.status === 'final';
+  const woWin = R.forfeitWin ?? 20, woLoss = R.forfeitLoss ?? 0;
+  const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div></div>`;
+  const head = `<div class="mhead cap-head">${teamBox('h', h)}<div class="clkbox"><div class="clk" style="font-size:26px">${g.forfeit ? 'W.O.' : fin ? 'Final' : 'Captura'}</div></div>${teamBox('a', a)}</div>`;
+  const top = `<div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
+      <span class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)}</span>
+      <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></div>`;
+
+  if (g.forfeit) {
+    const lost = g.forfeit === 'h' ? h : a, won = g.forfeit === 'h' ? a : h;
+    app.innerHTML = `${top}${head}
+      <div class="card" style="margin-top:12px"><h3 class="gold" style="font-size:22px">No presentación (W.O.)</h3>
+        <p style="margin:8px 0 12px"><b>${esc(lost.name)}</b> no se presentó. Gana <b>${esc(won.name)}</b> ${g.score[g.forfeit === 'h' ? 'a' : 'h']}–${g.score[g.forfeit]}.</p>
+        <button class="btn danger" data-act="unforfeit">Deshacer W.O. y capturar jugadas</button></div>`;
+    return;
+  }
+
+  const acts = Object.entries(ACTIONS).filter(([k, v]) => !v.team && !v.sub && v.lvl <= g.mode);
+  const evs = g.events.filter(e => e.team === side);
+  const cnt = {};
+  evs.forEach(e => { if (e.pid) { const c = cnt[e.pid] || (cnt[e.pid] = {}); c[e.type] = (c[e.type] || 0) + 1; } });
+  const stats = T.playerStats(evs);
+  const heads = acts.map(([k, v]) => `<th class="${v.k}">${v.l}</th>`).join('');
+  const rows = cur.players.map(p => {
+    const c = cnt[p.id] || {};
+    const pf = (stats[p.id] || T.blank()).pf, pts = (stats[p.id] || T.blank()).pts;
+    return `<tr class="${pf >= R.foulsOut ? 'out' : ''}"><th class="l pn"><b>${p.num}</b><span>${esc(p.name)}</span><i>${pts} pts</i></th>${acts.map(([k, v]) => `<td><button class="cp ${v.k}" data-act="add" data-pid="${esc(p.id)}" data-t="${k}">${c[k] || 0}</button><button class="cm" data-act="sub" data-pid="${esc(p.id)}" data-t="${k}" ${c[k] ? '' : 'disabled'} aria-label="Quitar">−</button></td>`).join('')}</tr>`;
+  }).join('');
+
+  app.innerHTML = `${top}${head}
+    <div class="row" style="justify-content:space-between;margin:8px 0">
+      <span class="muted" style="font-size:13px">Toca el número para sumar 1 · usa − para corregir. El marcador se calcula con los puntos de los jugadores.</span>
+      <span class="row">${fin ? '<span class="chip">FINAL</span>' : '<button class="btn gold sm" data-act="finish">Finalizar partido</button>'}${fin ? '<button class="btn sm ghost" data-act="reopen">Reabrir</button>' : ''}</span></div>
+    <div class="tbl-wrap cap-wrap"><table class="tbl cap-tbl"><thead><tr><th class="l pn">${esc(cur.name)}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>
+    ${fin ? '' : `<div class="card" style="margin-top:14px"><h3 class="gold" style="font-size:20px">¿Un equipo no se presentó?</h3>
+      <p class="muted" style="margin:6px 0 10px;font-size:14px">El otro equipo gana con este marcador (por defecto el de Administración › Reglas; aquí puedes cambiarlo solo para este partido).</p>
+      <div class="adj" style="margin-bottom:10px"><span class="lbl" style="margin:0">Ganador</span><input class="inp" id="wo-w" type="number" min="0" value="${woWin}"><span class="lbl" style="margin:0">Perdedor</span><input class="inp" id="wo-l" type="number" min="0" value="${woLoss}"></div>
+      <div class="row"><button class="btn danger" data-act="wo" data-s="h">${esc(h.name)} no llegó</button><button class="btn danger" data-act="wo" data-s="a">${esc(a.name)} no llegó</button></div></div>`}`;
+}
+
+function render() {
+  const S = T.state();
+  const g = gid && T.game(gid);
+  document.body.classList.toggle('mesa-on', !!g);
+  if (!g) return picker(S);
+  const sy = scrollY, sx = (document.querySelector('.cap-wrap') || {}).scrollLeft || 0;
+  control(S, g);
+  const w = document.querySelector('.cap-wrap');
+  if (w) w.scrollLeft = sx;
+  scrollTo(0, sy);
+  const mh = document.querySelector('.mhead');
+  if (mh) document.documentElement.style.setProperty('--mh', mh.offsetHeight + 'px');
+}
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]');
+  if (!b || b.disabled) return;
+  const g = gid && T.game(gid);
+  const m = fn => T.mutate(s => fn(s.games.find(x => x.id === gid), s));
+  switch (b.dataset.act) {
+    case 'open': gid = b.dataset.id; side = 'h'; history.replaceState(null, '', '?id=' + gid); render(); break;
+    case 'back': gid = null; history.replaceState(null, '', 'captura.html'); render(); break;
+    case 'side': side = b.dataset.s; render(); break;
+    case 'add': m(x => T.addEvent(x, { team: side, pid: b.dataset.pid, type: b.dataset.t, p: 1, c: 0, nt: 1 })); break;
+    case 'sub': m(x => T.removeEvent(x, side, b.dataset.pid, b.dataset.t)); break;
+    case 'finish':
+      if (confirm('¿Finalizar el partido con el marcador ' + g.score.h + '–' + g.score.a + '?')) { m(x => T.finishGame(x)); UI.toast('Partido finalizado'); }
+      break;
+    case 'reopen': m(x => { x.status = 'live'; }); break;
+    case 'wo': {
+      const S = T.state(), k = b.dataset.s;
+      const R = { forfeitWin: Math.max(0, +document.getElementById('wo-w').value || 0), forfeitLoss: Math.max(0, +document.getElementById('wo-l').value || 0) };
+      const lost = UI.team(S, k === 'h' ? g.home : g.away).name, won = UI.team(S, k === 'h' ? g.away : g.home).name;
+      const msg = (g.events.length ? 'Se borrarán las jugadas capturadas. ' : '') + `${lost} no se presentó: gana ${won} ${R.forfeitWin}–${R.forfeitLoss}. ¿Confirmar?`;
+      if (confirm(msg)) { m(x => T.forfeitGame(x, k, R)); UI.toast('Registrado: no presentación'); }
+      break;
+    }
+    case 'unforfeit': if (confirm('¿Deshacer la no presentación?')) m(x => T.clearForfeit(x)); break;
+  }
+});
+
+UI.gate(app, start);
+});
+</script>
+</body>
+</html>

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=21">
+<link rel="stylesheet" href="css/styles.css?v=22">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=21"></script>
-<script src="js/core.js?v=21"></script>
-<script src="js/seed.js?v=21"></script>
-<script src="js/ui.js?v=21"></script>
+<script src="js/firebase-config.js?v=22"></script>
+<script src="js/core.js?v=22"></script>
+<script src="js/seed.js?v=22"></script>
+<script src="js/ui.js?v=22"></script>
 <script>
 T.load().then(() => {
 UI.layout('res');
@@ -81,7 +81,7 @@ function plays(S, g) {
   return `<ul class="plays">${list.map(e => {
     const a = ACTIONS[e.type], pl = e.pid && idx[e.pid];
     const t = UI.team(S, e.team === 'h' ? g.home : g.away);
-    return `<li><span class="t">${T.periodLabel(e.p)} ${T.fmtClock(e.c)}</span>${UI.badge(t)}
+    return `<li><span class="t">${e.nt ? '–' : T.periodLabel(e.p) + ' ' + T.fmtClock(e.c)}</span>${UI.badge(t)}
       <span>${esc(a.name)}${pl ? ` — <b>#${pl.p.num} ${esc(pl.p.name)}</b>` : ` — ${esc(t.name)}`}</span>${a.pts ? `<span class="pts">+${a.pts}</span>` : ''}</li>`;
   }).join('')}</ul>${g.events.length > 80 ? '<p class="note">Se muestran las últimas 80 jugadas.</p>' : ''}`;
 }
@@ -98,7 +98,7 @@ function render() {
     <a class="muted" href="resultados.html">← Resultados</a>
     <div class="board ${live ? 'is-live' : ''}">
       <div class="b-t ${fin && g.score.h > g.score.a ? 'win' : ''}">${UI.badge(h)}<h3>${esc(h.name)}</h3><div class="b-sc" data-sc="${esc(g.id)}:h">${g.status === 'scheduled' ? '–' : g.score.h}</div></div>
-      <div class="b-mid">${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? '<span class="chip">FINAL</span>' : '<span class="chip soft">PRÓXIMO</span>'}
+      <div class="b-mid">${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : '<span class="chip soft">PRÓXIMO</span>'}
         <div class="clk" data-gid="${esc(g.id)}" style="margin-top:8px">${UI.clockText(g)}</div>
         <small>${esc(UI.catName(S, g.cat))}<br>${UI.fmtDate(g.date)} · ${UI.fmtTime(g.date)}</small>
         <div class="row" style="justify-content:center;margin-top:12px"><button class="btn sm ghost" data-act="share">Compartir</button><a class="btn sm" href="tv.html?id=${esc(g.id)}">Modo TV</a></div></div>

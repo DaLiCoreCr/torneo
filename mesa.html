@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=21">
+<link rel="stylesheet" href="css/styles.css?v=22">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=21"></script>
-<script src="js/core.js?v=21"></script>
-<script src="js/seed.js?v=21"></script>
-<script src="js/ui.js?v=21"></script>
+<script src="js/firebase-config.js?v=22"></script>
+<script src="js/core.js?v=22"></script>
+<script src="js/seed.js?v=22"></script>
+<script src="js/ui.js?v=22"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -66,7 +66,7 @@ function control(S, g) {
   const periodOver = rem <= 0 && !g.clock.running;
   const oc = T.onCourt(g), N = R.onCourt || 5;
   const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
-    <div class="meta">Colectivas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">EN COLECTIVAS</span>' : ''} · T. muertos: quedan ${Math.max(0, R.timeouts - T.timeoutsUsed(g, k))}</div></div>`;
+    <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">BONUS</span>' : ''} · TM: ${Math.max(0, R.timeouts - T.timeoutsUsed(g, k))}</div></div>`;
 
   let endBtn = '';
   if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';
@@ -102,12 +102,12 @@ function control(S, g) {
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
       <span class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · Captura ${T.MODES[g.mode]}</span>
       <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></div>
-    <div class="mboard">${teamBox('h', h)}${teamBox('a', a)}</div>
-    <div class="clkbox"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div>
-      <div class="row"><button class="btn ${g.clock.running ? '' : 'gold'}" data-act="toggle" ${g.status === 'final' ? 'disabled' : ''}>${g.clock.running ? 'Pausar' : 'Iniciar'}</button>
-      <button class="btn ghost" data-act="adjust">Ajustar</button></div>
-      ${adjusting ? `<div class="adj"><input class="inp" id="am" type="number" min="0" value="${mm}"> : <input class="inp" id="as" type="number" min="0" max="59" value="${ss}"><button class="btn sm gold" data-act="setclock">Fijar</button></div>` : ''}
-    </div>
+    <div class="mhead">${teamBox('h', h)}
+      <div class="clkbox"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div>
+        <div class="row"><button class="btn sm ${g.clock.running ? '' : 'gold'}" data-act="toggle" ${g.status === 'final' ? 'disabled' : ''}>${g.clock.running ? 'Pausar' : 'Iniciar'}</button>
+        <button class="btn sm ghost" data-act="adjust">Ajustar</button></div>
+      </div>${teamBox('a', a)}</div>
+    ${adjusting ? `<div class="adj" style="justify-content:center;margin:8px 0"><input class="inp" id="am" type="number" min="0" value="${mm}"> : <input class="inp" id="as" type="number" min="0" max="59" value="${ss}"><button class="btn sm gold" data-act="setclock">Fijar</button></div>` : ''}
     ${periodOver && g.status !== 'final' ? '<div class="hint" style="margin:0 0 8px;border-color:var(--gold);color:var(--gold)">Fin del período.</div>' : ''}
     <div class="row" style="margin-bottom:10px">${endBtn}${g.status !== 'final' && !(over && !tied) ? '<button class="btn sm danger" data-act="finish">Finalizar ya</button>' : ''}</div>
     <div class="row" style="justify-content:space-between"><h3 style="font-size:22px">${esc(cur.name)}</h3>
@@ -123,8 +123,11 @@ function render() {
   const S = T.state();
   const g = gid && T.game(gid);
   document.body.style.paddingBottom = '';
+  document.body.classList.toggle('mesa-on', !!g);
   if (!g) return picker(S);
   control(S, g);
+  const mh = document.querySelector('.mhead');
+  if (mh) document.documentElement.style.setProperty('--mh', mh.offsetHeight + 'px');
   const padEl = document.querySelector('.pad');
   if (padEl && !padEl.classList.contains('idle') && getComputedStyle(padEl).position === 'fixed') {
     document.body.style.paddingBottom = (padEl.offsetHeight + 16) + 'px';

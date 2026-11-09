@@ -13,7 +13,7 @@
       { id: 'u13', name: 'Menores de 13' },
       { id: 'o13', name: 'Mayores de 13' }
     ],
-    rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, onCourt: 5, ptsWin: 3, ptsDraw: 2, ptsLoss: 1 },
+    rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, onCourt: 5, ptsWin: 3, ptsDraw: 2, ptsLoss: 1, forfeitWin: 20, forfeitLoss: 0 },
     refreshSec: 15
   };
 
@@ -136,7 +136,23 @@
   function nextPeriod(g) {
     pauseClock(g); g.clock.period++; g.clock.remainingMs = periodLen(g.clock.period);
   }
-  function finishGame(g) { pauseClock(g); g.status = 'final'; g.score = score(g.events); }
+  function finishGame(g) { pauseClock(g); g.status = 'final'; if (!g.forfeit) g.score = score(g.events); }
+  /* Quita la última jugada de un jugador (captura sin tiempos) */
+  function removeEvent(g, team, pid, type) {
+    for (let i = g.events.length - 1; i >= 0; i--) {
+      const e = g.events[i];
+      if (e.team === team && e.pid === pid && e.type === type) { g.events.splice(i, 1); g.score = score(g.events); return true; }
+    }
+    return false;
+  }
+  /* No presentación: 'side' es el equipo que NO llegó; el otro gana con el marcador definido en Reglas */
+  function forfeitGame(g, side, R) {
+    const win = R.forfeitWin ?? 20, loss = R.forfeitLoss ?? 0;
+    pauseClock(g);
+    g.events = []; g.forfeit = side; g.status = 'final';
+    g.score = side === 'h' ? { h: loss, a: win } : { h: win, a: loss };
+  }
+  function clearForfeit(g) { delete g.forfeit; g.status = 'live'; g.score = score(g.events); }
 
   /* ---------- En cancha, minutos y +/- (se calculan recorriendo los cambios registrados) ---------- */
   const elapsed = (p, c) => { let t = 0; for (let i = 1; i < p; i++) t += periodLen(i); return t + periodLen(p) - c; };
@@ -241,10 +257,12 @@
       const h = rows[g.home], a = rows[g.away];
       if (!h || !a) return;
       h.pj++; a.pj++;
+      const wo = g.forfeit ? (g.forfeit === 'h' ? h : a) : null; // el que no se presentó no suma punto de participación
       h.pf += g.score.h; h.pc += g.score.a; a.pf += g.score.a; a.pc += g.score.h;
       if (g.score.h > g.score.a) { h.g++; a.p++; h.pts += R.ptsWin; a.pts += R.ptsLoss; }
       else if (g.score.h < g.score.a) { a.g++; h.p++; a.pts += R.ptsWin; h.pts += R.ptsLoss; }
       else { h.e++; a.e++; h.pts += R.ptsDraw; a.pts += R.ptsDraw; }
+      if (wo) wo.pts -= R.ptsLoss;
     });
     return Object.values(rows).map(r => Object.assign(r, { dif: r.pf - r.pc }))
       .sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.pf - x.pf || x.team.name.localeCompare(y.team.name));
@@ -340,7 +358,7 @@
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodLabel, remaining, fmtClock,
-    onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, teamFouls, timeoutsUsed,
+    onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, removeEvent, forfeitGame, clearForfeit, teamFouls, timeoutsUsed,
     blank, playerStats, derive, sumStats, pct, playerIndex, tournamentStats, standings
   };
 })(window);
