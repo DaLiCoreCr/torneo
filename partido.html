@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Partido · Torneo Hoopz</title>
+<title>Partido · Torneo interno Hoopz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -92,7 +92,7 @@ function render() {
   if (!g) { app.innerHTML = '<div class="empty">Partido no encontrado. <a class="gold" href="resultados.html">Ver resultados</a></div>'; return; }
   const h = UI.team(S, g.home), a = UI.team(S, g.away);
   const fin = g.status === 'final', live = g.status === 'live';
-  document.title = `${h.name} vs ${a.name} · Torneo Hoopz`;
+  document.title = `${h.name} vs ${a.name} · Torneo interno Hoopz`;
   const tabs = [['box', 'Box score'], ['plays', 'Jugada a jugada'], ['sum', 'Resumen']];
   app.innerHTML = `
     <a class="muted" href="resultados.html">← Resultados</a>

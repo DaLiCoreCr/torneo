@@ -8,10 +8,10 @@
   const uid = p => p + Math.random().toString(36).slice(2, 8);
 
   const DEFAULT_CONFIG = {
-    name: 'Torneo Hoopz',
+    name: 'Torneo interno Hoopz',
     categories: [
-      { id: 'u13', name: 'Menores de 13' },
-      { id: 'o13', name: 'Mayores de 13' }
+      { id: 'u12', name: 'U12' },
+      { id: 'plus12', name: 'Plus 12' }
     ],
     rules: { periods: 4, minutes: 8, otMinutes: 5, foulsOut: 5, bonusFouls: 5, timeouts: 4, onCourt: 5, ptsWin: 3, ptsDraw: 2, ptsLoss: 1, forfeitWin: 20, forfeitLoss: 0 },
     refreshSec: 15

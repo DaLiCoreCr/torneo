@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Administración · Torneo Hoopz</title>
+<title>Administración · Torneo interno Hoopz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -160,6 +160,9 @@ function dataView() {
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
+    <div><h3 class="gold" style="font-size:22px">Reinicio real</h3>
+      <p class="muted">Deja el torneo listo para el evento: nombre <b>Torneo interno Hoopz</b>, categorías <b>U12</b> (Mickey, Olaf, Woody, Nemo) y <b>Plus 12</b> (Rayo, Buzz, Mike, Simba, Stitch, Donald), con las listas de jugadores (17 en U12, 41 en Plus 12) en la lista sin equipo para el sorteo, sin partidos ni estadísticas. Conserva las reglas actuales.</p>
+      <div class="row"><button class="btn danger" data-act="realreset">Reinicio real</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reiniciar torneo</h3>
       <p class="muted"><b>Reiniciar resultados</b> conserva equipos, jugadores y calendario, pero borra marcadores, jugadas y estadísticas: todos los partidos vuelven a "Programado" con el reloj en cero y la tabla de posiciones queda en ceros. <b>Borrar todo</b> elimina además los equipos y los partidos.</p>
       <div class="row"><button class="btn danger" data-act="resetgames">Reiniciar resultados</button><button class="btn danger" data-act="wipe">Borrar todo (torneo vacío)</button></div></div></div>`;
@@ -281,6 +284,29 @@ app.addEventListener('click', e => {
           g.clock = { period: 1, running: false, remainingMs: T.periodLen(1), startedAt: null };
         }));
         UI.toast('Torneo reiniciado: todos los partidos en cero');
+      }
+      break;
+    case 'realreset':
+      if (confirmDanger('Se reemplazará TODO (equipos, jugadores, partidos y estadísticas) por los 10 equipos reales: U12 (4) y Plus 12 (6).')) {
+        const old = T.state().config;
+        const cats = [
+          { id: 'u12', name: 'U12', teams: [['Mickey', '#e53935'], ['Olaf', '#00acc1'], ['Woody', '#8d6e63'], ['Nemo', '#fb8c00']] },
+          { id: 'plus12', name: 'Plus 12', teams: [['Rayo', '#d81b60'], ['Buzz', '#8e24aa'], ['Mike', '#43a047'], ['Simba', '#c9a84c'], ['Stitch', '#1e88e5'], ['Donald', '#3949ab']] }
+        ];
+        const config = Object.assign({}, old, { name: 'Torneo interno Hoopz', categories: cats.map(c => ({ id: c.id, name: c.name })) });
+        const teams = cats.flatMap(c => c.teams.map(([n, color]) => ({ id: T.uid('t'), cat: c.id, name: 'Team ' + n, coach: '', color, players: [] })));
+        /* Listas de jugadores sin equipo (para el sorteo). El género se deduce del nombre; se deja vacío si es ambiguo (ajustable en la pestaña Jugadores). */
+        const FEM = new Set(['Sara', 'Valentina', 'Elizabeth', 'Luciana', 'Mariana', 'Naomy', 'Krisna', 'Liah', 'Maria', 'Lucia', 'Amanda', 'Celeste', 'Mia', 'Sareth']);
+        const MAS = new Set(['Ben', 'Mateo', 'Diego', 'Bastian', 'Connor', 'Luka', 'Santiago', 'Liang', 'Thiago', 'Gael', 'Jonathan', 'Dylan', 'James', 'Julian', 'Ismael', 'Mathias', 'Joao', 'Samir', 'Ian', 'Luis', 'Mauricio', 'Juan', 'Jhon', 'Itay', 'Hudson', 'Samuel', 'David', 'Derek', 'Sam', 'River']);
+        const gender = n => { const f = n.split(' ')[0]; return FEM.has(f) ? 'F' : MAS.has(f) ? 'M' : ''; };
+        const LISTS = {
+          u12: ['Ben Kenigsvain', 'Sara Roldan', 'Mateo Fernandez', 'Valentina Arias', 'Diego Hernandez', 'Elizabeth Cordero', 'Bastian Soto', 'Luciana Chacon', 'Connor Pladl', 'Mariana Quesada', 'Luka Miranda', 'Santiago Marín', 'Liang Mora', 'Thiago Duran', 'Gael Rivera', 'Jonathan Zenan Ocean', 'Dylan Araya'],
+          plus12: ['Naomy Amen Obando', 'Sam O Neill Sweet', 'James Wilfong Valverde', 'Krisna Naranjo Chacon', 'Gael Morales Mora', 'Julian Fernandez Chacon', 'Liah Quesada Aguero', 'Ismael Fonseca Ugalde', 'Ben Kenigsvain', 'Sara Roldan Acuña', 'Mathias Herrera Vargas', 'Joao Navas Cordero', 'Valentina Perez Arias', 'Samir Fernandez Mora', 'Santiago Sibaja Salas', 'Mariana Quesada Rivera', 'Connor Pladl Valverde', 'Bastian Soto Nuñez', 'Elizabeth Cordero Valverde', 'Ian Oguilve Aguero', 'Luis Correa Fernandez', 'Maria F Mora Elizondo', 'Dylan Quesada Rivera', 'Mauricio Castillo Arce', 'Lucia Amen Valverde', 'Juan D León Bonilla', 'Jhon Burgos Araya', 'Sareth Jimenez Mena', 'River Hermance Jimenez', 'Julian Fernandez Brenes', 'Amanda Segura Acuña', 'Ismael O Neill Sweet', 'Itay Kenigsvain', 'Celeste Gonzales Guisao', 'Hudson Oconnor', 'Luis Acuña Acuña', 'Mia Azcurra', 'Mathias Castillo Mena', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Derek Aguero Alfaro']
+        };
+        const draft = {};
+        Object.keys(LISTS).forEach(k => { draft[k] = { pool: LISTS[k].map(n => ({ id: T.uid('p'), name: n, gender: gender(n), captain: false })), last: null, group: null, done: [] }; });
+        T.replaceAll({ v: 1, config, teams, games: [], draft });
+        cat = cats[0].id; render(); UI.toast('Reinicio real aplicado: 10 equipos y listas de jugadores cargados');
       }
       break;
     case 'wipe': if (confirmDanger('Se borrarán equipos, jugadores, partidos y estadísticas.')) { const s = T.state(); T.replaceAll({ v: 1, config: s.config, teams: [], games: [], draft: {} }); render(); UI.toast('Torneo vacío'); } break;

@@ -15,8 +15,8 @@
   const BOYS = ['Mateo', 'Santiago', 'Diego', 'Emiliano', 'Sebastián', 'Gael', 'Thiago', 'Lucas', 'Andrés', 'Nicolás'];
   const LAST = ['Rojas', 'Mora', 'Vargas', 'Castro', 'Jiménez', 'Solís', 'Araya', 'Brenes', 'Quesada', 'Chaves', 'Salas', 'Méndez', 'Campos', 'Ulate'];
   const NAMES = {
-    u13: ['Rayos', 'Halcones', 'Pumas', 'Tigres'],
-    o13: ['Lobos', 'Dragones', 'Panteras', 'Toros']
+    u12: ['Rayos', 'Halcones', 'Pumas', 'Tigres'],
+    plus12: ['Lobos', 'Dragones', 'Panteras', 'Toros']
   };
   const COLORS = ['#c9a84c', '#e53935', '#1e88e5', '#43a047', '#8e24aa', '#fb8c00', '#00acc1', '#d81b60'];
   const COACHES = ['Coach Ricardo M.', 'Coach Andrea L.', 'Coach Esteban V.', 'Coach Paola R.'];
@@ -42,7 +42,7 @@
           const list = girl ? GIRLS : BOYS;
           return { id: 'p' + (++n), num, name: list[Math.floor(r() * list.length)] + ' ' + LAST[Math.floor(r() * LAST.length)], gender: girl ? 'F' : 'M' };
         });
-        teams.push({ id: cat + '-t' + i, cat, name, coach: COACHES[i], color: COLORS[(i + (cat === 'o13' ? 4 : 0)) % COLORS.length], str: STRENGTH[i], players });
+        teams.push({ id: cat + '-t' + i, cat, name, coach: COACHES[i], color: COLORS[(i + (cat === 'plus12' ? 4 : 0)) % COLORS.length], str: STRENGTH[i], players });
       });
     });
     return teams;
