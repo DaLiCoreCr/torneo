@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=53">
+<link rel="stylesheet" href="css/styles.css?v=54">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,16 +18,16 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=53"></script>
-<script src="js/core.js?v=53"></script>
-<script src="js/seed.js?v=53"></script>
-<script src="js/ui.js?v=53"></script>
+<script src="js/firebase-config.js?v=54"></script>
+<script src="js/core.js?v=54"></script>
+<script src="js/seed.js?v=54"></script>
+<script src="js/ui.js?v=54"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
 const { esc } = T;
 const app = document.getElementById('app');
-let tab = 'teams', cat = UI.getCat(false), openTeam = null;
+let tab = 'teams', cat = UI.getCat(false), openTeam = null, editPl = null;
 
 const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
@@ -66,11 +66,15 @@ function teamsView(S) {
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px">${T.coachList(t).map((c, i) => `<span class="chip soft" style="display:inline-flex;gap:10px;align-items:center;font-size:15px;padding:6px 10px">${esc(c)} <a href="#" data-act="editcoach" data-id="${esc(t.id)}" data-i="${i}" title="Corregir nombre" style="color:inherit">✎</a> <a href="#" data-act="delcoach" data-id="${esc(t.id)}" data-i="${i}" title="Quitar" style="color:inherit">✕</a></span>`).join('') || '<span class="muted" style="font-size:14px">Sin coaches todavía. Agrégalos aquí o con el botón "→ Coach" de un jugador.</span>'}</div>
           <div class="row"><input class="inp" id="nc-name-${esc(t.id)}" placeholder="Nombre del coach (papá, mamá o jugador mayor)" style="flex:1;min-width:200px"><button class="btn gold" data-act="addcoach" data-id="${esc(t.id)}">Agregar coach</button></div></div>
         <div><label class="lbl">Jugadores (${t.players.length})</label>
-        ${t.players.map(p => `<div class="pl-row" style="margin-bottom:6px"><input class="inp" type="number" data-pf="num" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${p.num}"><input class="inp" data-pf="name" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${esc(p.name)}">
+        ${t.players.map(p => editPl === p.id
+          ? `<div class="pl-row pl-edit" style="margin-bottom:6px"><input class="inp" type="number" min="0" id="ep-num" value="${p.num}" title="Número de camiseta"><input class="inp" id="ep-name" value="${esc(p.name)}" title="Nombre">
+              <button class="btn gold sm" data-act="savepl" data-id="${esc(t.id)}" data-p="${esc(p.id)}">Guardar</button><button class="btn ghost sm" data-act="cancelpl">Cancelar</button></div>`
+          : `<div class="pl-row pl-show" style="margin-bottom:6px"><span class="n" style="font:400 26px 'Bebas Neue',sans-serif;color:var(--gold);text-align:center">${p.num}</span><span class="nm" style="font-weight:500">${esc(p.name)}</span>
           <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>F</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>M</option></select>
           <label class="chk" title="Capitán"><input type="checkbox" data-pf="captain" data-id="${esc(t.id)}" data-p="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
+          <button class="btn sm gold" data-act="editpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}" title="Corregir nombre o número de camiseta">✎ Editar</button>
           <button class="btn sm ghost" data-act="p2coach" data-id="${esc(t.id)}" data-p="${esc(p.id)}" title="Agregar a este jugador como coach del equipo">${T.coachList(t).includes(p.name) ? '✓ Coach' : '→ Coach'}</button>
-          <button class="btn danger sm" data-act="delpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}">✕</button></div>`).join('')}
+          <button class="btn danger sm" data-act="delpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}" title="Eliminar jugador">✕</button></div>`).join('')}
         <div class="pl-row" style="margin-top:10px;grid-template-columns:70px 1fr 90px auto"><input class="inp" type="number" id="np-num" placeholder="#"><input class="inp" id="np-name" placeholder="Nombre del jugador">
           <select class="inp" id="np-g"><option value="F">F</option><option value="M">M</option></select><button class="btn gold sm" data-act="addpl" data-id="${esc(t.id)}">Agregar</button></div></div>
       </div>` : ''}</div>`;
@@ -291,6 +295,18 @@ app.addEventListener('click', e => {
       mt(s => s.teams.push({ id: tid, cat, name, coach: val('nt-coach'), coaches: val('nt-coach') ? [val('nt-coach')] : [], color: colors[s.teams.length % colors.length], players: [] }));
       openTeam = tid; render(); break;
     }
+    case 'editpl': editPl = b.dataset.p; render(); setTimeout(() => { const i = document.getElementById('ep-name'); if (i) { i.focus(); i.select(); } }, 30); break;
+    case 'cancelpl': editPl = null; render(); break;
+    case 'savepl': {
+      const t0 = T.state().teams.find(t => t.id === id);
+      const name = val('ep-name'), num = parseInt(document.getElementById('ep-num').value, 10);
+      if (!name) return UI.toast('El nombre no puede quedar vacío', 'bad');
+      if (isNaN(num) || num < 0) return UI.toast('Escribe un número de camiseta válido', 'bad');
+      if (t0.players.some(p => p.id !== b.dataset.p && p.num === num)) return UI.toast('Ese número ya lo tiene otro jugador del equipo', 'bad');
+      const old = t0.players.find(p => p.id === b.dataset.p);
+      mt(s => { const t = s.teams.find(x => x.id === id), p = t.players.find(x => x.id === b.dataset.p); if (T.coachList(t).includes(p.name) && p.name !== name) T.setCoaches(t, T.coachList(t).map(c => (c === p.name ? name : c))); p.name = name; p.num = num; });
+      editPl = null; render(); UI.toast('Guardado'); break;
+    }
     case 'addcoach': {
       const name = val('nc-name-' + id);
       if (!name) return UI.toast('Escribe el nombre del coach', 'bad');
@@ -486,6 +502,12 @@ app.addEventListener('change', e => {
     if (t0.players.some(p => p.id !== el.dataset.p && p.num === n)) { UI.toast('Ese número ya lo tiene otro jugador del equipo', 'bad'); render(); return; }
   }
   if (el.dataset.pf) { T.mutate(s => { const p = s.teams.find(t => t.id === el.dataset.id).players.find(x => x.id === el.dataset.p); p[el.dataset.pf] = el.dataset.pf === 'num' ? parseInt(el.value, 10) || 0 : el.dataset.pf === 'captain' ? el.checked : el.value; }); UI.toast('Guardado'); }
+});
+
+app.addEventListener('keydown', e => {
+  if (!editPl || (e.target.id !== 'ep-name' && e.target.id !== 'ep-num')) return;
+  if (e.key === 'Enter') { e.preventDefault(); const b = app.querySelector('[data-act="savepl"]'); if (b) b.click(); }
+  if (e.key === 'Escape') { editPl = null; render(); }
 });
 
 UI.gate(app, start);

@@ -481,3 +481,8 @@ body.tv .podium { max-width: 1500px; }
 .pd.on .badge { animation: coin 1.5s cubic-bezier(.2, .9, .3, 1) both; }
 .pd.first.on .badge { animation: coin 1.5s cubic-bezier(.2, .9, .3, 1) both, coinloop 8s 1.5s linear infinite; }
 @media (prefers-reduced-motion: reduce) { .reveal .badge, .pd.on .badge, .pd.first.on .badge { animation: none; } }
+
+/* Fila de jugador en Administración → Equipos: ver (con botón Editar) y editar (con Guardar y Cancelar) */
+.pl-row.pl-show { grid-template-columns: 56px 1fr 90px 52px auto auto auto; }
+.pl-row.pl-edit { grid-template-columns: 70px 1fr auto auto; }
+@media (max-width: 700px) { .pl-row.pl-show { grid-template-columns: 56px 1fr 90px; } .pl-row.pl-edit { grid-template-columns: 70px 1fr; } .pl-row.pl-edit .btn { justify-self: start; } }
