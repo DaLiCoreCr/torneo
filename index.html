@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=37">
+<link rel="stylesheet" href="css/styles.css?v=38">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -26,10 +26,10 @@
     <div id="app"></div>
   </div>
 </main>
-<script src="js/firebase-config.js?v=37"></script>
-<script src="js/core.js?v=37"></script>
-<script src="js/seed.js?v=37"></script>
-<script src="js/ui.js?v=37"></script>
+<script src="js/firebase-config.js?v=38"></script>
+<script src="js/core.js?v=38"></script>
+<script src="js/seed.js?v=38"></script>
+<script src="js/ui.js?v=38"></script>
 <script>
 T.load().then(() => {
 UI.layout('live');
@@ -40,8 +40,10 @@ function render() {
   const S = T.state();
   const games = S.games.filter(g => cat === 'all' || g.cat === cat);
   const live = games.filter(g => g.status === 'live');
-  const next = games.filter(g => g.status === 'scheduled').sort(UI.byDate).slice(0, 4);
-  const last = games.filter(g => g.status === 'final').sort((a, b) => UI.byDate(b, a)).slice(0, 4);
+  /* Con "Todas" se muestran hasta 3 por categoría (si no, la categoría con fechas más cercanas ocupaba todo el espacio) */
+  const pick = (arr, cmp) => { arr = arr.sort(cmp); return cat === 'all' ? S.config.categories.flatMap(c => arr.filter(g => g.cat === c.id).slice(0, 3)).sort(cmp) : arr.slice(0, 4); };
+  const next = pick(games.filter(g => g.status === 'scheduled'), UI.byDate);
+  const last = pick(games.filter(g => g.status === 'final'), (a, b) => UI.byDate(b, a));
   const cats = S.config.categories.filter(c => cat === 'all' || c.id === cat);
   const list = a => a.length ? `<div class="grid">${a.map(UI.gameCard).join('')}</div>` : '';
   app.innerHTML = `

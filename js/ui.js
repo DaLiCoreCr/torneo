@@ -27,7 +27,8 @@
     S.games.filter(g => g.status === 'live').forEach(g => {
       items.push(`<span class="tk live"><i class="dot"></i>EN VIVO · ${esc(team(S, g.home).name)}${T.live ? ` ${g.score.h}–${g.score.a} ` : ' vs '}${esc(team(S, g.away).name)}</span>`);
     });
-    S.games.filter(g => g.status === 'scheduled').sort(byDate).slice(0, 4).forEach(g => {
+    const sched = S.games.filter(g => g.status === 'scheduled').sort(byDate);
+    S.config.categories.flatMap(c => sched.filter(g => g.cat === c.id).slice(0, 2)).sort(byDate).forEach(g => { // 2 por categoría para que ninguna quede fuera
       items.push(`<span class="tk">Próximo · ${esc(team(S, g.home).name)} vs ${esc(team(S, g.away).name)} · ${fmtDate(g.date)} ${fmtTime(g.date)}</span>`);
     });
     if (!items.length) items.push('<span class="tk">' + esc(S.config.name) + '</span>');
