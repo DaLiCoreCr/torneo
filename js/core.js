@@ -76,7 +76,7 @@
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
     state = readRaw();
-    if (!state) { state = w.Seed.build(); persist(); }
+    if (!state) { state = w.Seed.real(JSON.parse(JSON.stringify(DEFAULT_CONFIG))); persist(); }
     state.draft = state.draft || {};
     return Promise.resolve(state);
   }

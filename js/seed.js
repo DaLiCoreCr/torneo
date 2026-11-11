@@ -142,5 +142,37 @@
     return { v: 1, config, teams, games, draft: {} };
   }
 
-  w.Seed = { build };
+  /* Configuración real del torneo: categorías, equipos, listas de jugadores sin equipo (con capitanes marcados, refuerzos y coaches por sortear), sin partidos ni estadísticas. */
+  function real(base) {
+      const cats = [
+        { id: 'u12', name: 'U12', teams: [['Mickey', '#e53935'], ['Olaf', '#00acc1'], ['Woody', '#8d6e63'], ['Nemo', '#fb8c00']] },
+        { id: 'plus12', name: 'Plus 12', teams: [['Rayo', '#d81b60'], ['Buzz', '#8e24aa'], ['Mike', '#43a047'], ['Simba', '#c9a84c'], ['Stitch', '#1e88e5'], ['Donald', '#3949ab']] }
+      ];
+      const config = Object.assign({}, base, { name: 'Torneo interno Hoopz', categories: cats.map(c => ({ id: c.id, name: c.name })) });
+      const teams = cats.flatMap(c => c.teams.map(([n, color]) => ({ id: T.uid('t'), cat: c.id, name: 'Team ' + n, coach: '', color, players: [] })));
+      /* Listas de jugadores sin equipo (para el sorteo). El género se deduce del nombre; se deja vacío si es ambiguo (ajustable en la pestaña Jugadores). */
+      const FEM = new Set(['Sara', 'Valentina', 'Elizabeth', 'Luciana', 'Mariana', 'Naomy', 'Krisna', 'Liah', 'Maria', 'Lucia', 'Amanda', 'Celeste', 'Mia', 'Sareth', 'Dana', 'Calissa', 'Victoria', 'Fernanda']);
+      const MAS = new Set(['Ben', 'Mateo', 'Diego', 'Bastian', 'Connor', 'Luka', 'Santiago', 'Liang', 'Thiago', 'Gael', 'Jonathan', 'Dylan', 'James', 'Julian', 'Ismael', 'Mathias', 'Joao', 'Samir', 'Ian', 'Luis', 'Mauricio', 'Juan', 'Jhon', 'Itay', 'Hudson', 'Samuel', 'David', 'Derek', 'Sam', 'River', 'Lucas', 'Noah', 'Leo', 'Hans', 'Benjamin', 'Ethan', 'Xavier', 'Emmanuel', 'Gabriel', 'Jeremy', 'Erick']);
+      const gender = n => { const f = n.split(' ')[0].normalize('NFD').replace(/\p{M}/gu, ''); return FEM.has(f) ? 'F' : MAS.has(f) ? 'M' : ''; };
+      const LISTS = {
+        u12: ['Ben Kenigsvain', 'Sara Roldán', 'Mateo Fernández', 'Valentina Pérez', 'Diego Hernández', 'Elizabeth Cordero', 'Luciana Chacón', 'Connor Pladl', 'Mariana Quesada', 'Luka Miranda', 'Santiago Marín', 'Liang Mora', 'Thiago Duran', 'Gael Rivera', 'Jonathan Zenan Ocean', 'Dylan Araya', 'Dana Zúñiga Meléndez', 'Lucas Varela Charpentier', 'Calissa', 'Noah', 'Leo', 'Hans', 'Benjamin', 'Ethan'],
+        plus12: ['Naomy Amen Obando', 'Sam O Neill Sweet', 'James Wilfong Valverde', 'Krisna Naranjo Chacón', 'Gael Morales Mora', 'Julián Fernández Chacón', 'Liah Quesada Agüero', 'Ismael Fonseca Ugalde', 'Mathias Herrera Vargas', 'Joao Navas Cordero', 'Samir Fernández Mora', 'Santiago Sibaja Salas', 'Ian Oguilve Agüero', 'Luis Correa Fernández', 'María F Mora Elizondo', 'Dylan Quesada Rivera', 'Mauricio Castillo Arce', 'Lucía Amen Valverde', 'Jhon Burgos Araya', 'Sareth Jiménez Mena', 'River Hermance Jiménez', 'Julián Fernández Brenes', 'Amanda Segura Acuña', 'Ismael O Neill Sweet', 'Itay Kenigsvain', 'Celeste Gonzales Guisao', 'Hudson Oconnor', 'Luis Acuña Acuña', 'Mia Azcurra', 'Mathias Castillo Mena', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Mathias Torres Fonseca', 'Xavier Robles', 'Emmanuel Vargas', 'Gabriel Hernández', 'Jeremy Martínez', 'Victoria Fallas', 'Fernanda Mata', 'Santiago Picado Ureña', 'Erick Acosta']
+      };
+      const CAPS = new Set(['Ben Kenigsvain', 'Sara Roldán', 'Valentina Pérez', 'Connor Pladl', 'Mathias Castillo Mena', 'Hudson Oconnor', 'Gabriel Hernández', 'David Padilla Fallas', 'Lucía Amen Valverde', 'Celeste Gonzales Guisao', 'Amanda Segura Acuña', 'Krisna Naranjo Chacón', 'Luis Correa Fernández', 'Itay Kenigsvain', 'Jhon Burgos Araya', 'Samuel Madrigal Solano']);
+      /* Refuerzos: jugadores de U12 que también pueden jugar en Plus 12 (copia en su lista, marcada como refuerzo) */
+      const REINF = { plus12: ['Ben Kenigsvain', 'Sara Roldán', 'Valentina Pérez'] };
+      /* Coaches por categoría, para sortear en el Paso 3. U12: jugadores de Plus 12 (en 4 grupos: Lucía/Luis Correa/Dylan · Jhon/Samuel/David Padilla/Luis Acuña · Amanda/Sareth/Naomy/James · Mia/Celeste/Julián/Itay). Plus 12: 6 adultos. */
+      const COACHES = {
+        u12: ['Lucía Amen Valverde', 'Luis Correa Fernández', 'Dylan Quesada Rivera', 'Jhon Burgos Araya', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Luis Acuña Acuña', 'Amanda Segura Acuña', 'Sareth Jiménez Mena', 'Naomy Amen Obando', 'James Wilfong Valverde', 'Mia Azcurra', 'Celeste Gonzales Guisao', 'Julián Fernández Brenes', 'Itay Kenigsvain'],
+        plus12: ['Daniel Hernández', 'David Zúñiga', 'Carlos Fernández Muñoz', 'Kleiber', 'Verónica Serrano', 'Fernando Quesada']
+      };
+      const draft = {};
+      Object.keys(LISTS).forEach(k => {
+        const mk = (n, re) => Object.assign({ id: T.uid('p'), name: n, gender: gender(n), captain: !re && CAPS.has(n) }, re ? { reinforce: true } : {});
+        draft[k] = { pool: LISTS[k].map(n => mk(n)).concat((REINF[k] || []).map(n => mk(n, true))), parents: COACHES[k].map(n => ({ id: T.uid('c'), name: n })), last: null, group: null, done: [] };
+      });
+    return { v: 1, config, teams, games: [], draft };
+  }
+
+  w.Seed = { build, real };
 })(window);
