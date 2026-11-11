@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=23">
+<link rel="stylesheet" href="css/styles.css?v=24">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=23"></script>
-<script src="js/core.js?v=23"></script>
-<script src="js/seed.js?v=23"></script>
-<script src="js/ui.js?v=23"></script>
+<script src="js/firebase-config.js?v=24"></script>
+<script src="js/core.js?v=24"></script>
+<script src="js/seed.js?v=24"></script>
+<script src="js/ui.js?v=24"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -59,12 +59,13 @@ function teamsView(S) {
       return `<div class="team-card"><div class="team-h" data-act="toggle" data-id="${esc(t.id)}">${UI.badge(t)}<div class="grow"><b>${esc(t.name)}</b><small>${esc(T.coachList(t).join(', ') || 'Sin coach')} ·${t.players.length} jugadores</small></div><span class="muted">${open ? '▲' : '▼'}</span></div>
       ${open ? `<div class="team-b">
         <div class="frm">${field('Nombre', `<input class="inp" data-f="name" data-id="${esc(t.id)}" value="${esc(t.name)}">`)}
-          ${field('Coaches', `<div>${T.coachList(t).map((c, i) => `<span class="chip soft" style="display:inline-flex;gap:6px;align-items:center;margin:0 6px 6px 0;font-size:13px">${esc(c)} <a href="#" data-act="delcoach" data-id="${esc(t.id)}" data-i="${i}" title="Quitar" style="color:inherit">✕</a></span>`).join('') || '<span class="muted" style="font-size:13px">Sin coaches. Agrégalos aquí o desde un jugador (botón "→ Coach").</span>'}</div>
-            <div class="row"><input class="inp" id="nc-name-${esc(t.id)}" placeholder="Nombre del coach" style="flex:1"><button class="btn sm gold" data-act="addcoach" data-id="${esc(t.id)}">Agregar</button></div>`)}
           ${field('Color', `<input class="inp" type="color" data-f="color" data-id="${esc(t.id)}" value="${esc(t.color || '#c9a84c')}" style="height:42px;padding:4px">`)}
           ${field('Logo', `<div class="row">${t.logo ? UI.badge(t) : ''}<label class="btn sm ghost" style="cursor:pointer">${t.logo ? 'Cambiar' : 'Subir'}<input type="file" accept="image/*" data-logo="${esc(t.id)}" hidden></label>${t.logo ? `<button class="btn sm danger" data-act="dellogo" data-id="${esc(t.id)}">Quitar</button>` : ''}</div>`)}
           <button class="btn danger" data-act="delteam" data-id="${esc(t.id)}">Eliminar equipo</button></div>
-        <div><label class="lbl">Jugadores</label>
+        <div style="margin:18px 0 22px;padding:14px;border:1px solid var(--line);border-radius:var(--r)"><label class="lbl">Coaches (${T.coachList(t).length})</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px">${T.coachList(t).map((c, i) => `<span class="chip soft" style="display:inline-flex;gap:10px;align-items:center;font-size:15px;padding:6px 10px">${esc(c)} <a href="#" data-act="delcoach" data-id="${esc(t.id)}" data-i="${i}" title="Quitar" style="color:inherit">✕</a></span>`).join('') || '<span class="muted" style="font-size:14px">Sin coaches todavía. Agrégalos aquí o con el botón "→ Coach" de un jugador.</span>'}</div>
+          <div class="row"><input class="inp" id="nc-name-${esc(t.id)}" placeholder="Nombre del coach (papá, mamá o jugador mayor)" style="flex:1;min-width:200px"><button class="btn gold" data-act="addcoach" data-id="${esc(t.id)}">Agregar coach</button></div></div>
+        <div><label class="lbl">Jugadores (${t.players.length})</label>
         ${t.players.map(p => `<div class="pl-row" style="margin-bottom:6px"><input class="inp" type="number" data-pf="num" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${p.num}"><input class="inp" data-pf="name" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${esc(p.name)}">
           <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
           <label class="chk" title="Capitán"><input type="checkbox" data-pf="captain" data-id="${esc(t.id)}" data-p="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
