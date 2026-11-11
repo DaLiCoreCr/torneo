@@ -54,7 +54,7 @@
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
          <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
-         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="presentacion-llaves.html">Presentación de llaves</a> · <a href="admin.html">Administración</a></span>
+         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="presentacion-llaves.html">Presentación de llaves</a> · <a href="podio.html">Podio</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();
@@ -341,12 +341,27 @@
     const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2', bd.final);
     const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2', bd.third) : '';
     const champId = fin ? T.gameWinner(fin) : null;
-    const champ = champId ? `<div class="bk-champ">🏆 Campeón: <b>${esc(team(S, champId).name)}</b></div>` : '';
+    const champ = champId ? `<div class="bk-champ">🏆 Campeón: <b>${esc(team(S, champId).name)}</b> · <a href="podio.html?cat=${esc(cat)}" style="color:var(--gold)">Ver podio →</a></div>` : '';
     return `${champ}<div class="bracket ${semis.length ? '' : 'one'}">
       ${semis.length ? `<div class="bk-col"><h3 class="bk-h">Semifinales</h3>${semis.join('')}</div>` : ''}
       <div class="bk-col"><h3 class="bk-h">Final</h3>${finalCard}${thirdCard ? `<h3 class="bk-h" style="margin-top:8px">Tercer lugar</h3>${thirdCard}` : ''}</div></div>
       ${!hasSF && !fin ? `<p class="note">${hasPoints ? 'Las llaves se definen al terminar la fase regular, con los mejores de la tabla de posiciones. Lo que ves arriba es provisional según la tabla actual.' : 'Las llaves se definen con la tabla de posiciones; aparecerán cuando se jueguen los partidos de la fase regular.'}</p>` : ''}`;
   }
 
-  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult };
+  /* Pantallas de presentación en TV: si el contenido no cabe en la altura, se reduce el zoom para que se vea todo sin desplazarse */
+  function fitTV() {
+    if (innerWidth < 1200) return;
+    const m = document.querySelector('main');
+    if (!m) return;
+    m.style.zoom = '';
+    let z = parseFloat(getComputedStyle(m).zoom) || 1;
+    for (let i = 0; i < 3; i++) {
+      const h = document.documentElement.scrollHeight;
+      if (h <= innerHeight + 2) break;
+      z = Math.max(0.55, z * (innerHeight / h) * 0.985); m.style.zoom = z;
+    }
+  }
+  addEventListener('resize', () => { if (document.body.classList.contains('tv')) fitTV(); });
+
+  w.UI = { fitTV, initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult };
 })(window);

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=43">
+<link rel="stylesheet" href="css/styles.css?v=50">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=43"></script>
-<script src="js/core.js?v=43"></script>
-<script src="js/seed.js?v=43"></script>
-<script src="js/ui.js?v=43"></script>
+<script src="js/firebase-config.js?v=50"></script>
+<script src="js/core.js?v=50"></script>
+<script src="js/seed.js?v=50"></script>
+<script src="js/ui.js?v=50"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -29,7 +29,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null;
 
-const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -189,6 +189,14 @@ function drawView(S) {
     <p class="note"><a href="llaves.html" style="color:var(--gold)">Ver la pantalla pública de llaves →</a> · <a href="presentacion-llaves.html?cat=${esc(cat)}" target="_blank" style="color:var(--gold)">Presentación de llaves con suspenso ↗</a> · Puedes cambiar la fecha o eliminar partidos en la pestaña Partidos.</p>`;
 }
 
+function podioView(S) {
+  return `${catBar(S)}
+    <div class="card" style="margin:12px 0"><h3 class="gold" style="font-size:22px">Pantalla de podio</h3>
+      <p class="muted">Esta es una <b>muestra</b> con datos de ejemplo (usa los equipos de la categoría y sus logos). La pantalla real se llena sola con los resultados cuando termina la final y el partido por el tercer lugar: no hay que cambiar nada.</p>
+      <div class="row"><a class="btn gold" href="podio.html?demo=1&cat=${esc(cat)}" target="_blank">Abrir la muestra en pantalla grande ↗</a><a class="btn" href="podio.html?cat=${esc(cat)}" target="_blank">Abrir el podio real ↗</a></div></div>
+    <iframe title="Muestra del podio" src="podio.html?demo=1&cat=${esc(cat)}" style="width:100%;height:640px;border:1px solid var(--line);border-radius:var(--r);background:#0a0a0a"></iframe>`;
+}
+
 function rulesView(S) {
   const R = S.config.rules;
   const num = (k, label) => field(label, `<input class="inp" type="number" min="0" id="r-${k}" value="${R[k] ?? (k === 'onCourt' ? 5 : k === 'forfeitWin' ? 20 : k === 'forfeitLoss' ? 0 : '')}">`);
@@ -224,7 +232,7 @@ function dataView() {
 
 /* Monitoreo: dispositivos conectados ahora y lecturas/escrituras del día (suma de lo que reporta cada dispositivo) */
 const ONLINE_MS = 300000, QUOTA = { reads: 50000, writes: 20000 };
-const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación', 'presentacion-llaves': 'Presentación de llaves' };
+const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación', 'presentacion-llaves': 'Presentación de llaves', podio: 'Podio' };
 let unUsage = null, lastUsage = null;
 function monitorView() {
   if (!T.cloud || !T.watchUsage) return '<div class="card"><p class="muted">El monitoreo solo funciona con los datos en la nube (no en modo local).</p></div>';
@@ -263,7 +271,7 @@ function render() {
   if (tab === 'monitor') startUsage(); else stopUsage();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
 }
 
 app.addEventListener('click', e => {

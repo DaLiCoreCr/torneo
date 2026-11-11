@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=43">
+<link rel="stylesheet" href="css/styles.css?v=50">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,10 +19,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=43"></script>
-<script src="js/core.js?v=43"></script>
-<script src="js/seed.js?v=43"></script>
-<script src="js/ui.js?v=43"></script>
+<script src="js/firebase-config.js?v=50"></script>
+<script src="js/core.js?v=50"></script>
+<script src="js/seed.js?v=50"></script>
+<script src="js/ui.js?v=50"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -119,13 +119,14 @@ function render() {
       <div class="row"><div class="cnt">${d.pool.some(p => p.captain) ? 'Fase 1 · Capitanes' : d.pool.length ? 'Fase 2 · Jugadores' : placed ? 'Sorteo completo' : ''} · Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length + heldPlayers.length}</b></div>
         ${S.config.categories.length > 1 ? `<div class="pills" style="margin:0">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>` : ''}
         <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>
-    ${teams.length ? `<div class="pt-grid">${teams.map(t => {
+    ${teams.length ? `<div class="pt-grid" style="--tc:${teams.length <= 3 ? teams.length : teams.length === 4 ? 4 : teams.length <= 6 ? 3 : 5}">${teams.map(t => {
       const ps = t.players.filter(p => !held.has(p.id)).sort((a, b) => (b.captain ? 1 : 0) - (a.captain ? 1 : 0));
       const cl = T.coachList(t).filter(c => !heldNames.has(c));
       return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${cl.length ? (cl.length > 1 ? 'Coaches ' : 'Coach ') + esc(cl.map(c => c.replace(/^coach\s+/i, '')).join(', ')) + ' · ' : ''}${ps.length} jugador${ps.length === 1 ? '' : 'es'}</small></div></div>
         <ul>${ps.map(p => `<li class="${p.captain ? 'capi' : ''} ${fresh.has(p.id) ? 'fresh' : ''}">${esc(p.name)}${UI.capMark(p)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
     }).join('')}</div>` : '<div class="empty" style="margin-top:20px">Aún no hay equipos en esta categoría.</div>'}
     ${d.pool.length + heldPlayers.length ? `<div class="pool-strip">${d.pool.concat(heldPlayers).map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}`;
+  UI.fitTV();
 }
 
 app.addEventListener('click', e => {
