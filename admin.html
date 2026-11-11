@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=26">
+<link rel="stylesheet" href="css/styles.css?v=27">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=26"></script>
-<script src="js/core.js?v=26"></script>
-<script src="js/seed.js?v=26"></script>
-<script src="js/ui.js?v=26"></script>
+<script src="js/firebase-config.js?v=27"></script>
+<script src="js/core.js?v=27"></script>
+<script src="js/seed.js?v=27"></script>
+<script src="js/ui.js?v=27"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -77,10 +77,37 @@ function teamsView(S) {
     }).join('') || '<div class="empty">No hay equipos en esta categoría.</div>'}</div>`;
 }
 
+/* Jugadores posiblemente repetidos entre categorías (mismo nombre y primer apellido). Cada entrada: dónde está (lista sin equipo o equipo). */
+const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).slice(0, 2).join(' ');
+function findDupes(S) {
+  const by = {};
+  S.config.categories.forEach(c => {
+    T.draft(S, c.id).pool.forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: 'sin equipo' }); });
+    S.teams.filter(t => t.cat === c.id).forEach(t => t.players.forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: t.name }); }));
+  });
+  return Object.entries(by).filter(([k, l]) => new Set(l.map(x => x.cat)).size > 1);
+}
+function removeEntry(s, e) {
+  const d = T.draftW(s, e.cat);
+  d.pool = d.pool.filter(p => p.id !== e.id);
+  s.teams.filter(t => t.cat === e.cat).forEach(t => { t.players = t.players.filter(p => p.id !== e.id); });
+}
+function dupView(S) {
+  const dupes = findDupes(S);
+  if (!dupes.length) return '';
+  return `<div class="card" style="margin:12px 0;border-color:var(--live)"><h3 style="font-size:20px;color:var(--live)">⚠ Posibles jugadores repetidos entre categorías (${dupes.length})</h3>
+    <p class="muted" style="font-size:13px">Un jugador solo debería estar en una categoría. Elige dónde se queda, o quítalo del torneo.</p>
+    ${dupes.map(([k, l]) => `<div style="padding:10px 0;border-top:1px solid var(--line)">
+      <div style="margin-bottom:6px">${l.map(x => `<b>${esc(x.name)}</b> <span class="muted">(${esc(UI.catName(S, x.cat))} · ${esc(x.where)})</span>`).join(' &nbsp;·&nbsp; ')}</div>
+      <div class="row">${[...new Set(l.map(x => x.cat))].map(c => `<button class="btn sm gold" data-act="dupkeep" data-k="${esc(k)}" data-c="${esc(c)}">Dejar solo en ${esc(UI.catName(S, c))}</button>`).join('')}
+        <button class="btn sm danger" data-act="dupall" data-k="${esc(k)}">Quitar de todo el torneo</button></div></div>`).join('')}</div>`;
+}
+
 function poolView(S) {
   const d = T.draft(S, cat);
   const inTeams = S.teams.filter(t => t.cat === cat).reduce((n, t) => n + t.players.length, 0);
   return `${catBar(S)}
+    ${dupView(S)}
     <div class="card" style="margin:12px 0">
       <label class="lbl">Pega la lista de jugadores: uno por línea, "Nombre Apellido, F o M" (el género es opcional)</label>
       <textarea class="inp" id="pool-text" rows="6" placeholder="Valeria Rojas, F&#10;Mateo Mora, M"></textarea>
@@ -90,11 +117,12 @@ function poolView(S) {
       <p class="note"><b>${d.pool.length}</b> sin equipo · <b>${inTeams}</b> ya en equipos. Si un nombre ya existe se omite. Puedes marcar capitanes aquí o durante el sorteo.</p></div>
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><h3 class="gold" style="font-size:22px">Jugadores sin equipo</h3>
       ${d.pool.length ? '<button class="btn sm danger" data-act="clearpool">Vaciar lista</button>' : ''}</div>
-    <div class="cols">${d.pool.map(p => `<div class="pl-row" style="grid-template-columns:1fr 90px 52px auto">
+    <div class="cols">${d.pool.map(p => `<div class="pl-row" style="grid-template-columns:1fr 90px 52px auto auto">
       <input class="inp" data-pool="name" data-pid="${esc(p.id)}" value="${esc(p.name)}">
       <select class="inp" data-pool="gender" data-pid="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>F</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>M</option></select>
       <label class="chk" title="Capitán"><input type="checkbox" data-pool="captain" data-pid="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
-      <button class="btn danger sm" data-act="delpool" data-pid="${esc(p.id)}">✕</button></div>`).join('') || '<div class="empty">No hay jugadores sin equipo. Pega una lista arriba.</div>'}</div>`;
+      ${S.config.categories.filter(c => c.id !== cat).map(c => `<button class="btn sm ghost" data-act="movepool" data-pid="${esc(p.id)}" data-to="${esc(c.id)}" title="Mover a ${esc(c.name)}">→ ${esc(c.name)}</button>`).join('')}
+      <button class="btn danger sm" data-act="delpool" data-pid="${esc(p.id)}" title="Eliminar del torneo">✕</button></div>`).join('') || '<div class="empty">No hay jugadores sin equipo. Pega una lista arriba.</div>'}</div>`;
 }
 
 function parsePlayers(text) {
@@ -288,6 +316,27 @@ app.addEventListener('click', e => {
       const fresh = items.filter(p => { const k = p.name.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; });
       mt(s => { const dd = T.draftW(s, cat); fresh.forEach(p => dd.pool.push({ id: T.uid('p'), name: p.name, gender: p.gender, captain: false })); });
       UI.toast(`${fresh.length} agregados` + (items.length - fresh.length ? `, ${items.length - fresh.length} repetidos omitidos` : '')); break;
+    }
+    case 'movepool': {
+      const to = b.dataset.to, S2 = T.state();
+      const p0 = T.draft(S2, cat).pool.find(x => x.id === b.dataset.pid);
+      if (!p0) return;
+      if (T.draft(S2, to).pool.some(x => keyOf(x.name) === keyOf(p0.name))) return UI.toast('Ya hay alguien con ese nombre en esa categoría: usa el aviso de repetidos', 'bad');
+      mt(s => { const from = T.draftW(s, cat), dest = T.draftW(s, to); from.pool = from.pool.filter(x => x.id !== p0.id); dest.pool.push(p0); });
+      UI.toast(`${p0.name} movido a ${UI.catName(S2, to)}`); break;
+    }
+    case 'dupkeep': {
+      const S2 = T.state(), ents = (findDupes(S2).find(([k]) => k === b.dataset.k) || [, []])[1].filter(e => e.cat !== b.dataset.c);
+      if (!ents.length) return;
+      if (ents.some(e => e.where !== 'sin equipo') && !confirm('Alguno ya tiene equipo: se quitará también del equipo. ¿Continuar?')) return;
+      mt(s => ents.forEach(e => removeEntry(s, e)));
+      UI.toast(`Quedó solo en ${UI.catName(S2, b.dataset.c)}`); break;
+    }
+    case 'dupall': {
+      const S2 = T.state(), ents = (findDupes(S2).find(([k]) => k === b.dataset.k) || [, []])[1];
+      if (!ents.length || !confirm('¿Quitar a este jugador de todas las categorías? Se elimina del torneo.')) return;
+      mt(s => ents.forEach(e => removeEntry(s, e)));
+      UI.toast('Jugador quitado del torneo'); break;
     }
     case 'delpool': mt(s => { const dd = T.draftW(s, cat); dd.pool = dd.pool.filter(p => p.id !== b.dataset.pid); }); break;
     case 'clearpool': if (confirmDanger('Se vaciará la lista de jugadores sin equipo.')) mt(s => { T.draftW(s, cat).pool = []; }); break;
