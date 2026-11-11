@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=27">
+<link rel="stylesheet" href="css/styles.css?v=31">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,10 +19,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=27"></script>
-<script src="js/core.js?v=27"></script>
-<script src="js/seed.js?v=27"></script>
-<script src="js/ui.js?v=27"></script>
+<script src="js/firebase-config.js?v=31"></script>
+<script src="js/core.js?v=31"></script>
+<script src="js/seed.js?v=31"></script>
+<script src="js/ui.js?v=31"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -63,7 +63,7 @@ function showGroup(S, g) {
   if (!t) return;
   const names = g.roster.slice().sort((a, b) => (b.cap ? 1 : 0) - (a.cap ? 1 : 0));
   const cols = names.length > 12 ? 3 : names.length > 5 ? 2 : 1;
-  present(`<div class="rv"><div class="burst">${burst()}</div>${UI.badge(t)}<small>${g.kind === 'cap' ? 'Capitanes del equipo' : 'Equipo formado'}</small><div class="tm">${esc(t.name)}</div>
+  present(`<div class="rv"><div class="burst">${burst()}</div>${UI.badge(t)}<small>${g.kind === 'cap' ? 'Capitanes del equipo' : g.kind === 'parent' ? 'Coaches del equipo' : 'Equipo formado'}</small><div class="tm">${esc(t.name)}</div>
     <div class="names" style="--cols:${cols}">${names.map((p, i) => `<span style="--i:${i}">${p.cap ? '★ ' : ''}${esc(p.name)}</span>`).join('')}</div></div>`, GROUP_MS, 'group');
 }
 
@@ -74,6 +74,18 @@ function showReveal(S, last) {
     <div class="who">${esc(last.name)}</div><div class="tm">${esc(t.name)}</div></div>`, REVEAL_MS);
 }
 /* Suspenso: gira nombres al azar un momento y luego revela el resultado */
+/* Los nombres sorteados no se ven en los equipos hasta que termina la revelación */
+const held = new Set(), freshSet = new Set(), heldNames = new Set();
+function holdUntil(pids, ms, names) {
+  pids.forEach(x => held.add(x));
+  (names || []).forEach(x => heldNames.add(x));
+  setTimeout(() => {
+    pids.forEach(x => { held.delete(x); freshSet.add(x); });
+    (names || []).forEach(x => heldNames.delete(x));
+    render();
+    setTimeout(() => { pids.forEach(x => freshSet.delete(x)); render(); }, 4000);
+  }, ms);
+}
 let rollTok = 0;
 function roll(names, then) {
   const tok = ++rollTok;
@@ -87,28 +99,33 @@ function render() {
   const S = T.state();
   const teams = S.teams.filter(t => t.cat === cat);
   const d = T.draft(S, cat);
-  const placed = teams.reduce((n, t) => n + t.players.length, 0);
+  const placed = teams.reduce((n, t) => n + t.players.filter(p => !held.has(p.id)).length, 0);
   const catName = UI.catName(S, cat);
 
   const g = d.group;
   const evTs = Math.max(d.last ? d.last.ts : 0, g ? g.ts : 0);
   if (!(cat in seen)) seen[cat] = evTs;
-  else if (evTs > seen[cat]) { seen[cat] = evTs; const pool = d.pool.map(p => p.name); if (g && g.ts === evTs) roll(pool.concat(g.roster.map(p => p.name)), () => showGroup(S, g)); else if (d.last) roll(pool.concat(d.last.name), () => showReveal(S, d.last)); }
-  const fresh = new Set();
-  if (d.last && Date.now() - d.last.ts < 6000) fresh.add(d.last.pid);
-  if (g && Date.now() - g.ts < 7000) g.pids.forEach(x => fresh.add(x));
+  else if (evTs > seen[cat]) {
+    seen[cat] = evTs;
+    const pool = d.pool.map(p => p.name);
+    if (g && g.ts === evTs) { holdUntil(g.pids, ROLL_MS + GROUP_MS, g.coachNames); roll(g.pick === 'team' ? teams.map(t => t.name) : pool.concat(g.roster.map(p => p.name)), () => showGroup(S, g)); }
+    else if (d.last) { holdUntil([d.last.pid], ROLL_MS + REVEAL_MS); roll(pool.concat(d.last.name), () => showReveal(S, d.last)); }
+  }
+  const fresh = freshSet;
+  const heldPlayers = teams.flatMap(t => t.players.filter(p => held.has(p.id)));
 
   app.innerHTML = `
     <div class="pres-h"><h1>Sorteo de equipos<br><b>${esc(catName)}</b></h1>
-      <div class="row"><div class="cnt">${d.pool.some(p => p.captain) ? 'Fase 1 · Capitanes' : d.pool.length ? 'Fase 2 · Jugadores' : placed ? 'Sorteo completo' : ''} · Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length}</b></div>
+      <div class="row"><div class="cnt">${d.pool.some(p => p.captain) ? 'Fase 1 · Capitanes' : d.pool.length ? 'Fase 2 · Jugadores' : placed ? 'Sorteo completo' : ''} · Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length + heldPlayers.length}</b></div>
         ${S.config.categories.length > 1 ? `<div class="pills" style="margin:0">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>` : ''}
         <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>
     ${teams.length ? `<div class="pt-grid">${teams.map(t => {
-      const ps = t.players.slice().sort((a, b) => (b.captain ? 1 : 0) - (a.captain ? 1 : 0));
-      return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${T.coachList(t).length ? (T.coachList(t).length > 1 ? 'Coaches ' : 'Coach ') + esc(T.coachList(t).map(c => c.replace(/^coach\s+/i, '')).join(', ')) + ' · ' : ''}${t.players.length} jugador${t.players.length === 1 ? '' : 'es'}</small></div></div>
+      const ps = t.players.filter(p => !held.has(p.id)).sort((a, b) => (b.captain ? 1 : 0) - (a.captain ? 1 : 0));
+      const cl = T.coachList(t).filter(c => !heldNames.has(c));
+      return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${cl.length ? (cl.length > 1 ? 'Coaches ' : 'Coach ') + esc(cl.map(c => c.replace(/^coach\s+/i, '')).join(', ')) + ' · ' : ''}${ps.length} jugador${ps.length === 1 ? '' : 'es'}</small></div></div>
         <ul>${ps.map(p => `<li class="${p.captain ? 'capi' : ''} ${fresh.has(p.id) ? 'fresh' : ''}">${esc(p.name)}${UI.capMark(p)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
     }).join('')}</div>` : '<div class="empty" style="margin-top:20px">Aún no hay equipos en esta categoría.</div>'}
-    ${d.pool.length ? `<div class="pool-strip">${d.pool.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}`;
+    ${d.pool.length + heldPlayers.length ? `<div class="pool-strip">${d.pool.concat(heldPlayers).map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}`;
 }
 
 app.addEventListener('click', e => {

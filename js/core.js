@@ -368,13 +368,17 @@
     if (!from) return false;
     const p = from.players.splice(from.players.findIndex(y => y.id === pid), 1)[0];
     delete p.num;
+    if (p.captain && coachList(from).includes(p.name)) setCoaches(from, coachList(from).filter(n => n !== p.name));
     const d = draftW(S, cat);
+    d.done = (d.done || []).filter(x => x !== from.id);
     d.pool.push(p); d.last = null;
     return true;
   }
   const capCount = t => t.players.filter(p => p.captain).length;
   const capsPer = S => Math.max(1, S.config.captainsPerTeam || 2);
   const hasCaptain = t => t.players.some(p => p.captain);
+  /* Un equipo cuenta como sorteado solo si está marcado Y tiene jugadores además de sus capitanes (evita marcas viejas tras deshacer o reiniciar) */
+  const isTeamDone = (d, t) => (d.done || []).includes(t.id) && t.players.length > capCount(t);
   /* Fase 1: sortea los capitanes de un equipo (por defecto 2) entre los marcados con C y sin equipo. Un capitán nunca queda en dos equipos. */
   function draftCaptain(S, cat, teamId) {
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
@@ -403,6 +407,61 @@
     d.last = null;
     return picked.length < need ? 'short' : 'ok';
   }
+  /* Fase 1 alterna: un grupo de capitanes elegido a mano (p. ej. 3) se sortea a un equipo al azar entre los que aún no tienen capitanes */
+  function draftCaptainGroup(S, cat, pids, asCoach) {
+    const d = draftW(S, cat);
+    const caps = pids.map(id => d.pool.find(p => p.id === id && p.captain)).filter(Boolean);
+    if (!caps.length) return 'none';
+    const free = S.teams.filter(x => x.cat === cat && capCount(x) === 0);
+    if (!free.length) return 'noteam';
+    const t = free[Math.floor(Math.random() * free.length)];
+    caps.forEach(p => {
+      d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
+      p.num = freeNum(t, p.num);
+      t.players.push(p);
+    });
+    if (asCoach) setCoaches(t, coachList(t).concat(caps.map(p => p.name).filter(n => !coachList(t).includes(n))));
+    d.group = { teamId: t.id, kind: 'cap', pick: 'team', coachNames: asCoach ? caps.map(p => p.name) : [], pids: caps.map(p => p.id), roster: t.players.map(p => ({ id: p.id, name: p.name, cap: !!p.captain })), ts: Date.now() };
+    d.last = null;
+    return 'ok';
+  }
+  /* Padres / coaches adultos: lista por categoría; se arman grupos a mano y se sortea el equipo (queda como coaches del equipo). */
+  function addParents(S, cat, names) {
+    const d = draftW(S, cat); d.parents = d.parents || [];
+    const seen = new Set(d.parents.map(p => p.name.toLowerCase()).concat(S.teams.filter(t => t.cat === cat).flatMap(t => coachList(t).map(c => c.toLowerCase()))));
+    let n = 0;
+    names.forEach(nm => { const k = nm.toLowerCase(); if (nm && !seen.has(k)) { seen.add(k); d.parents.push({ id: uid('c'), name: nm }); n++; } });
+    return n;
+  }
+  function draftParentGroup(S, cat, ids) {
+    const d = draftW(S, cat); d.parents = d.parents || [];
+    const ps = ids.map(id => d.parents.find(p => p.id === id)).filter(Boolean);
+    if (!ps.length) return 'none';
+    const teams = S.teams.filter(x => x.cat === cat);
+    const done = d.parentsDone || [];
+    let free = teams.filter(x => !done.includes(x.id));
+    if (!free.length) free = teams; // ya todos recibieron un grupo: los siguientes pueden ir a cualquiera
+    if (!free.length) return 'noteam';
+    const t = free[Math.floor(Math.random() * free.length)];
+    const names = ps.map(p => p.name);
+    d.parents = d.parents.filter(p => !ids.includes(p.id));
+    setCoaches(t, coachList(t).concat(names.filter(n => !coachList(t).includes(n))));
+    d.parentsDone = done.filter(x => x !== t.id).concat(t.id);
+    d.group = { teamId: t.id, kind: 'parent', pick: 'team', pids: [], coachNames: names, parents: ps, roster: names.map(n => ({ id: 'c-' + n, name: n, cap: false })), ts: Date.now() };
+    d.last = null;
+    return 'ok';
+  }
+  /* Reinicia el sorteo de la categoría: devuelve a la lista a todos los jugadores (all = false conserva a los capitanes en sus equipos). Las marcas de capitán se conservan. */
+  function draftReset(S, cat, all) {
+    const d = draftW(S, cat);
+    S.teams.filter(t => t.cat === cat).forEach(t => {
+      const keep = all ? [] : t.players.filter(p => p.captain);
+      t.players.filter(p => !keep.includes(p)).forEach(p => { delete p.num; d.pool.push(p); if (p.captain && coachList(t).includes(p.name)) setCoaches(t, coachList(t).filter(n => n !== p.name)); });
+      t.players = keep;
+    });
+    d.done = []; d.group = null; d.last = null;
+    return true;
+  }
   /* Fase 2: sortea el equipo completo con los jugadores sin equipo (los capitanes no entran). Equilibrio automático:
      entre los equipos que faltan por sortear, cada uno recibe piso o techo del promedio, tanto en cantidad total como en género
      (se cuentan los jugadores que el equipo ya tiene, p. ej. su capitán). Se recalcula con lo que queda en cada sorteo. */
@@ -415,7 +474,7 @@
     const elig = d.pool.filter(p => !p.captain);
     if (!elig.length) return 0;
     const done = d.done || [];
-    const left = S.teams.filter(x => x.cat === cat && (x.id === teamId || !done.includes(x.id)));
+    const left = S.teams.filter(x => x.cat === cat && (x.id === teamId || !isTeamDone(d, x)));
     const k = left.length;
     const F = shuffle(elig.filter(isF)), R = shuffle(elig.filter(p => !isF(p)));
     const share = tot => { const base = Math.floor(tot / k), rem = tot % k; return base + (Math.random() < rem / k ? 1 : 0); };
@@ -440,8 +499,13 @@
     const d = draftW(S, cat), g = d.group, l = d.last;
     if (g && (!l || g.ts >= l.ts)) {
       const team = S.teams.find(x => x.id === g.teamId);
+      if (g.kind === 'parent') {
+        if (team) setCoaches(team, coachList(team).filter(n => !g.coachNames.includes(n)));
+        d.parents = (d.parents || []).concat(g.parents);
+        d.parentsDone = (d.parentsDone || []).filter(x => x !== g.teamId);
+      }
       g.pids.forEach(pid => { if (team && team.players.some(y => y.id === pid)) draftReturn(S, cat, pid); });
-      if (g.kind !== 'cap') d.done = (d.done || []).filter(x => x !== g.teamId);
+      if (!g.kind) d.done = (d.done || []).filter(x => x !== g.teamId);
       d.group = null; d.last = null;
       return true;
     }
@@ -456,7 +520,7 @@
   w.T = {
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
-    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, hasCaptain, capCount, capsPer, draftUndo,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftCaptainGroup, draftParentGroup, addParents, draftReset, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
