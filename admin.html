@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=50">
+<link rel="stylesheet" href="css/styles.css?v=51">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=50"></script>
-<script src="js/core.js?v=50"></script>
-<script src="js/seed.js?v=50"></script>
-<script src="js/ui.js?v=50"></script>
+<script src="js/firebase-config.js?v=51"></script>
+<script src="js/core.js?v=51"></script>
+<script src="js/seed.js?v=51"></script>
+<script src="js/ui.js?v=51"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -179,7 +179,7 @@ function drawView(S) {
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">2. Llaves</h3>
     <div class="card"><p class="muted">No se sortean: se arman por puntos con los mejores de la tabla de posiciones (los partidos de llaves no cuentan en la tabla). Con 4 clasificados: semifinales 1.º vs 4.º y 2.º vs 3.º. Al terminar las semifinales usa <b>Generar final</b>.</p>
       <div class="frm">${field('Clasifican', '<select class="inp" id="dp-n"><option value="4">Los 4 mejores (semifinales y final)</option><option value="2">Los 2 mejores (solo final)</option></select>')}
-      ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="0">No</option><option value="1">Sí</option></select>')}
+      ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="1">Sí</option><option value="0">No</option></select>')}
       <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Armar llaves con la tabla'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">3. Fechas de las llaves</h3>
     <div class="card"><p class="muted">Puedes poner las fechas y horas <b>desde ya</b>, sin conocer todavía los equipos. Cuando armes las llaves y se genere la final, cada partido toma su fecha. Si los partidos ya existen, el cambio se aplica a ellos también.</p>

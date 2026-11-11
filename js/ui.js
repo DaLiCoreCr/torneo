@@ -336,7 +336,7 @@
     const hasPoints = T.leagueGames(S, cat).some(x => x.status === 'final'); // sin partidos jugados no hay clasificación: no se muestran equipos
     const seed = n => (hasPoints ? n + '.º · ' + (table[n - 1] ? table[n - 1].team.name : '—') : n + '.º de la tabla de posiciones');
     const hasSF = sf.length > 0, direct = !hasSF && !!fin;
-    const wantsThird = (sf[0] && sf[0].thirdPlace) || !!third;
+    const wantsThird = !!third || (!direct && (!sf.length || sf[0].thirdPlace)); // el partido por el tercer lugar se muestra siempre (por definir hasta las semifinales)
     const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4), bd.sf1), ph('Semifinal 2', seed(2), seed(3), bd.sf2)];
     const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2', bd.final);
     const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2', bd.third) : '';
