@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=24">
+<link rel="stylesheet" href="css/styles.css?v=25">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,10 +19,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=24"></script>
-<script src="js/core.js?v=24"></script>
-<script src="js/seed.js?v=24"></script>
-<script src="js/ui.js?v=24"></script>
+<script src="js/firebase-config.js?v=25"></script>
+<script src="js/core.js?v=25"></script>
+<script src="js/seed.js?v=25"></script>
+<script src="js/ui.js?v=25"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -36,6 +36,7 @@ if (!ids.includes(cat)) cat = UI.getCat(false);
 const seen = {};
 let hideT = null, fadeT = null;
 const REVEAL_MS = 3500; // cuánto tiempo se muestra un jugador elegido
+const ROLL_MS = 2600;  // suspenso: nombres que giran antes de revelar (solo animación local, no consume red)
 const GROUP_MS = 5000;  // cuánto tiempo se muestra un equipo completo sorteado
 
 function burst() {
@@ -72,6 +73,14 @@ function showReveal(S, last) {
   present(`<div class="rv"><div class="burst">${burst()}</div>${UI.badge(t)}<small>${last.cap ? '★ Capitán · ' : ''}se une a</small>
     <div class="who">${esc(last.name)}</div><div class="tm">${esc(t.name)}</div></div>`, REVEAL_MS);
 }
+/* Suspenso: gira nombres al azar un momento y luego revela el resultado */
+let rollTok = 0;
+function roll(names, then) {
+  const tok = ++rollTok;
+  present('<div class="rv"><small>Sorteando…</small><div class="who" id="rollname">· · ·</div></div>', ROLL_MS + 600);
+  const iv = setInterval(() => { const el = document.getElementById('rollname'); if (el && names.length) el.textContent = names[Math.floor(Math.random() * names.length)]; }, 80);
+  setTimeout(() => { clearInterval(iv); if (tok === rollTok) then(); }, ROLL_MS);
+}
 reveal.addEventListener('click', () => reveal.classList.remove('show'));
 
 function render() {
@@ -84,14 +93,14 @@ function render() {
   const g = d.group;
   const evTs = Math.max(d.last ? d.last.ts : 0, g ? g.ts : 0);
   if (!(cat in seen)) seen[cat] = evTs;
-  else if (evTs > seen[cat]) { seen[cat] = evTs; if (g && g.ts === evTs) showGroup(S, g); else if (d.last) showReveal(S, d.last); }
+  else if (evTs > seen[cat]) { seen[cat] = evTs; const pool = d.pool.map(p => p.name); if (g && g.ts === evTs) roll(pool.concat(g.roster.map(p => p.name)), () => showGroup(S, g)); else if (d.last) roll(pool.concat(d.last.name), () => showReveal(S, d.last)); }
   const fresh = new Set();
   if (d.last && Date.now() - d.last.ts < 6000) fresh.add(d.last.pid);
   if (g && Date.now() - g.ts < 7000) g.pids.forEach(x => fresh.add(x));
 
   app.innerHTML = `
     <div class="pres-h"><h1>Sorteo de equipos<br><b>${esc(catName)}</b></h1>
-      <div class="row"><div class="cnt">Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length}</b></div>
+      <div class="row"><div class="cnt">${d.pool.some(p => p.captain) ? 'Fase 1 · Capitanes' : d.pool.length ? 'Fase 2 · Jugadores' : placed ? 'Sorteo completo' : ''} · Asignados <b>${placed}</b> · Por elegir <b>${d.pool.length}</b></div>
         ${S.config.categories.length > 1 ? `<div class="pills" style="margin:0">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>` : ''}
         <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>
     ${teams.length ? `<div class="pt-grid">${teams.map(t => {

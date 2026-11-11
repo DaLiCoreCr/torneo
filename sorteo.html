@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=24">
+<link rel="stylesheet" href="css/styles.css?v=25">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,17 +18,17 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=24"></script>
-<script src="js/core.js?v=24"></script>
-<script src="js/seed.js?v=24"></script>
-<script src="js/ui.js?v=24"></script>
+<script src="js/firebase-config.js?v=25"></script>
+<script src="js/core.js?v=25"></script>
+<script src="js/seed.js?v=25"></script>
+<script src="js/ui.js?v=25"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
 const { esc } = T;
 const app = document.getElementById('app');
 let cat = UI.getCat(false), sel = null, query = '';
-let drawTeam = null, drawN = null, balance = true;
+let capTeam = null, drawTeam = null;
 
 function start() { render(); T.subscribe(render); }
 
@@ -43,18 +43,37 @@ function render() {
   const active = document.activeElement && document.activeElement.id === 'q';
 
   const done = d.done || [];
+  const caps = d.pool.filter(p => p.captain);
+  const noCap = teams.filter(t => !T.hasCaptain(t));
   const eligible = d.pool.filter(p => !p.captain);
   const left = teams.filter(t => !done.includes(t.id));
+  if (!noCap.some(t => t.id === capTeam)) capTeam = null;
   if (!teams.some(t => t.id === drawTeam)) drawTeam = null;
+  const cTeam = capTeam || (noCap[0] || {}).id;
   const dTeam = drawTeam || (left[0] || teams[0] || {}).id;
-  const dN = drawN || Math.max(1, Math.ceil(eligible.length / Math.max(1, left.length)));
-  const drawPanel = `<div class="card" style="margin-bottom:16px"><h3 class="gold" style="font-size:24px">🎲 Sorteo al azar por equipo</h3>
+  const step1Done = !caps.length && !noCap.length;
+  const capWarn = caps.length && caps.length !== noCap.length
+    ? `<p class="note" style="color:var(--live)">Hay <b>${caps.length}</b> capitanes marcados y <b>${noCap.length}</b> equipos sin capitán. Debe haber uno por equipo: marca o desmarca la <b>C</b> en la lista.</p>` : '';
+  const stat = t => { const f = t.players.filter(p => p.gender === 'F').length; return `${t.players.length} · ♀${f} ♂${t.players.length - f}`; };
+  const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).slice(0, 2).join(' ');
+  const seenIn = {}, dupes = new Set();
+  S.config.categories.forEach(c => {
+    const names = T.draft(S, c.id).pool.map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.map(p => p.name)));
+    new Set(names.map(keyOf)).forEach(k => { if (seenIn[k] && seenIn[k] !== c.id) dupes.add(k); seenIn[k] = seenIn[k] || c.id; });
+  });
+  const dupWarn = dupes.size ? `<div class="card" style="margin-bottom:16px;border-color:var(--live)"><b style="color:var(--live)">⚠ Posibles jugadores repetidos entre categorías:</b> ${[...dupes].map(esc).join(', ')}. Revisa que cada jugador esté en una sola categoría (Administración → Jugadores y sorteo).</div>` : '';
+  const stepHead = (n, title, ok) => `<h3 class="gold" style="font-size:24px">${ok ? '✅' : '🎲'} Paso ${n} · ${title}</h3>`;
+
+  const capPanel = `<div class="card" style="margin-bottom:16px">${stepHead(1, 'Sorteo de capitanes', step1Done)}
+    <div class="frm" style="margin-top:10px">
+      <div><label class="lbl">Equipo que recibe capitán</label><select class="inp" id="cap-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === cTeam ? 'selected' : ''}>${esc(t.name)}${T.hasCaptain(t) ? ' ✓' : ''}</option>`).join('')}</select></div>
+      <button class="btn gold" data-act="drawcap" ${caps.length && noCap.length ? '' : 'disabled'}>Sortear capitán</button></div>
+    ${capWarn}<p class="note">Capitanes marcados sin equipo: <b>${caps.length}</b> · Equipos sin capitán: <b>${noCap.length}</b>. Cada capitán queda en un solo equipo y cada equipo recibe uno. ✓ = ya tiene capitán.</p></div>`;
+  const drawPanel = `<div class="card" style="margin-bottom:16px">${stepHead(2, 'Sorteo de jugadores', !eligible.length && !caps.length && placed > 0)}
     <div class="frm" style="margin-top:10px">
       <div><label class="lbl">Equipo a formar</label><select class="inp" id="draw-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === dTeam ? 'selected' : ''}>${esc(t.name)}${done.includes(t.id) ? ' ✓' : ''}</option>`).join('')}</select></div>
-      <div><label class="lbl">Jugadores a sortear</label><input class="inp" id="draw-n" type="number" min="1" value="${dN}"></div>
-      <label class="chk" style="padding-bottom:10px"><input type="checkbox" id="draw-bal" ${balance ? 'checked' : ''}> Equilibrar niñas y niños</label>
-      <button class="btn gold" data-act="drawteam" ${eligible.length ? '' : 'disabled'}>Sortear equipo</button></div>
-    <p class="note">Participan <b>${eligible.length}</b> jugadores. Los capitanes sin equipo no entran al sorteo: asígnalos tú tocando la C y el equipo. ✓ = equipo ya sorteado.</p></div>`;
+      <button class="btn gold" data-act="drawteam" ${eligible.length && !caps.length ? '' : 'disabled'}>Sortear equipo</button></div>
+    <p class="note">${caps.length ? '<b>Primero termina el sorteo de capitanes</b> (paso 1). ' : ''}Participan <b>${eligible.length}</b> jugadores. El sistema reparte parejo la cantidad total y la de niñas entre los equipos que faltan, contando a los capitanes. ✓ = equipo ya sorteado.</p></div>`;
 
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
@@ -62,9 +81,9 @@ function render() {
       <div class="row"><a class="btn ghost" href="presentacion.html?cat=${esc(cat)}" target="_blank">Abrir presentación ↗</a>
         <button class="btn" data-act="undo" ${(d.last || d.group) ? '' : 'disabled'}>Deshacer última</button></div></div>
     <div class="pills">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-act="cat" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
-    <p class="note">Toca un jugador y luego el equipo (o arrástralo). La pantalla de presentación se actualiza sola. Marca capitanes con la <b>C</b>.</p>
+    <p class="note">Orden: <b>1)</b> marca con la <b>C</b> a los capitanes, <b>2)</b> sortea los capitanes, <b>3)</b> sortea los jugadores. Para corregir a mano, toca un jugador y luego el equipo (o arrástralo). La presentación se actualiza sola.</p>
     ${!teams.length ? `<div class="empty">No hay equipos en esta categoría. Créalos en <a class="gold" href="admin.html">Administración</a> (nombre y logo) y vuelve aquí.</div>` : `
-    ${drawPanel}
+    ${dupWarn}${capPanel}${drawPanel}
     <div class="draft">
       <div class="card">
         <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3></div>
@@ -75,7 +94,7 @@ function render() {
           || `<div class="empty">${d.pool.length ? 'Sin resultados.' : (placed ? '¡Todos los jugadores ya tienen equipo!' : 'No hay jugadores. Cárgalos en Administración → Jugadores y sorteo.')}</div>`}</div>
       </div>
       <div class="dteams">${teams.map(t => `<div class="dt ${sel ? 'ready' : ''}" data-act="assign" data-team="${esc(t.id)}">
-          <div class="dt-h">${UI.badge(t)}<h3>${esc(t.name)}</h3><small>${t.players.length}</small></div>
+          <div class="dt-h">${UI.badge(t)}<h3>${esc(t.name)}</h3><small>${stat(t)}</small></div>
           ${t.players.map(p => `<div class="dr" draggable="true" data-pid="${esc(p.id)}"><span class="n">${p.num}</span><span class="nm">${esc(p.name)}</span>
             <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button>
             <button class="x" data-act="back" data-id="${esc(p.id)}" title="Devolver a la lista">✕</button></div>`).join('') || '<div class="muted" style="font-size:13px">Sin jugadores</div>'}
@@ -103,15 +122,21 @@ app.addEventListener('click', e => {
     case 'back': e.stopPropagation(); m(s => T.draftReturn(s, cat, id)); break;
     case 'assign':
       if (!sel) return UI.toast('Primero toca un jugador de la lista', 'bad');
-      { const pid = sel; sel = null; m(s => T.draftAssign(s, cat, pid, b.dataset.team)); } break;
+      { const pid = sel; sel = null; let ok = true; m(s => { ok = T.draftAssign(s, cat, pid, b.dataset.team); }); if (!ok) UI.toast('No se pudo mover (un capitán no cambia de equipo: devuélvelo con ✕)', 'bad'); } break;
+    case 'drawcap': {
+      const tid = document.getElementById('cap-team').value;
+      let r;
+      m(s => { r = T.draftCaptain(s, cat, tid); });
+      capTeam = null;
+      if (r !== 'ok') UI.toast({ has: 'Ese equipo ya tiene capitán', none: 'No hay capitanes marcados sin equipo', noteam: 'Equipo no válido' }[r], 'bad');
+      render(); break;
+    }
     case 'drawteam': {
       const tid = document.getElementById('draw-team').value;
-      const n = parseInt(document.getElementById('draw-n').value, 10) || 0;
-      if (n < 1) return UI.toast('Indica cuántos jugadores sortear', 'bad');
       if ((T.draft(T.state(), cat).done || []).includes(tid) && !confirm('Este equipo ya fue sorteado. ¿Agregarle más jugadores?')) return;
       let got = 0;
-      m(s => { got = T.draftGroup(s, cat, tid, n, document.getElementById('draw-bal').checked); });
-      drawTeam = null; drawN = null;
+      m(s => { got = T.draftGroup(s, cat, tid); });
+      drawTeam = null;
       UI.toast(got ? `Equipo formado con ${got} jugadores` : 'No hay jugadores disponibles para sortear', got ? '' : 'bad');
       render(); break;
     }
@@ -120,9 +145,8 @@ app.addEventListener('click', e => {
 });
 
 app.addEventListener('change', e => {
-  if (e.target.id === 'draw-team') { drawTeam = e.target.value; drawN = null; render(); }
-  else if (e.target.id === 'draw-n') drawN = parseInt(e.target.value, 10) || null;
-  else if (e.target.id === 'draw-bal') balance = e.target.checked;
+  if (e.target.id === 'draw-team') { drawTeam = e.target.value; render(); }
+  else if (e.target.id === 'cap-team') { capTeam = e.target.value; render(); }
 });
 
 /* Arrastrar y soltar (escritorio) */

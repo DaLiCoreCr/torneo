@@ -355,6 +355,7 @@
     else {
       const from = S.teams.find(x => x.players.some(y => y.id === pid));
       if (!from || from.id === teamId) return false;
+      if (from.players.find(y => y.id === pid).captain) return false; // un capitán no cambia de equipo: primero se devuelve con ✕
       p = from.players.splice(from.players.findIndex(y => y.id === pid), 1)[0];
     }
     p.num = freeNum(t, p.num);
@@ -371,31 +372,51 @@
     d.pool.push(p); d.last = null;
     return true;
   }
-  /* Sorteo al azar de un equipo completo: toma n jugadores de la lista (sin capitanes) y los asigna */
-  function draftGroup(S, cat, teamId, n, balance) {
-    const t = S.teams.find(x => x.id === teamId);
+  const hasCaptain = t => t.players.some(p => p.captain);
+  /* Fase 1: sortea un capitán (entre los marcados con C y sin equipo) para un equipo que aún no tiene. Un capitán nunca queda en dos equipos. */
+  function draftCaptain(S, cat, teamId) {
+    const t = S.teams.find(x => x.id === teamId && x.cat === cat);
+    const d = draftW(S, cat);
+    if (!t) return 'noteam';
+    if (hasCaptain(t)) return 'has';
+    const caps = d.pool.filter(p => p.captain);
+    if (!caps.length) return 'none';
+    const p = caps[Math.floor(Math.random() * caps.length)];
+    d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
+    p.num = freeNum(t, p.num);
+    t.players.push(p);
+    d.last = { pid: p.id, name: p.name, teamId, cap: true, ts: Date.now() };
+    d.group = null;
+    return 'ok';
+  }
+  /* Fase 2: sortea el equipo completo con los jugadores sin equipo (los capitanes no entran). Equilibrio automático:
+     entre los equipos que faltan por sortear, cada uno recibe piso o techo del promedio, tanto en cantidad total como en niñas
+     (se cuentan los jugadores que el equipo ya tiene, p. ej. su capitán). Se recalcula con lo que queda en cada sorteo. */
+  function draftGroup(S, cat, teamId) {
+    const t = S.teams.find(x => x.id === teamId && x.cat === cat);
     const d = draftW(S, cat);
     if (!t) return 0;
     const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    const isF = p => p.gender === 'F';
     const elig = d.pool.filter(p => !p.captain);
-    n = Math.min(n, elig.length);
-    if (n <= 0) return 0;
-    const F = shuffle(elig.filter(p => p.gender === 'F')), M = shuffle(elig.filter(p => p.gender === 'M'));
-    const O = shuffle(elig.filter(p => p.gender !== 'F' && p.gender !== 'M'));
-    let picked;
-    if (balance && F.length && M.length) {
-      let nf = Math.min(F.length, Math.round(n * F.length / (F.length + M.length)));
-      const nm = Math.min(M.length, n - nf);
-      nf = Math.min(F.length, n - nm);
-      picked = F.slice(0, nf).concat(M.slice(0, nm));
-      picked = picked.concat(shuffle(F.slice(nf).concat(M.slice(nm), O)).slice(0, n - picked.length));
-    } else picked = shuffle(elig).slice(0, n);
+    if (!elig.length) return 0;
+    const done = d.done || [];
+    const left = S.teams.filter(x => x.cat === cat && (x.id === teamId || !done.includes(x.id)));
+    const k = left.length;
+    const F = shuffle(elig.filter(isF)), R = shuffle(elig.filter(p => !isF(p)));
+    const share = tot => { const base = Math.floor(tot / k), rem = tot % k; return base + (Math.random() < rem / k ? 1 : 0); };
+    const have = left.reduce((n, x) => n + x.players.length, 0), haveF = left.reduce((n, x) => n + x.players.filter(isF).length, 0);
+    const size = share(have + elig.length), fTarget = share(haveF + F.length);
+    const tF = t.players.filter(isF).length;
+    const nNew = Math.min(elig.length, Math.max(0, size - t.players.length));
+    const fNew = Math.max(Math.max(0, nNew - R.length), Math.min(Math.min(nNew, F.length), Math.max(0, fTarget - tF)));
+    const picked = F.slice(0, fNew).concat(R.slice(0, nNew - fNew));
     picked.forEach(p => {
       d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
       p.num = freeNum(t, p.num);
       t.players.push(p);
     });
-    d.done = (d.done || []).filter(x => x !== teamId).concat(teamId);
+    d.done = done.filter(x => x !== teamId).concat(teamId);
     d.group = { teamId, pids: picked.map(p => p.id), roster: t.players.map(p => ({ id: p.id, name: p.name, cap: !!p.captain })), ts: Date.now() };
     d.last = null;
     return picked.length;
@@ -421,7 +442,7 @@
   w.T = {
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
-    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftUndo,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, hasCaptain, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
