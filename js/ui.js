@@ -146,9 +146,9 @@
       : `<tr style="--tc:${esc(r.team.color || '#c9a84c')}"><td class="pos">${i + 1}</td><td class="tm${i === 0 && r.pj > 0 ? ' leader' : ''}">${badge(r.team)}<span class="nm">${esc(r.team.name)}</span></td><td>${r.pj}</td><td>${r.g}</td><td>${r.e}</td><td>${r.p}</td><td>${r.pf}</td><td>${r.pc}</td><td>${r.dif > 0 ? '+' : ''}${r.dif}</td><td class="hl">${r.pts}</td></tr>`).join('');
     const head = compact
       ? '<th>#</th><th class="l">Equipo</th><th>PJ</th><th>PTS</th>'
-      : '<th>#</th><th class="l">Equipo</th><th title="Partidos jugados">PJ</th><th title="Ganados">G</th><th title="Empatados">E</th><th title="Perdidos">P</th><th title="Puntos a favor">PF</th><th title="Puntos en contra">PC</th><th title="Diferencia">DIF</th><th>PTS</th>';
+      : '<th>#</th><th class="l">Equipo</th><th title="Partidos jugados">PJ</th><th title="Ganados">G</th><th title="Empatados">E</th><th title="Partidos sin ganar">P</th><th title="Puntos a favor">PF</th><th title="Puntos en contra">PC</th><th title="Diferencia">DIF</th><th>PTS</th>';
     return `<div class="tbl-wrap"><table class="tbl"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>
-      ${compact ? '' : `<p class="note">Victoria ${R.ptsWin} pts · Empate ${R.ptsDraw} pts · Derrota (participación) ${R.ptsLoss} pt. Desempate: diferencia de puntos, luego puntos a favor.</p>`}`;
+      ${compact ? '' : `<p class="note">Victoria ${R.ptsWin} pts · Empate ${R.ptsDraw} pts · Participación (sin victoria) ${R.ptsLoss} pt. Desempate: diferencia de puntos, luego puntos a favor.</p>`}`;
   }
 
   /* Destello y "+N" flotante cuando sube un marcador (elementos con data-sc="partido:lado") */
@@ -339,7 +339,7 @@
     const wantsThird = !!third || (!direct && (!sf.length || sf[0].thirdPlace)); // el partido por el tercer lugar se muestra siempre (por definir hasta las semifinales)
     const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4), bd.sf1), ph('Semifinal 2', seed(2), seed(3), bd.sf2)];
     const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2', bd.final);
-    const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2', bd.third) : '';
+    const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Semifinalista 1', 'Semifinalista 2', bd.third) : '';
     const champId = fin ? T.gameWinner(fin) : null;
     const champ = champId ? `<div class="bk-champ">🏆 Campeón: <b>${esc(team(S, champId).name)}</b> · <a href="podio.html?cat=${esc(cat)}" style="color:var(--gold)">Ver podio →</a></div>` : '';
     return `${champ}<div class="bracket ${semis.length ? '' : 'one'}">

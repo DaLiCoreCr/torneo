@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=51">
+<link rel="stylesheet" href="css/styles.css?v=53">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -40,10 +40,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=51"></script>
-<script src="js/core.js?v=51"></script>
-<script src="js/seed.js?v=51"></script>
-<script src="js/ui.js?v=51"></script>
+<script src="js/firebase-config.js?v=53"></script>
+<script src="js/core.js?v=53"></script>
+<script src="js/seed.js?v=53"></script>
+<script src="js/ui.js?v=53"></script>
 <script>
 /* Podio por categoría: campeón, subcampeón y tercer lugar con escudo y nombre. Todo se calcula con los resultados guardados; no escribe nada. */
 T.load({ live: false }).then(() => {
@@ -70,7 +70,7 @@ function burst(n) {
 function show(html) { reveal.innerHTML = html; reveal.classList.remove('show', 'out', 'group'); void reveal.offsetWidth; reveal.classList.add('show'); }
 function hide() { reveal.classList.add('out'); return sleep(450).then(() => reveal.classList.remove('show', 'out')); }
 
-/* Campeón, subcampeón y tercero. Tercero: ganador del partido por el 3.er lugar; si no hay ese partido, el mejor de la tabla entre los perdedores de semifinales. */
+/* Campeón, subcampeón y tercero. Tercero: ganador del partido por el 3.er lugar; si no hay ese partido, el mejor de la tabla entre los dos equipos que no pasaron a la final. */
 function podium(S) {
   if (demo) {
     const ts = S.teams.filter(t => t.cat === cat);
@@ -91,7 +91,7 @@ function podium(S) {
   } else if (sf.length === 2 && sf.every(x => x.status === 'final' && T.gameWinner(x))) {
     const order = T.standings(S, cat).map(r => r.team.id);
     const losers = sf.map(x => T.gameLoser(x)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    res.bronze = team(losers[0]); res.note = 'Mejor posición en la tabla entre los perdedores de semifinales';
+    res.bronze = team(losers[0]); res.note = 'Mejor posición en la tabla entre los dos equipos que no pasaron a la final';
   }
   return res;
 }

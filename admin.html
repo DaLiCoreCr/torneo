@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=51">
+<link rel="stylesheet" href="css/styles.css?v=53">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=51"></script>
-<script src="js/core.js?v=51"></script>
-<script src="js/seed.js?v=51"></script>
-<script src="js/ui.js?v=51"></script>
+<script src="js/firebase-config.js?v=53"></script>
+<script src="js/core.js?v=53"></script>
+<script src="js/seed.js?v=53"></script>
+<script src="js/ui.js?v=53"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -209,7 +209,7 @@ function rulesView(S) {
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Faltas</h3>
     <div class="card"><div class="frm">${num('foulsOut', 'Faltas personales para eliminar al jugador')}${num('bonusFouls', 'Faltas colectivas por período para activar el bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
-    <div class="card"><div class="frm">${num('ptsWin', 'Victoria')}${num('ptsDraw', 'Empate')}${num('ptsLoss', 'Derrota (participación)')}
+    <div class="card"><div class="frm">${num('ptsWin', 'Victoria')}${num('ptsDraw', 'Empate')}${num('ptsLoss', 'Participación (sin victoria)')}
       ${num('forfeitWin', 'No presentación: puntos del ganador')}${num('forfeitLoss', 'No presentación: puntos del que no llegó')}
       ${T.cloud ? '' : field('Actualización del público (segundos)', `<input class="inp" type="number" min="5" id="r-refresh" value="${S.config.refreshSec}">`)}</div></div>
     <p class="note">Los cambios de duración aplican a los partidos que aún no han iniciado.</p>

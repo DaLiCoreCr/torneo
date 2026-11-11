@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=51">
+<link rel="stylesheet" href="css/styles.css?v=53">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -16,10 +16,10 @@
 </head>
 <body>
 <main><div class="wrap mesa"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=51"></script>
-<script src="js/core.js?v=51"></script>
-<script src="js/seed.js?v=51"></script>
-<script src="js/ui.js?v=51"></script>
+<script src="js/firebase-config.js?v=53"></script>
+<script src="js/core.js?v=53"></script>
+<script src="js/seed.js?v=53"></script>
+<script src="js/ui.js?v=53"></script>
 <script>
 /* Captura final: marcador y jugadas por jugador, sin reloj ni minuto (para cargar un partido ya jugado) y no presentación (W.O.) */
 T.load().then(() => {
@@ -85,7 +85,7 @@ function control(S, g) {
     <div class="tbl-wrap cap-wrap"><table class="tbl cap-tbl"><thead><tr><th class="l pn">${esc(cur.name)}</th>${heads}</tr></thead><tbody>${rows}</tbody></table></div>
     ${fin ? '' : `<div class="card" style="margin-top:14px"><h3 class="gold" style="font-size:20px">¿Un equipo no se presentó?</h3>
       <p class="muted" style="margin:6px 0 10px;font-size:14px">El otro equipo gana con este marcador (por defecto el de Administración › Reglas; aquí puedes cambiarlo solo para este partido).</p>
-      <div class="adj" style="margin-bottom:10px"><span class="lbl" style="margin:0">Ganador</span><input class="inp" id="wo-w" type="number" min="0" value="${woWin}"><span class="lbl" style="margin:0">Perdedor</span><input class="inp" id="wo-l" type="number" min="0" value="${woLoss}"></div>
+      <div class="adj" style="margin-bottom:10px"><span class="lbl" style="margin:0">Ganador</span><input class="inp" id="wo-w" type="number" min="0" value="${woWin}"><span class="lbl" style="margin:0">No se presentó</span><input class="inp" id="wo-l" type="number" min="0" value="${woLoss}"></div>
       <div class="row"><button class="btn danger" data-act="wo" data-s="h">${esc(h.name)} no llegó</button><button class="btn danger" data-act="wo" data-s="a">${esc(a.name)} no llegó</button></div></div>`}`;
 }
 
