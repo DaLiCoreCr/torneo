@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=34">
+<link rel="stylesheet" href="css/styles.css?v=36">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -43,10 +43,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=34"></script>
-<script src="js/core.js?v=34"></script>
-<script src="js/seed.js?v=34"></script>
-<script src="js/ui.js?v=34"></script>
+<script src="js/firebase-config.js?v=36"></script>
+<script src="js/core.js?v=36"></script>
+<script src="js/seed.js?v=36"></script>
+<script src="js/ui.js?v=36"></script>
 <script>
 /* Presentación de llaves: se calcula todo en este navegador con la tabla de posiciones (una sola lectura); no escribe nada. */
 T.load({ live: false }).then(() => {
@@ -88,7 +88,8 @@ function plan(S) {
   if (sf.length) pairs = sf.map(g => ({ title: 'Semifinal ' + g.slot, h: S.teams.find(t => t.id === g.home), a: S.teams.find(t => t.id === g.away), hs: g.seeds ? g.seeds.h : null, as: g.seeds ? g.seeds.a : null, date: g.date }));
   else if (n === 4) pairs = [{ title: 'Semifinal 1', h: rows[0].team, a: rows[3].team, hs: 1, as: 4 }, { title: 'Semifinal 2', h: rows[1].team, a: rows[2].team, hs: 2, as: 3 }];
   else pairs = [{ title: 'Final', h: rows[0].team, a: rows[1].team, hs: 1, as: 2 }];
-  return { table, rows, n, pairs, ok: table.length >= n && n >= 2 };
+  const played = T.leagueGames(S, cat).some(g => g.status === 'final') || sf.length > 0 || direct;
+  return { table, rows, n, pairs, played, ok: table.length >= n && n >= 2 };
 }
 
 function slots(S, p, upto) {
@@ -106,6 +107,7 @@ function render() {
     <div class="row">${S.config.categories.length > 1 ? `<div class="pills" style="margin:0">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-cat="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>` : ''}
       <a class="btn sm ghost" href="llaves.html">← Llaves</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>`;
   if (!p.ok) { app.innerHTML = head + `<div class="empty" style="margin-top:20px">Se necesitan al menos ${p.n} equipos en esta categoría para armar llaves.</div>`; return; }
+  if (!p.played) { app.innerHTML = head + `<div class="empty" style="margin-top:20px">Todavía no hay puntos: las llaves se arman con la tabla de posiciones y se podrán presentar cuando se jueguen los partidos de la fase regular.</div>`; return; }
   app.innerHTML = head + `<div class="kl-start"><button class="btn gold" id="go">${shown === cat ? '↺ Repetir presentación' : '▶ Iniciar presentación'}</button></div>
     <p class="note">Las llaves se arman con la tabla de posiciones: ${p.n === 4 ? '1.º vs 4.º y 2.º vs 3.º' : '1.º vs 2.º'}. Esta pantalla solo las presenta con suspenso, sin sorteo y sin escribir nada.</p>
     <div id="stage">${shown === cat ? UI.bracketView(S, cat) : slots(S, p, 99)}</div>`;
@@ -114,7 +116,7 @@ function render() {
 async function run() {
   if (running) return;
   const S = T.reload() || T.state(), p = plan(S);
-  if (!p.ok) return;
+  if (!p.ok || !p.played) return;
   running = true; const my = ++token;
   const names = S.teams.filter(t => t.cat === cat).map(t => t.name);
   document.getElementById('go').disabled = true;

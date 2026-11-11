@@ -330,7 +330,8 @@
     const table = T.standings(S, cat);
     const ph = (title, a, b) => `<div class="game bk-ph"><div class="g-meta"><span>${esc(title)}</span><span class="chip soft">Por definir</span></div>
       <div class="g-row"><span class="tname">${esc(a)}</span></div><div class="g-row"><span class="tname">${esc(b)}</span></div></div>`;
-    const seed = n => n + '.º · ' + (table[n - 1] ? table[n - 1].team.name : '—');
+    const hasPoints = T.leagueGames(S, cat).some(x => x.status === 'final'); // sin partidos jugados no hay clasificación: no se muestran equipos
+    const seed = n => (hasPoints ? n + '.º · ' + (table[n - 1] ? table[n - 1].team.name : '—') : n + '.º de la tabla de posiciones');
     const hasSF = sf.length > 0, direct = !hasSF && !!fin;
     const wantsThird = (sf[0] && sf[0].thirdPlace) || !!third;
     const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4)), ph('Semifinal 2', seed(2), seed(3))];
@@ -341,7 +342,7 @@
     return `${champ}<div class="bracket ${semis.length ? '' : 'one'}">
       ${semis.length ? `<div class="bk-col"><h3 class="bk-h">Semifinales</h3>${semis.join('')}</div>` : ''}
       <div class="bk-col"><h3 class="bk-h">Final</h3>${finalCard}${thirdCard ? `<h3 class="bk-h" style="margin-top:8px">Tercer lugar</h3>${thirdCard}` : ''}</div></div>
-      ${!hasSF && !fin ? '<p class="note">Las llaves se definen al terminar la fase regular, con los mejores de la tabla de posiciones. Lo que ves arriba es provisional según la tabla actual.</p>' : ''}`;
+      ${!hasSF && !fin ? `<p class="note">${hasPoints ? 'Las llaves se definen al terminar la fase regular, con los mejores de la tabla de posiciones. Lo que ves arriba es provisional según la tabla actual.' : 'Las llaves se definen con la tabla de posiciones; aparecerán cuando se jueguen los partidos de la fase regular.'}</p>` : ''}`;
   }
 
   w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult };

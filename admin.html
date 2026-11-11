@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=34">
+<link rel="stylesheet" href="css/styles.css?v=36">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=34"></script>
-<script src="js/core.js?v=34"></script>
-<script src="js/seed.js?v=34"></script>
-<script src="js/ui.js?v=34"></script>
+<script src="js/firebase-config.js?v=36"></script>
+<script src="js/core.js?v=36"></script>
+<script src="js/seed.js?v=36"></script>
+<script src="js/ui.js?v=36"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -361,7 +361,8 @@ app.addEventListener('click', e => {
       if (S0.teams.filter(t => t.cat === cat).length < n) return UI.toast(`Se necesitan al menos ${n} equipos`, 'bad');
       if (prev.some(g => g.status !== 'scheduled')) return UI.toast('Ya hay llaves iniciadas o finalizadas: no se pueden rehacer', 'bad');
       const left = lg.filter(g => g.status !== 'final').length;
-      if ((!lg.length || left) && !confirm(!lg.length ? 'No hay fase regular: las llaves saldrían de una tabla en ceros. ¿Continuar?' : `Faltan ${left} partidos de la fase regular. ¿Armar las llaves con la tabla actual?`)) return;
+      if (left === lg.length) return UI.toast('Todavía no hay puntos: primero se deben jugar partidos de la fase regular', 'bad');
+      if (left && !confirm(`Faltan ${left} partidos de la fase regular. ¿Armar las llaves con la tabla actual?`)) return;
       if (prev.length && !confirm('Ya hay llaves programadas. ¿Reemplazarlas?')) return;
       mt(s => { T.drawPlayoffs(s, cat, { start: '', gapMin: 0, mode: 1, n, third: val('dp-third') === '1' }); });
       UI.toast('Llaves armadas con la tabla de posiciones. Asigna fecha y hora en la pestaña Partidos'); break;

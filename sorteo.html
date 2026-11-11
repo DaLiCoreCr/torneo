@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=34">
+<link rel="stylesheet" href="css/styles.css?v=36">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=34"></script>
-<script src="js/core.js?v=34"></script>
-<script src="js/seed.js?v=34"></script>
-<script src="js/ui.js?v=34"></script>
+<script src="js/firebase-config.js?v=36"></script>
+<script src="js/core.js?v=36"></script>
+<script src="js/seed.js?v=36"></script>
+<script src="js/ui.js?v=36"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -100,8 +100,8 @@ function render() {
     <textarea class="inp" id="par-text" rows="2" placeholder="O pega nombres (padres u otros): uno por línea" style="margin-top:6px"></textarea>
     <div class="row" style="margin:8px 0"><button class="btn" data-act="addparents">Agregar a la lista</button></div>
     ${parents.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0"><span class="muted" style="font-size:13px;align-self:center">Toca el nombre para elegirlo (✕ lo quita de la lista):</span>${parents.map(p => `<span class="chip ${parSel.has(p.id) ? '' : 'soft'}" style="display:inline-flex;gap:8px;align-items:center;font-size:13px;padding:5px 9px;${parSel.has(p.id) ? 'background:var(--gold);color:#000' : ''}"><a href="#" data-act="parsel" data-id="${esc(p.id)}" style="color:inherit">${esc(p.name)}</a> <a href="#" data-act="delparent" data-id="${esc(p.id)}" style="color:inherit" title="Quitar">✕</a></span>`).join('')}</div>
-    <div class="row"><button class="btn gold" data-act="drawparents" ${parSel.size ? '' : 'disabled'}>Sortear equipo para los ${parSel.size} elegidos</button></div>
-    <p class="note">Los elegidos quedan como <b>coaches</b> del equipo sorteado (los jugadores mayores siguen jugando en su categoría). Equipos que aún no reciben coaches: <b>${parFree}</b>. Si ya todos recibieron un grupo, el siguiente puede ir a cualquiera.</p>` : ''}</div>`;
+    <div class="row"><button class="btn gold" data-act="drawparents">${parSel.size ? `Sortear equipo para los ${parSel.size} elegidos` : parents.length === 1 ? 'Sortear equipo para ' + esc(parents[0].name) : `Sortear equipo para los ${parents.length} de la lista`}</button></div>
+    <p class="note">Puedes sortear aunque la lista esté incompleta, con uno o varios: si no eliges a nadie, se sortea el equipo para todos los de la lista; si tocas nombres, solo para esos. Los elegidos quedan como <b>coaches</b> del equipo sorteado (los jugadores mayores siguen jugando en su categoría). Equipos que aún no reciben coaches: <b>${parFree}</b>. Si ya todos recibieron un grupo, el siguiente puede ir a cualquiera.</p>` : ''}</div>`;
 
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
@@ -166,7 +166,9 @@ app.addEventListener('click', e => {
       UI.toast(`${n} agregados` + (names.length - n ? `, ${names.length - n} repetidos omitidos` : '')); break;
     }
     case 'drawparents': {
-      let r; const ids = [...parSel];
+      const all = !parSel.size, ids = all ? (T.draft(T.state(), cat).parents || []).map(p => p.id) : [...parSel];
+      if (all && ids.length > 1 && !confirm(`No elegiste a nadie en particular: se sortea UN equipo para los ${ids.length} de la lista, juntos. ¿Continuar?`)) return;
+      let r;
       m(s => { r = T.draftParentGroup(s, cat, ids); });
       parSel.clear();
       if (r !== 'ok') UI.toast({ none: 'Elige al menos un nombre', noteam: 'No hay equipos en esta categoría' }[r], 'bad');
