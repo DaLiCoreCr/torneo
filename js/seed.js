@@ -171,6 +171,7 @@
         const mk = (n, re) => Object.assign({ id: T.uid('p'), name: n, gender: gender(n), captain: !re && CAPS.has(n) }, re ? { reinforce: true } : {});
         draft[k] = { pool: LISTS[k].map(n => mk(n)).concat((REINF[k] || []).map(n => mk(n, true))), parents: COACHES[k].map(n => ({ id: T.uid('c'), name: n })), last: null, group: null, done: [] };
       });
+    config.captainsByCat = { u12: 1, plus12: 2 }; /* U12: un capitán por equipo; Plus 12: dos */
     return { v: 1, config, teams, games: [], draft };
   }
 

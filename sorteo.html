@@ -55,7 +55,7 @@ function render() {
   const complete = !locked && placed > 0 && !d.pool.length && teams.every(t => T.isTeamDone(d, t) || t.players.length > 0);
   [...parSel].forEach(id => { if (!parents.some(p => p.id === id)) parSel.delete(id); });
   const parFree = teams.filter(t => !(d.parentsDone || []).includes(t.id)).length;
-  const per = T.capsPer(S), noCap = teams.filter(t => T.capCount(t) < per), needCaps = noCap.reduce((n, t) => n + per - T.capCount(t), 0);
+  const per = T.capsPer(S, cat), noCap = teams.filter(t => T.capCount(t) < per), needCaps = noCap.reduce((n, t) => n + per - T.capCount(t), 0);
   const eligible = d.pool.filter(p => !p.captain);
   const left = teams.filter(t => !done.includes(t.id));
   if (!noCap.some(t => t.id === capTeam)) capTeam = null;
@@ -69,7 +69,7 @@ function render() {
   const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).slice(0, 2).join(' ');
   const seenIn = {}, dupes = new Set();
   S.config.categories.forEach(c => {
-    const names = T.draft(S, c.id).pool.filter(p => !p.reinforce).map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.map(p => p.name)));
+    const names = T.draft(S, c.id).pool.filter(p => !p.reinforce).map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.filter(p => !p.reinforce).map(p => p.name)));
     new Set(names.map(keyOf)).forEach(k => { if (seenIn[k] && seenIn[k] !== c.id) dupes.add(k); seenIn[k] = seenIn[k] || c.id; });
   });
   const dupWarn = dupes.size ? `<div class="card" style="margin-bottom:16px;border-color:var(--live)"><b style="color:var(--live)">⚠ Posibles jugadores repetidos entre categorías:</b> ${[...dupes].map(esc).join(', ')}. Revisa que cada jugador esté en una sola categoría (Administración → Jugadores y sorteo).</div>` : '';

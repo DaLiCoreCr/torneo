@@ -380,7 +380,8 @@
     return true;
   }
   const capCount = t => t.players.filter(p => p.captain).length;
-  const capsPer = S => Math.max(1, S.config.captainsPerTeam || 2);
+  /* Capitanes por equipo: puede fijarse por categoría (config.captainsByCat); si no, vale el general (config.captainsPerTeam) */
+  const capsPer = (S, cat) => Math.max(1, (S.config.captainsByCat && S.config.captainsByCat[cat]) || S.config.captainsPerTeam || 2);
   const draftLocked = (S, cat) => !!(S.draft && S.draft[cat] && S.draft[cat].locked);
   function setDraftLock(S, cat, on) { draftW(S, cat).locked = !!on; return true; }
   const hasCaptain = t => t.players.some(p => p.captain);
@@ -392,7 +393,7 @@
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
     const d = draftW(S, cat);
     if (!t) return 'noteam';
-    const need = capsPer(S) - capCount(t);
+    const need = capsPer(S, cat) - capCount(t);
     if (need <= 0) return 'has';
     const caps = d.pool.filter(p => p.captain);
     if (!caps.length) return 'none';
@@ -400,7 +401,7 @@
     /* Equilibrio también entre capitanes: el género de los capitanes se reparte parejo entre los equipos que aún faltan */
     const isF = p => p.gender === 'F';
     const F = shuf(caps.filter(isF)), R = shuf(caps.filter(p => !isF(p)));
-    const slots = S.teams.filter(x => x.cat === cat).reduce((n, x) => n + Math.max(0, capsPer(S) - capCount(x)), 0);
+    const slots = S.teams.filter(x => x.cat === cat).reduce((n, x) => n + Math.max(0, capsPer(S, cat) - capCount(x)), 0);
     const exp = F.length * need / Math.max(need, slots);
     const want = Math.floor(exp) + (Math.random() < exp - Math.floor(exp) ? 1 : 0);
     const nTake = Math.min(need, caps.length);
@@ -518,7 +519,7 @@
     const caps = d.pool.filter(p => p.captain);
     let p, cands;
     if (caps.length) {
-      const need = teams.filter(t => capCount(t) < capsPer(S));
+      const need = teams.filter(t => capCount(t) < capsPer(S, cat));
       if (!need.length) return 'nocapslot';
       p = pick(caps);
       const m = Math.min(...need.map(capCount));

@@ -86,8 +86,8 @@ const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split
 function findDupes(S) {
   const by = {};
   S.config.categories.forEach(c => {
-    T.draft(S, c.id).pool.forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: 'sin equipo' }); });
-    S.teams.filter(t => t.cat === c.id).forEach(t => t.players.forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: t.name }); }));
+    T.draft(S, c.id).pool.filter(p => !p.reinforce).forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: 'sin equipo' }); });
+    S.teams.filter(t => t.cat === c.id).forEach(t => t.players.filter(p => !p.reinforce).forEach(p => { (by[keyOf(p.name)] = by[keyOf(p.name)] || []).push({ cat: c.id, id: p.id, name: p.name, where: t.name }); }));
   });
   return Object.entries(by).filter(([k, l]) => new Set(l.map(x => x.cat)).size > 1);
 }
@@ -209,7 +209,7 @@ function rulesView(S) {
       ${S.config.categories.map((c, i) => field('Categoría ' + (i + 1), `<input class="inp" id="r-cat${i}" value="${esc(c.name)}">`)).join('')}
     </div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Tiempo de juego</h3>
-    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}${field('Capitanes por equipo (sorteo)', `<input class="inp" type="number" min="1" id="r-capn" value="${S.config.captainsPerTeam || 2}">`)}${num('onCourt', 'Jugadores en cancha por equipo')}</div></div>
+    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}${S.config.categories.map((c, i) => field('Capitanes por equipo · ' + c.name + ' (sorteo)', `<input class="inp" type="number" min="1" id="r-capn${i}" value="${T.capsPer(S, c.id)}">`)).join('')}${num('onCourt', 'Jugadores en cancha por equipo')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Faltas</h3>
     <div class="card"><div class="frm">${num('foulsOut', 'Faltas personales para eliminar al jugador')}${num('bonusFouls', 'Faltas colectivas por período para activar el bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
@@ -413,7 +413,7 @@ app.addEventListener('click', e => {
       mt(s => {
         s.config.name = val('r-name') || s.config.name;
         s.config.categories.forEach((c, i) => { c.name = val('r-cat' + i) || c.name; });
-        s.config.captainsPerTeam = Math.max(1, +document.getElementById('r-capn').value || 2);
+        s.config.captainsByCat = {}; s.config.categories.forEach((c, i) => { s.config.captainsByCat[c.id] = Math.max(1, +document.getElementById('r-capn' + i).value || 2); });
         keys.forEach(k => { s.config.rules[k] = Math.max(0, +document.getElementById('r-' + k).value || 0); });
         if (document.getElementById('r-refresh')) s.config.refreshSec = Math.max(5, +document.getElementById('r-refresh').value || 15);
         s.games.filter(g => g.status === 'scheduled').forEach(g => { g.clock.remainingMs = T.periodLen(1); });
