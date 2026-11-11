@@ -48,7 +48,7 @@ export function connect(cfg, host, opts) {
       v: 1,
       config: remote.config || clone(host.DEFAULT_CONFIG),
       teams: [...remote.teams.values()].sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name)),
-      games: [...remote.games.values()].sort((a, b) => a.date.localeCompare(b.date)),
+      games: [...remote.games.values()].sort((a, b) => (a.date || '~').localeCompare(b.date || '~') || (a.order || 0) - (b.order || 0)),
       draft: Object.fromEntries([...remote.draft.entries()])
     });
   }

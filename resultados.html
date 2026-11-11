@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=33">
+<link rel="stylesheet" href="css/styles.css?v=34">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -22,10 +22,10 @@
   <div class="pills" id="cats"></div>
   <div id="app"></div>
 </div></main>
-<script src="js/firebase-config.js?v=33"></script>
-<script src="js/core.js?v=33"></script>
-<script src="js/seed.js?v=33"></script>
-<script src="js/ui.js?v=33"></script>
+<script src="js/firebase-config.js?v=34"></script>
+<script src="js/core.js?v=34"></script>
+<script src="js/seed.js?v=34"></script>
+<script src="js/ui.js?v=34"></script>
 <script>
 T.load().then(() => {
 UI.layout('res');
@@ -37,9 +37,9 @@ function render() {
   const games = S.games.filter(g => cat === 'all' || g.cat === cat).sort(UI.byDate);
   if (!games.length) { app.innerHTML = '<div class="empty" style="margin-top:20px">No hay partidos.</div>'; return; }
   const days = {};
-  games.forEach(g => (days[g.date.slice(0, 10)] = days[g.date.slice(0, 10)] || []).push(g));
+  games.forEach(g => { const k = (g.date || 'sin-fecha').slice(0, 10); (days[k] = days[k] || []).push(g); });
   app.innerHTML = Object.keys(days).map(d => `
-    <div class="sec"><div class="sec-h"><h2>${UI.fmtDate(d + 'T12:00')}</h2></div>
+    <div class="sec"><div class="sec-h"><h2>${d === 'sin-fecha' ? 'Fecha por definir' : UI.fmtDate(d + 'T12:00')}</h2></div>
     <div class="grid">${days[d].map(UI.gameCard).join('')}</div></div>`).join('');
 }
 render();

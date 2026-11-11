@@ -5,15 +5,15 @@
   const PIN = '1234'; // solo prototipo; con Firebase se reemplaza por login real
 
   const initials = n => n.split(/\s+/).map(x => x[0]).join('').slice(0, 2).toUpperCase();
-  const fmtDate = iso => new Date(iso).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '');
-  const fmtTime = iso => new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
+  const fmtDate = iso => !iso ? 'Fecha por definir' : new Date(iso).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' }).replace('.', '');
+  const fmtTime = iso => !iso ? '' : new Date(iso).toLocaleTimeString('es', { hour: 'numeric', minute: '2-digit' });
   const catName = (S, id) => (S.config.categories.find(c => c.id === id) || { name: id }).name;
   const team = (S, id) => S.teams.find(t => t.id === id) || { id, name: '—', players: [], color: '#555' };
   const badge = t => t.logo
     ? `<span class="badge has-img" style="--c:${esc(t.color || '#c9a84c')}"><img src="${esc(t.logo)}" alt=""></span>`
     : `<span class="badge" style="--c:${esc(t.color || '#c9a84c')}">${esc(initials(t.name))}</span>`;
   const capMark = p => (p && p.captain ? '<span class="cap" title="Capitán">C</span>' : '');
-  const byDate = (a, b) => a.date.localeCompare(b.date);
+  const byDate = (a, b) => (!a.date && !b.date ? (a.order || 0) - (b.order || 0) : !a.date ? 1 : !b.date ? -1 : a.date.localeCompare(b.date));
 
   function clockText(g) {
     return g.status === 'final' ? 'Final' : T.periodLabel(g.clock.period) + ' ' + T.fmtClock(T.remaining(g));
@@ -127,7 +127,7 @@
     const h = team(S, g.home), a = team(S, g.away);
     const fin = g.status === 'final', live = g.status === 'live';
     const status = live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>'
-      : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : `<span class="chip soft">${fmtTime(g.date)}</span>`;
+      : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : `<span class="chip soft">${fmtTime(g.date) || 'Por programar'}</span>`;
     const row = (t, sc, win, side) => `<div class="g-row ${win ? 'win' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">${badge(t)}<span class="tname">${esc(t.name)}</span><span class="sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : sc}</span></div>`;
     return `<a class="game ${live ? 'is-live' : ''}" href="partido.html?id=${esc(g.id)}">
       <div class="g-meta"><span>${esc(catName(S, g.cat))}${g.stage ? ' · ' + esc(T.stageName(g)) : ''} · ${fmtDate(g.date)}</span>${status}</div>

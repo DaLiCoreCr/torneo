@@ -275,14 +275,15 @@
   const shuffleArr = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const pad2 = n => String(n).padStart(2, '0');
   const isoLocal = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
-  const addMin = (iso, m) => isoLocal(new Date(new Date(iso).getTime() + m * 60000));
+  const addMin = (iso, m) => (iso ? isoLocal(new Date(new Date(iso).getTime() + m * 60000)) : '');
   const stageName = g => (g.stage === 'sf' ? 'Semifinal ' + g.slot : STAGES[g.stage] || '');
   const leagueGames = (S, cat) => S.games.filter(g => g.cat === cat && !g.stage);
   const playoffGames = (S, cat) => S.games.filter(g => g.cat === cat && g.stage);
   const gameWinner = g => (g.status === 'final' && g.score.h !== g.score.a ? (g.score.h > g.score.a ? g.home : g.away) : null);
   const gameLoser = g => (g.status === 'final' && g.score.h !== g.score.a ? (g.score.h > g.score.a ? g.away : g.home) : null);
   const pushGame = (S, cat, o, date, stage, slot, h, a, extra) => {
-    const g = newGame({ cat, home: h, away: a, date, mode: o.mode });
+    const g = newGame({ cat, home: h, away: a, date: date || '', mode: o.mode ?? 1 });
+    g.order = S.games.length;
     if (stage) { g.stage = stage; g.slot = slot; }
     S.games.push(Object.assign(g, extra || {}));
   };
@@ -325,8 +326,8 @@
     if (S.games.some(g => g.cat === cat && g.stage === 'final')) return 'exists';
     if (sf.some(g => g.status !== 'final')) return 'pending';
     if (sf.some(g => !gameWinner(g))) return 'tie';
-    pushGame(S, cat, o, o.start, 'final', 1, gameWinner(sf[0]), gameWinner(sf[1]));
-    if (sf[0].thirdPlace) pushGame(S, cat, o, addMin(o.start, -o.gapMin), 'third', 1, gameLoser(sf[0]), gameLoser(sf[1]));
+    if (sf[0].thirdPlace) pushGame(S, cat, o, '', 'third', 1, gameLoser(sf[0]), gameLoser(sf[1]));
+    pushGame(S, cat, o, '', 'final', 1, gameWinner(sf[0]), gameWinner(sf[1]));
     return 'ok';
   }
 

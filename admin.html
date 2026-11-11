@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=33">
+<link rel="stylesheet" href="css/styles.css?v=34">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=33"></script>
-<script src="js/core.js?v=33"></script>
-<script src="js/seed.js?v=33"></script>
-<script src="js/ui.js?v=33"></script>
+<script src="js/firebase-config.js?v=34"></script>
+<script src="js/core.js?v=34"></script>
+<script src="js/seed.js?v=34"></script>
+<script src="js/ui.js?v=34"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -162,7 +162,8 @@ function gamesView(S) {
       <button class="btn gold" data-act="addgame">Programar</button></div>
       <p class="note">Básico: puntos, faltas, tiempos muertos (las colectivas se cuentan solas). Intermedio: + rebotes, asistencias, robos, pérdidas, tapones y tiros fallados. Completo: + faltas recibidas.</p></div>
     <div class="gm-list">${games.map(g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
-      <div class="muted" style="font-size:13px">${g.stage ? T.stageName(g) + ' · ' : ''}${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · ${T.MODES[g.mode]} · ${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : 'Programado'}</div></div>
+      <div class="muted" style="font-size:13px">${g.stage ? T.stageName(g) + ' · ' : ''}${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : g.date ? 'Programado' : 'Sin fecha'}</div>
+        <div class="row" style="margin-top:6px"><input class="inp" type="datetime-local" data-gdate="${esc(g.id)}" value="${esc(g.date || '')}" title="Fecha y hora" style="max-width:230px"><select class="inp" data-gmode="${esc(g.id)}" title="Modo de captura" style="max-width:150px">${T.MODES.map((m, i) => `<option value="${i}" ${i === g.mode ? 'selected' : ''}>${m}</option>`).join('')}</select></div></div>
       <div class="row"><a class="btn sm gold" href="mesa.html?id=${esc(g.id)}">Mesa</a><button class="btn sm danger" data-act="delgame" data-id="${esc(g.id)}">Eliminar</button></div></div>`).join('') || '<div class="empty">No hay partidos en esta categoría.</div>'}</div>`;
 }
 
@@ -170,19 +171,15 @@ function drawView(S) {
   const nt = S.teams.filter(t => t.cat === cat).length;
   const lg = T.leagueGames(S, cat), played = lg.filter(g => g.status === 'final').length;
   const po = T.playoffGames(S, cat);
-  const modes = id => `<select class="inp" id="${id}">${T.MODES.map((m, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${m}</option>`).join('')}</select>`;
-  const gap = id => `<input class="inp" type="number" min="0" id="${id}" value="60">`;
   return `${catBar(S)}
     <h3 class="gold" style="margin:14px 0 8px;font-size:22px">1. Fase regular: todos contra todos</h3>
-    <div class="card"><p class="muted">${nt} equipos → <b>${nt * (nt - 1) / 2}</b> partidos a una vuelta. El sistema sortea el orden y quién es local. Solo se enfrentan equipos de esta categoría.
+    <div class="card"><p class="muted">${nt} equipos → <b>${nt * (nt - 1) / 2}</b> partidos a una vuelta. El sistema sortea los emparejamientos y quién es local. Solo se enfrentan equipos de esta categoría. <b>No lleva fecha ni hora</b>: se las asignas después en la pestaña Partidos.
       <br>Ahora: <b>${lg.length}</b> programados, <b>${played}</b> finalizados.</p>
-      <div class="frm">${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dl-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dl-gap'))}${field('Modo de captura', modes('dl-m'))}
-      <button class="btn gold" data-act="drawleague">${lg.length ? 'Volver a sortear' : 'Sortear partidos'}</button></div></div>
+      <div class="row"><button class="btn gold" data-act="drawleague">${lg.length ? 'Volver a sortear' : 'Sortear partidos'}</button></div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">2. Llaves</h3>
     <div class="card"><p class="muted">No se sortean: se arman por puntos con los mejores de la tabla de posiciones (los partidos de llaves no cuentan en la tabla). Con 4 clasificados: semifinales 1.º vs 4.º y 2.º vs 3.º. Al terminar las semifinales usa <b>Generar final</b>.</p>
       <div class="frm">${field('Clasifican', '<select class="inp" id="dp-n"><option value="4">Los 4 mejores (semifinales y final)</option><option value="2">Los 2 mejores (solo final)</option></select>')}
       ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="0">No</option><option value="1">Sí</option></select>')}
-      ${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dp-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dp-gap'))}${field('Modo de captura', modes('dp-m'))}
       <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Armar llaves con la tabla'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Así quedan las llaves</h3>
     ${UI.bracketView(S, cat)}
@@ -350,33 +347,28 @@ app.addEventListener('click', e => {
     }
     case 'delgame': if (confirm('¿Eliminar el partido y sus jugadas?')) mt(s => { s.games = s.games.filter(g => g.id !== id); }); break;
     case 'drawleague': {
-      const d = val('dl-d');
-      if (!d) return UI.toast('Elige fecha y hora del primer partido', 'bad');
       const S0 = T.state(), prev = T.leagueGames(S0, cat);
       if (S0.teams.filter(t => t.cat === cat).length < 2) return UI.toast('Se necesitan al menos 2 equipos', 'bad');
       if (prev.some(g => g.status !== 'scheduled')) return UI.toast('Ya hay partidos iniciados o finalizados: no se puede volver a sortear', 'bad');
       if (prev.length && !confirm(`Ya hay ${prev.length} partidos programados en esta categoría. ¿Reemplazarlos por un nuevo sorteo?`)) return;
       let n = 0;
-      mt(s => { n = T.drawLeague(s, cat, { start: d, gapMin: Math.max(0, +val('dl-gap') || 0), mode: +val('dl-m') }); });
-      UI.toast(`${n} partidos sorteados`); break;
+      mt(s => { n = T.drawLeague(s, cat, { start: '', gapMin: 0, mode: 1 }); });
+      UI.toast(`${n} partidos sorteados. Asígnales fecha y hora en la pestaña Partidos`); break;
     }
     case 'drawplayoffs': {
-      const d = val('dp-d'), n = +val('dp-n');
-      if (!d) return UI.toast('Elige fecha y hora del primer partido', 'bad');
+      const n = +val('dp-n');
       const S0 = T.state(), lg = T.leagueGames(S0, cat), prev = T.playoffGames(S0, cat);
       if (S0.teams.filter(t => t.cat === cat).length < n) return UI.toast(`Se necesitan al menos ${n} equipos`, 'bad');
       if (prev.some(g => g.status !== 'scheduled')) return UI.toast('Ya hay llaves iniciadas o finalizadas: no se pueden rehacer', 'bad');
       const left = lg.filter(g => g.status !== 'final').length;
       if ((!lg.length || left) && !confirm(!lg.length ? 'No hay fase regular: las llaves saldrían de una tabla en ceros. ¿Continuar?' : `Faltan ${left} partidos de la fase regular. ¿Armar las llaves con la tabla actual?`)) return;
       if (prev.length && !confirm('Ya hay llaves programadas. ¿Reemplazarlas?')) return;
-      mt(s => { T.drawPlayoffs(s, cat, { start: d, gapMin: Math.max(0, +val('dp-gap') || 0), mode: +val('dp-m'), n, third: val('dp-third') === '1' }); });
-      UI.toast('Llaves armadas con la tabla de posiciones'); break;
+      mt(s => { T.drawPlayoffs(s, cat, { start: '', gapMin: 0, mode: 1, n, third: val('dp-third') === '1' }); });
+      UI.toast('Llaves armadas con la tabla de posiciones. Asigna fecha y hora en la pestaña Partidos'); break;
     }
     case 'advance': {
-      const d = val('dp-d');
-      if (!d) return UI.toast('Elige fecha y hora de la final', 'bad');
       let r;
-      mt(s => { r = T.advancePlayoffs(s, cat, { start: d, gapMin: Math.max(0, +val('dp-gap') || 0), mode: +val('dp-m') }); });
+      mt(s => { r = T.advancePlayoffs(s, cat, { start: '', gapMin: 0, mode: 1 }); });
       UI.toast({ ok: 'Final generada', nosf: 'Primero sortea las llaves con semifinales', exists: 'La final ya existe', pending: 'Faltan semifinales por terminar', tie: 'Una semifinal quedó empatada: define el ganador' }[r], r === 'ok' ? '' : 'bad'); break;
     }
     case 'saverules': {
@@ -454,6 +446,8 @@ app.addEventListener('change', e => {
       .catch(() => UI.toast('No se pudo leer la imagen', 'bad'));
     return;
   }
+  if (el.dataset.gdate) { T.mutate(s => { s.games.find(g => g.id === el.dataset.gdate).date = el.value; }); UI.toast(el.value ? 'Fecha guardada' : 'Fecha quitada'); render(); return; }
+  if (el.dataset.gmode) { T.mutate(s => { s.games.find(g => g.id === el.dataset.gmode).mode = +el.value; }); return; }
   if (el.dataset.pool) { T.mutate(s => { const p = T.draftW(s, cat).pool.find(x => x.id === el.dataset.pid); p[el.dataset.pool] = el.dataset.pool === 'captain' ? el.checked : el.value; }); return; }
   if (el.dataset.f) T.mutate(s => { s.teams.find(t => t.id === el.dataset.id)[el.dataset.f] = el.value; });
   if (el.dataset.pf === 'num') {
