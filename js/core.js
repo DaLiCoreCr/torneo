@@ -314,9 +314,10 @@
     const top = standings(S, cat).slice(0, o.n).map(r => r.team.id);
     if (top.length < o.n) return 0;
     S.games = S.games.filter(g => !(g.cat === cat && g.stage));
-    if (o.n === 2) { pushGame(S, cat, o, o.start, 'final', 1, top[0], top[1], { seeds: { h: 1, a: 2 } }); return 1; }
-    pushGame(S, cat, o, o.start, 'sf', 1, top[0], top[3], { seeds: { h: 1, a: 4 }, thirdPlace: !!o.third });
-    pushGame(S, cat, o, addMin(o.start, o.gapMin), 'sf', 2, top[1], top[2], { seeds: { h: 2, a: 3 }, thirdPlace: !!o.third });
+    const bd = (S.config.bracketDates || {})[cat] || {}; // fechas de las llaves puestas de antemano (antes de conocer los equipos)
+    if (o.n === 2) { pushGame(S, cat, o, bd.final || o.start, 'final', 1, top[0], top[1], { seeds: { h: 1, a: 2 } }); return 1; }
+    pushGame(S, cat, o, bd.sf1 || o.start, 'sf', 1, top[0], top[3], { seeds: { h: 1, a: 4 }, thirdPlace: !!o.third });
+    pushGame(S, cat, o, bd.sf2 || addMin(o.start, o.gapMin), 'sf', 2, top[1], top[2], { seeds: { h: 2, a: 3 }, thirdPlace: !!o.third });
     return 2;
   }
   /* Con las semifinales terminadas crea la final (y el tercer lugar). Devuelve: ok | nosf | exists | pending | tie */
@@ -326,8 +327,9 @@
     if (S.games.some(g => g.cat === cat && g.stage === 'final')) return 'exists';
     if (sf.some(g => g.status !== 'final')) return 'pending';
     if (sf.some(g => !gameWinner(g))) return 'tie';
-    if (sf[0].thirdPlace) pushGame(S, cat, o, '', 'third', 1, gameLoser(sf[0]), gameLoser(sf[1]));
-    pushGame(S, cat, o, '', 'final', 1, gameWinner(sf[0]), gameWinner(sf[1]));
+    const bd = (S.config.bracketDates || {})[cat] || {};
+    if (sf[0].thirdPlace) pushGame(S, cat, o, bd.third || '', 'third', 1, gameLoser(sf[0]), gameLoser(sf[1]));
+    pushGame(S, cat, o, bd.final || '', 'final', 1, gameWinner(sf[0]), gameWinner(sf[1]));
     return 'ok';
   }
 

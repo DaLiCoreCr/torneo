@@ -329,15 +329,17 @@
     const g = st => S.games.filter(x => x.cat === cat && x.stage === st).sort((a, b) => a.slot - b.slot);
     const sf = g('sf'), fin = g('final')[0], third = g('third')[0];
     const table = T.standings(S, cat);
-    const ph = (title, a, b) => `<div class="game bk-ph"><div class="g-meta"><span>${esc(title)}</span><span class="chip soft">Por definir</span></div>
+    const bd = (S.config.bracketDates || {})[cat] || {};
+    const when = d => (d ? ' · ' + fmtDate(d) + ' ' + fmtTime(d) : '');
+    const ph = (title, a, b, d) => `<div class="game bk-ph"><div class="g-meta"><span>${esc(title)}${when(d)}</span><span class="chip soft">Por definir</span></div>
       <div class="g-row"><span class="tname">${esc(a)}</span></div><div class="g-row"><span class="tname">${esc(b)}</span></div></div>`;
     const hasPoints = T.leagueGames(S, cat).some(x => x.status === 'final'); // sin partidos jugados no hay clasificación: no se muestran equipos
     const seed = n => (hasPoints ? n + '.º · ' + (table[n - 1] ? table[n - 1].team.name : '—') : n + '.º de la tabla de posiciones');
     const hasSF = sf.length > 0, direct = !hasSF && !!fin;
     const wantsThird = (sf[0] && sf[0].thirdPlace) || !!third;
-    const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4)), ph('Semifinal 2', seed(2), seed(3))];
-    const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2');
-    const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2') : '';
+    const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4), bd.sf1), ph('Semifinal 2', seed(2), seed(3), bd.sf2)];
+    const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2', bd.final);
+    const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2', bd.third) : '';
     const champId = fin ? T.gameWinner(fin) : null;
     const champ = champId ? `<div class="bk-champ">🏆 Campeón: <b>${esc(team(S, champId).name)}</b></div>` : '';
     return `${champ}<div class="bracket ${semis.length ? '' : 'one'}">

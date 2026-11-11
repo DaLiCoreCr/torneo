@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=41">
+<link rel="stylesheet" href="css/styles.css?v=43">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=41"></script>
-<script src="js/core.js?v=41"></script>
-<script src="js/seed.js?v=41"></script>
-<script src="js/ui.js?v=41"></script>
+<script src="js/firebase-config.js?v=43"></script>
+<script src="js/core.js?v=43"></script>
+<script src="js/seed.js?v=43"></script>
+<script src="js/ui.js?v=43"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -163,7 +163,7 @@ function gamesView(S) {
       <p class="note">Básico: puntos, faltas, tiempos muertos (las colectivas se cuentan solas). Intermedio: + rebotes, asistencias, robos, pérdidas, tapones y tiros fallados. Completo: + faltas recibidas.</p></div>
     <div class="gm-list">${games.map(g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
       <div class="muted" style="font-size:13px">${g.stage ? T.stageName(g) + ' · ' : ''}${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : g.date ? 'Programado' : 'Sin fecha'}</div>
-        <div class="row" style="margin-top:6px"><input class="inp" type="datetime-local" data-gdate="${esc(g.id)}" value="${esc(g.date || '')}" title="Fecha y hora" style="max-width:230px"><select class="inp" data-gmode="${esc(g.id)}" title="Modo de captura" style="max-width:150px">${T.MODES.map((m, i) => `<option value="${i}" ${i === g.mode ? 'selected' : ''}>${m}</option>`).join('')}</select></div></div>
+        <div class="row" style="margin-top:6px"><span class="muted" style="font-size:13px">Fecha:</span><input class="inp" type="datetime-local" data-gdate="${esc(g.id)}" value="${esc(g.date || '')}" title="Fecha y hora" style="max-width:230px"><span class="muted" style="font-size:13px" title="Qué tanto detalle se anota en la mesa">Captura:</span><select class="inp" data-gmode="${esc(g.id)}" title="Modo de captura" style="max-width:150px">${T.MODES.map((m, i) => `<option value="${i}" ${i === g.mode ? 'selected' : ''}>${m}</option>`).join('')}</select></div></div>
       <div class="row"><a class="btn sm gold" href="mesa.html?id=${esc(g.id)}">Mesa</a><button class="btn sm danger" data-act="delgame" data-id="${esc(g.id)}">Eliminar</button></div></div>`).join('') || '<div class="empty">No hay partidos en esta categoría.</div>'}</div>`;
 }
 
@@ -181,6 +181,9 @@ function drawView(S) {
       <div class="frm">${field('Clasifican', '<select class="inp" id="dp-n"><option value="4">Los 4 mejores (semifinales y final)</option><option value="2">Los 2 mejores (solo final)</option></select>')}
       ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="0">No</option><option value="1">Sí</option></select>')}
       <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Armar llaves con la tabla'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
+    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">3. Fechas de las llaves</h3>
+    <div class="card"><p class="muted">Puedes poner las fechas y horas <b>desde ya</b>, sin conocer todavía los equipos. Cuando armes las llaves y se genere la final, cada partido toma su fecha. Si los partidos ya existen, el cambio se aplica a ellos también.</p>
+      <div class="frm">${[['sf1', 'Semifinal 1', 'sf', 1], ['sf2', 'Semifinal 2', 'sf', 2], ['third', 'Tercer lugar (si hay)', 'third', 1], ['final', 'Final', 'final', 1]].map(([k, label, st, sl]) => { const g0 = po.find(x => x.stage === st && x.slot === sl); return field(label, `<input class="inp" type="datetime-local" data-bdate="${k}" value="${esc((g0 && g0.date) || ((S.config.bracketDates || {})[cat] || {})[k] || '')}">`); }).join('')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Así quedan las llaves</h3>
     ${UI.bracketView(S, cat)}
     <p class="note"><a href="llaves.html" style="color:var(--gold)">Ver la pantalla pública de llaves →</a> · <a href="presentacion-llaves.html?cat=${esc(cat)}" target="_blank" style="color:var(--gold)">Presentación de llaves con suspenso ↗</a> · Puedes cambiar la fecha o eliminar partidos en la pestaña Partidos.</p>`;
@@ -455,6 +458,16 @@ app.addEventListener('change', e => {
     readLogo(f).then(url => { T.mutate(s => { s.teams.find(t => t.id === el.dataset.logo).logo = url; }); render(); UI.toast('Logo guardado'); })
       .catch(() => UI.toast('No se pudo leer la imagen', 'bad'));
     return;
+  }
+  if (el.dataset.bdate) {
+    const k = el.dataset.bdate, map = { sf1: ['sf', 1], sf2: ['sf', 2], third: ['third', 1], final: ['final', 1] }[k];
+    T.mutate(s => {
+      s.config.bracketDates = s.config.bracketDates || {};
+      (s.config.bracketDates[cat] = s.config.bracketDates[cat] || {})[k] = el.value;
+      const g = s.games.find(x => x.cat === cat && x.stage === map[0] && x.slot === map[1]);
+      if (g) g.date = el.value;
+    });
+    UI.toast(el.value ? 'Fecha guardada' : 'Fecha quitada'); render(); return;
   }
   if (el.dataset.gdate) { T.mutate(s => { s.games.find(g => g.id === el.dataset.gdate).date = el.value; }); UI.toast(el.value ? 'Fecha guardada' : 'Fecha quitada'); render(); return; }
   if (el.dataset.gmode) { T.mutate(s => { s.games.find(g => g.id === el.dataset.gmode).mode = +el.value; }); return; }
