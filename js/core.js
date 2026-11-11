@@ -347,6 +347,7 @@
     return n;
   }
   function draftAssign(S, cat, pid, teamId) {
+    if (draftLocked(S, cat)) return false;
     const t = S.teams.find(x => x.id === teamId);
     if (!t) return false;
     const d = draftW(S, cat);
@@ -365,6 +366,7 @@
     return true;
   }
   function draftReturn(S, cat, pid) {
+    if (draftLocked(S, cat)) return false;
     const from = S.teams.find(x => x.players.some(y => y.id === pid));
     if (!from) return false;
     const p = from.players.splice(from.players.findIndex(y => y.id === pid), 1)[0];
@@ -377,11 +379,14 @@
   }
   const capCount = t => t.players.filter(p => p.captain).length;
   const capsPer = S => Math.max(1, S.config.captainsPerTeam || 2);
+  const draftLocked = (S, cat) => !!(S.draft && S.draft[cat] && S.draft[cat].locked);
+  function setDraftLock(S, cat, on) { draftW(S, cat).locked = !!on; return true; }
   const hasCaptain = t => t.players.some(p => p.captain);
   /* Un equipo cuenta como sorteado solo si está marcado Y tiene jugadores además de sus capitanes (evita marcas viejas tras deshacer o reiniciar) */
   const isTeamDone = (d, t) => (d.done || []).includes(t.id) && t.players.length > capCount(t);
   /* Fase 1: sortea los capitanes de un equipo (por defecto 2) entre los marcados con C y sin equipo. Un capitán nunca queda en dos equipos. */
   function draftCaptain(S, cat, teamId) {
+    if (draftLocked(S, cat)) return 'locked';
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
     const d = draftW(S, cat);
     if (!t) return 'noteam';
@@ -410,6 +415,7 @@
   }
   /* Fase 1 alterna: un grupo de capitanes elegido a mano (p. ej. 3) se sortea a un equipo al azar entre los que aún no tienen capitanes */
   function draftCaptainGroup(S, cat, pids, asCoach) {
+    if (draftLocked(S, cat)) return 'locked';
     const d = draftW(S, cat);
     const caps = pids.map(id => d.pool.find(p => p.id === id && p.captain)).filter(Boolean);
     if (!caps.length) return 'none';
@@ -428,6 +434,7 @@
   }
   /* Padres / coaches adultos: lista por categoría; se arman grupos a mano y se sortea el equipo (queda como coaches del equipo). */
   function addParents(S, cat, names) {
+    if (draftLocked(S, cat)) return 0;
     const d = draftW(S, cat); d.parents = d.parents || [];
     const seen = new Set(d.parents.map(p => p.name.toLowerCase()).concat(S.teams.filter(t => t.cat === cat).flatMap(t => coachList(t).map(c => c.toLowerCase()))));
     let n = 0;
@@ -435,6 +442,7 @@
     return n;
   }
   function draftParentGroup(S, cat, ids) {
+    if (draftLocked(S, cat)) return 'locked';
     const d = draftW(S, cat); d.parents = d.parents || [];
     const ps = ids.map(id => d.parents.find(p => p.id === id)).filter(Boolean);
     if (!ps.length) return 'none';
@@ -454,6 +462,7 @@
   }
   /* Reinicia el sorteo de la categoría: devuelve a la lista a todos los jugadores (all = false conserva a los capitanes en sus equipos). Las marcas de capitán se conservan. */
   function draftReset(S, cat, all) {
+    if (draftLocked(S, cat)) return false;
     const d = draftW(S, cat);
     S.teams.filter(t => t.cat === cat).forEach(t => {
       const keep = all ? [] : t.players.filter(p => p.captain);
@@ -467,6 +476,7 @@
      entre los equipos que faltan por sortear, cada uno recibe piso o techo del promedio, tanto en cantidad total como en género
      (se cuentan los jugadores que el equipo ya tiene, p. ej. su capitán). Se recalcula con lo que queda en cada sorteo. */
   function draftGroup(S, cat, teamId) {
+    if (draftLocked(S, cat)) return 0;
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
     const d = draftW(S, cat);
     if (!t) return 0;
@@ -497,6 +507,7 @@
   }
   /* Deshace lo más reciente: el equipo sorteado completo o la última asignación suelta */
   function draftUndo(S, cat) {
+    if (draftLocked(S, cat)) return false;
     const d = draftW(S, cat), g = d.group, l = d.last;
     if (g && (!l || g.ts >= l.ts)) {
       const team = S.teams.find(x => x.id === g.teamId);
@@ -521,7 +532,7 @@
   w.T = {
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
-    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftCaptainGroup, draftParentGroup, addParents, draftReset, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftLocked, setDraftLock, draftCaptainGroup, draftParentGroup, addParents, draftReset, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,

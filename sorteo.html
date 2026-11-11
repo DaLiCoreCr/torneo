@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=38">
+<link rel="stylesheet" href="css/styles.css?v=41">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=38"></script>
-<script src="js/core.js?v=38"></script>
-<script src="js/seed.js?v=38"></script>
-<script src="js/ui.js?v=38"></script>
+<script src="js/firebase-config.js?v=41"></script>
+<script src="js/core.js?v=41"></script>
+<script src="js/seed.js?v=41"></script>
+<script src="js/ui.js?v=41"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -51,6 +51,8 @@ function render() {
   [...capSel].forEach(id => { if (!caps.some(p => p.id === id)) capSel.delete(id); });
   const freeTeams = teams.filter(t => !T.capCount(t));
   const parents = d.parents || [];
+  const locked = !!d.locked;
+  const complete = !locked && placed > 0 && !d.pool.length && teams.every(t => T.isTeamDone(d, t) || t.players.length > 0);
   [...parSel].forEach(id => { if (!parents.some(p => p.id === id)) parSel.delete(id); });
   const parFree = teams.filter(t => !(d.parentsDone || []).includes(t.id)).length;
   const per = T.capsPer(S), noCap = teams.filter(t => T.capCount(t) < per), needCaps = noCap.reduce((n, t) => n + per - T.capCount(t), 0);
@@ -107,26 +109,29 @@ function render() {
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
       <h1 class="page-title">Sorteo de <b>equipos</b></h1>
       <div class="row"><a class="btn ghost" href="presentacion.html?cat=${esc(cat)}" target="_blank">Abrir presentación ↗</a>
-        <button class="btn" data-act="undo" ${(d.last || d.group) ? '' : 'disabled'}>Deshacer última</button>
+        ${locked ? '<button class="btn gold" data-act="unlock">🔓 Reabrir sorteo</button>' : `<button class="btn" data-act="undo" ${(d.last || d.group) ? '' : 'disabled'}>Deshacer última</button>
         <button class="btn danger" data-act="resetplayers" title="Devuelve a la lista a los jugadores; los capitanes se quedan en su equipo">Reiniciar jugadores</button>
-        <button class="btn danger" data-act="resetall" title="Devuelve a la lista a todos, capitanes incluidos">Reiniciar todo el sorteo</button></div></div>
+        <button class="btn danger" data-act="resetall" title="Devuelve a la lista a todos, capitanes incluidos">Reiniciar todo el sorteo</button>
+        <button class="btn gold" data-act="lock" title="Cierra el sorteo de esta categoría: ya no se podrá sortear">🔒 Cerrar sorteo</button>`}</div></div>
     <div class="pills">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-act="cat" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
     <p class="note">Orden: <b>1)</b> marca con la <b>C</b> a los capitanes, <b>2)</b> sortea los capitanes, <b>3)</b> sortea los jugadores. Para corregir a mano, toca un jugador y luego el equipo (o arrástralo). La presentación se actualiza sola.</p>
     ${!teams.length ? `<div class="empty">No hay equipos en esta categoría. Créalos en <a class="gold" href="admin.html">Administración</a> (nombre y logo) y vuelve aquí.</div>` : `
-    ${dupWarn}${capPanel}${drawPanel}${parPanel}
+    ${locked ? `<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><h3 class="gold" style="font-size:24px">🔒 Sorteo de ${esc(UI.catName(S, cat))} cerrado</h3><p class="note" style="margin-top:6px">Ya no se puede sortear. Los jugadores o coaches que lleguen después se registran <b>a mano</b> en <a class="gold" href="admin.html">Administración → Equipos</a> (agregar jugador o coach al equipo). Si necesitas volver a sortear, usa <b>Reabrir sorteo</b>.</p></div>` : `${complete ? '<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><b class="gold">✅ Todos los jugadores ya tienen equipo.</b> Cuando termines los coaches, pulsa <b>Cerrar sorteo</b> para que nadie pueda volver a sortear por error.</div>' : ''}${dupWarn}${capPanel}${drawPanel}${parPanel}`}
     <div class="draft">
-      <div class="card">
+      ${locked ? '' : `<div class="card">
         <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3></div>
         <input class="inp" id="q" placeholder="Buscar jugador…" value="${esc(query)}" style="margin-top:10px">
         <div class="dp-list">${pool.map(p => `<div class="dp ${sel === p.id ? 'on' : ''}" draggable="true" data-act="sel" data-id="${esc(p.id)}">
             <span class="nm">${esc(p.name)}</span>
+            <button class="x" data-act="edit" data-id="${esc(p.id)}" title="Corregir nombre">✎</button>
             <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button></div>`).join('')
           || `<div class="empty">${d.pool.length ? 'Sin resultados.' : (placed ? '¡Todos los jugadores ya tienen equipo!' : 'No hay jugadores. Cárgalos en Administración → Jugadores y sorteo.')}</div>`}</div>
-      </div>
-      <div class="dteams">${teams.map(t => `<div class="dt ${sel ? 'ready' : ''}" data-act="assign" data-team="${esc(t.id)}">
+      </div>`}
+      <div class="dteams">${teams.map(t => `<div class="dt ${sel && !locked ? 'ready' : ''}" ${locked ? '' : `data-act="assign" data-team="${esc(t.id)}"`}>
           <div class="dt-h">${UI.badge(t)}<h3>${esc(t.name)}</h3><small>${stat(t)}</small></div>
-          ${t.players.map(p => `<div class="dr" draggable="true" data-pid="${esc(p.id)}"><span class="n">${p.num}</span><span class="nm">${esc(p.name)}</span>
+          ${t.players.map(p => locked ? `<div class="dr"><span class="n">${p.num}</span><span class="nm">${esc(p.name)}</span>${p.captain ? '<span class="cbtn on" title="Capitán">C</span>' : ''}<button class="x" data-act="edit" data-id="${esc(p.id)}" title="Corregir nombre o número">✎</button></div>` : `<div class="dr" draggable="true" data-pid="${esc(p.id)}"><span class="n">${p.num}</span><span class="nm">${esc(p.name)}</span>
             <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button>
+            <button class="x" data-act="edit" data-id="${esc(p.id)}" title="Corregir nombre o número">✎</button>
             <button class="x" data-act="back" data-id="${esc(p.id)}" title="Devolver a la lista">✕</button></div>`).join('') || '<div class="muted" style="font-size:13px">Sin jugadores</div>'}
         </div>`).join('')}</div>
     </div>`}`;
@@ -142,6 +147,7 @@ app.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const id = b.dataset.id;
+  if (T.draftLocked(T.state(), cat) && !['cat', 'unlock', 'edit'].includes(b.dataset.act)) { e.preventDefault(); return UI.toast('El sorteo está cerrado. Reábrelo o registra a mano en Administración', 'bad'); }
   switch (b.dataset.act) {
     case 'cat': cat = id; sel = null; try { localStorage.setItem('torneo.cat', id); } catch (er) { /* ignore */ } render(); break;
     case 'sel': sel = sel === id ? null : id; render(); break;
@@ -155,6 +161,33 @@ app.addEventListener('click', e => {
       if (!sel) return UI.toast('Primero toca un jugador de la lista', 'bad');
       { const pid = sel; sel = null; let ok = true; m(s => { ok = T.draftAssign(s, cat, pid, b.dataset.team); }); if (!ok) UI.toast('No se pudo mover (un capitán no cambia de equipo: devuélvelo con ✕)', 'bad'); } break;
     case 'capsel': e.stopPropagation(); e.preventDefault(); if (capSel.has(id)) capSel.delete(id); else capSel.add(id); render(); break;
+    case 'edit': {
+      e.stopPropagation(); e.preventDefault();
+      const S2 = T.state();
+      const inTeam = S2.teams.flatMap(t => t.players.map(p => ({ p, t }))).find(x => x.p.id === id);
+      const inPool = T.draft(S2, cat).pool.find(x => x.id === id);
+      const p0 = inTeam ? inTeam.p : inPool;
+      if (!p0) return;
+      const nn = prompt('Corregir el nombre:', p0.name);
+      if (nn === null) return;
+      let num = null;
+      if (inTeam) {
+        const ns = prompt('Número de camiseta:', p0.num);
+        if (ns === null) return;
+        num = parseInt(ns, 10);
+        if (isNaN(num) || num < 0) return UI.toast('Número no válido', 'bad');
+        if (inTeam.t.players.some(x => x.id !== id && x.num === num)) return UI.toast('Ese número ya lo tiene otro jugador del equipo', 'bad');
+      }
+      const name = nn.trim() || p0.name;
+      m(s => { const q = (s.teams.flatMap(t => t.players).find(x => x.id === id)) || T.draftW(s, cat).pool.find(x => x.id === id); if (!q) return; q.name = name; if (num !== null) q.num = num; });
+      UI.toast('Guardado'); break;
+    }
+    case 'lock':
+      if (confirm('¿Cerrar el sorteo de esta categoría? Ya no se podrá sortear ni reiniciar desde aquí. Los jugadores o coaches nuevos se registran a mano en Administración.')) { m(s => T.setDraftLock(s, cat, true)); UI.toast('Sorteo cerrado'); }
+      break;
+    case 'unlock':
+      if (confirm('¿Reabrir el sorteo de esta categoría? Se podrá volver a sortear.')) { m(s => T.setDraftLock(s, cat, false)); UI.toast('Sorteo reabierto'); }
+      break;
     case 'fromtoggle': fromOpen = !fromOpen; render(); break;
     case 'addfrom': e.preventDefault(); { const nm = b.dataset.name; m(s => { T.addParents(s, cat, [nm]); }); } break;
     case 'parsel': e.stopPropagation(); e.preventDefault(); if (parSel.has(id)) parSel.delete(id); else parSel.add(id); render(); break;
