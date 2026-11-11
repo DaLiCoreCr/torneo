@@ -406,6 +406,10 @@ app.addEventListener('change', e => {
   }
   if (el.dataset.pool) { T.mutate(s => { const p = T.draftW(s, cat).pool.find(x => x.id === el.dataset.pid); p[el.dataset.pool] = el.dataset.pool === 'captain' ? el.checked : el.value; }); return; }
   if (el.dataset.f) T.mutate(s => { s.teams.find(t => t.id === el.dataset.id)[el.dataset.f] = el.value; });
+  if (el.dataset.pf === 'num') {
+    const n = parseInt(el.value, 10) || 0, t0 = T.state().teams.find(t => t.id === el.dataset.id);
+    if (t0.players.some(p => p.id !== el.dataset.p && p.num === n)) { UI.toast('Ese número ya lo tiene otro jugador del equipo', 'bad'); render(); return; }
+  }
   if (el.dataset.pf) T.mutate(s => { const p = s.teams.find(t => t.id === el.dataset.id).players.find(x => x.id === el.dataset.p); p[el.dataset.pf] = el.dataset.pf === 'num' ? parseInt(el.value, 10) || 0 : el.dataset.pf === 'captain' ? el.checked : el.value; });
 });
 
