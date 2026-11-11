@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=54">
+<link rel="stylesheet" href="css/styles.css?v=55">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=54"></script>
-<script src="js/core.js?v=54"></script>
-<script src="js/seed.js?v=54"></script>
-<script src="js/ui.js?v=54"></script>
+<script src="js/firebase-config.js?v=55"></script>
+<script src="js/core.js?v=55"></script>
+<script src="js/seed.js?v=55"></script>
+<script src="js/ui.js?v=55"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -227,7 +227,7 @@ function dataView() {
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reinicio real</h3>
-      <p class="muted">Deja el torneo listo para el evento: nombre <b>Torneo interno Hoopz</b>, categorías <b>U12</b> (Mickey, Olaf, Woody, Nemo) y <b>Plus 12</b> (Rayo, Buzz, Mike, Simba, Stitch, Donald), con las listas de jugadores (17 en U12, 34 en Plus 12; los 7 que estaban en ambas listas quedan solo en U12) en la lista sin equipo para el sorteo, sin partidos ni estadísticas. Conserva las reglas actuales.</p>
+      <p class="muted">Deja el torneo listo para el evento: nombre <b>Torneo interno Hoopz</b>, categorías <b>U12</b> (Mickey, Olaf, Woody, Nemo) y <b>Plus 12</b> (Rayo, Buzz, Mike, Simba, Stitch, Donald), con las listas de jugadores (24 en U12 y 41 en Plus 12 más 3 refuerzos de U12), los capitanes ya marcados y las listas de coaches en la lista sin equipo para el sorteo, sin partidos ni estadísticas. Conserva las reglas actuales.</p>
       <div class="row"><button class="btn danger" data-act="realreset">Reinicio real</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reiniciar torneo</h3>
       <p class="muted"><b>Reiniciar resultados</b> conserva equipos, jugadores y calendario, pero borra marcadores, jugadas y estadísticas: todos los partidos vuelven a "Programado" con el reloj en cero y la tabla de posiciones queda en ceros. <b>Borrar todo</b> elimina además los equipos y los partidos.</p>
@@ -445,15 +445,26 @@ app.addEventListener('click', e => {
         const config = Object.assign({}, old, { name: 'Torneo interno Hoopz', categories: cats.map(c => ({ id: c.id, name: c.name })) });
         const teams = cats.flatMap(c => c.teams.map(([n, color]) => ({ id: T.uid('t'), cat: c.id, name: 'Team ' + n, coach: '', color, players: [] })));
         /* Listas de jugadores sin equipo (para el sorteo). El género se deduce del nombre; se deja vacío si es ambiguo (ajustable en la pestaña Jugadores). */
-        const FEM = new Set(['Sara', 'Valentina', 'Elizabeth', 'Luciana', 'Mariana', 'Naomy', 'Krisna', 'Liah', 'Maria', 'Lucia', 'Amanda', 'Celeste', 'Mia', 'Sareth']);
-        const MAS = new Set(['Ben', 'Mateo', 'Diego', 'Bastian', 'Connor', 'Luka', 'Santiago', 'Liang', 'Thiago', 'Gael', 'Jonathan', 'Dylan', 'James', 'Julian', 'Ismael', 'Mathias', 'Joao', 'Samir', 'Ian', 'Luis', 'Mauricio', 'Juan', 'Jhon', 'Itay', 'Hudson', 'Samuel', 'David', 'Derek', 'Sam', 'River']);
-        const gender = n => { const f = n.split(' ')[0]; return FEM.has(f) ? 'F' : MAS.has(f) ? 'M' : ''; };
+        const FEM = new Set(['Sara', 'Valentina', 'Elizabeth', 'Luciana', 'Mariana', 'Naomy', 'Krisna', 'Liah', 'Maria', 'Lucia', 'Amanda', 'Celeste', 'Mia', 'Sareth', 'Dana', 'Calissa', 'Victoria', 'Fernanda']);
+        const MAS = new Set(['Ben', 'Mateo', 'Diego', 'Bastian', 'Connor', 'Luka', 'Santiago', 'Liang', 'Thiago', 'Gael', 'Jonathan', 'Dylan', 'James', 'Julian', 'Ismael', 'Mathias', 'Joao', 'Samir', 'Ian', 'Luis', 'Mauricio', 'Juan', 'Jhon', 'Itay', 'Hudson', 'Samuel', 'David', 'Derek', 'Sam', 'River', 'Lucas', 'Noah', 'Leo', 'Hans', 'Benjamin', 'Ethan', 'Xavier', 'Emmanuel', 'Gabriel', 'Jeremy', 'Erick']);
+        const gender = n => { const f = n.split(' ')[0].normalize('NFD').replace(/\p{M}/gu, ''); return FEM.has(f) ? 'F' : MAS.has(f) ? 'M' : ''; };
         const LISTS = {
-          u12: ['Ben Kenigsvain', 'Sara Roldan', 'Mateo Fernandez', 'Valentina Arias', 'Diego Hernandez', 'Elizabeth Cordero', 'Bastian Soto', 'Luciana Chacon', 'Connor Pladl', 'Mariana Quesada', 'Luka Miranda', 'Santiago Marín', 'Liang Mora', 'Thiago Duran', 'Gael Rivera', 'Jonathan Zenan Ocean', 'Dylan Araya'],
-          plus12: ['Naomy Amen Obando', 'Sam O Neill Sweet', 'James Wilfong Valverde', 'Krisna Naranjo Chacon', 'Gael Morales Mora', 'Julian Fernandez Chacon', 'Liah Quesada Aguero', 'Ismael Fonseca Ugalde', 'Mathias Herrera Vargas', 'Joao Navas Cordero', 'Samir Fernandez Mora', 'Santiago Sibaja Salas', 'Ian Oguilve Aguero', 'Luis Correa Fernandez', 'Maria F Mora Elizondo', 'Dylan Quesada Rivera', 'Mauricio Castillo Arce', 'Lucia Amen Valverde', 'Juan D León Bonilla', 'Jhon Burgos Araya', 'Sareth Jimenez Mena', 'River Hermance Jimenez', 'Julian Fernandez Brenes', 'Amanda Segura Acuña', 'Ismael O Neill Sweet', 'Itay Kenigsvain', 'Celeste Gonzales Guisao', 'Hudson Oconnor', 'Luis Acuña Acuña', 'Mia Azcurra', 'Mathias Castillo Mena', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Derek Aguero Alfaro']
+          u12: ['Ben Kenigsvain', 'Sara Roldán', 'Mateo Fernández', 'Valentina Pérez', 'Diego Hernández', 'Elizabeth Cordero', 'Luciana Chacón', 'Connor Pladl', 'Mariana Quesada', 'Luka Miranda', 'Santiago Marín', 'Liang Mora', 'Thiago Duran', 'Gael Rivera', 'Jonathan Zenan Ocean', 'Dylan Araya', 'Dana Zúñiga Meléndez', 'Lucas Varela Charpentier', 'Calissa', 'Noah', 'Leo', 'Hans', 'Benjamin', 'Ethan'],
+          plus12: ['Naomy Amen Obando', 'Sam O Neill Sweet', 'James Wilfong Valverde', 'Krisna Naranjo Chacón', 'Gael Morales Mora', 'Julián Fernández Chacón', 'Liah Quesada Agüero', 'Ismael Fonseca Ugalde', 'Mathias Herrera Vargas', 'Joao Navas Cordero', 'Samir Fernández Mora', 'Santiago Sibaja Salas', 'Ian Oguilve Agüero', 'Luis Correa Fernández', 'María F Mora Elizondo', 'Dylan Quesada Rivera', 'Mauricio Castillo Arce', 'Lucía Amen Valverde', 'Jhon Burgos Araya', 'Sareth Jiménez Mena', 'River Hermance Jiménez', 'Julián Fernández Brenes', 'Amanda Segura Acuña', 'Ismael O Neill Sweet', 'Itay Kenigsvain', 'Celeste Gonzales Guisao', 'Hudson Oconnor', 'Luis Acuña Acuña', 'Mia Azcurra', 'Mathias Castillo Mena', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Mathias Torres Fonseca', 'Xavier Robles', 'Emmanuel Vargas', 'Gabriel Hernández', 'Jeremy Martínez', 'Victoria Fallas', 'Fernanda Mata', 'Santiago Picado Ureña', 'Erick Acosta']
+        };
+        const CAPS = new Set(['Ben Kenigsvain', 'Sara Roldán', 'Valentina Pérez', 'Connor Pladl', 'Mathias Castillo Mena', 'Hudson Oconnor', 'Gabriel Hernández', 'David Padilla Fallas', 'Lucía Amen Valverde', 'Celeste Gonzales Guisao', 'Amanda Segura Acuña', 'Krisna Naranjo Chacón', 'Luis Correa Fernández', 'Itay Kenigsvain', 'Jhon Burgos Araya', 'Samuel Madrigal Solano']);
+        /* Refuerzos: jugadores de U12 que también pueden jugar en Plus 12 (copia en su lista, marcada como refuerzo) */
+        const REINF = { plus12: ['Ben Kenigsvain', 'Sara Roldán', 'Valentina Pérez'] };
+        /* Coaches por categoría, para sortear en el Paso 3. U12: jugadores de Plus 12 (en 4 grupos: Lucía/Luis Correa/Dylan · Jhon/Samuel/David Padilla/Luis Acuña · Amanda/Sareth/Naomy/James · Mia/Celeste/Julián/Itay). Plus 12: 6 adultos. */
+        const COACHES = {
+          u12: ['Lucía Amen Valverde', 'Luis Correa Fernández', 'Dylan Quesada Rivera', 'Jhon Burgos Araya', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Luis Acuña Acuña', 'Amanda Segura Acuña', 'Sareth Jiménez Mena', 'Naomy Amen Obando', 'James Wilfong Valverde', 'Mia Azcurra', 'Celeste Gonzales Guisao', 'Julián Fernández Brenes', 'Itay Kenigsvain'],
+          plus12: ['Daniel Hernández', 'David Zúñiga', 'Carlos Fernández Muñoz', 'Kleiber', 'Verónica Serrano', 'Fernando Quesada']
         };
         const draft = {};
-        Object.keys(LISTS).forEach(k => { draft[k] = { pool: LISTS[k].map(n => ({ id: T.uid('p'), name: n, gender: gender(n), captain: false })), last: null, group: null, done: [] }; });
+        Object.keys(LISTS).forEach(k => {
+          const mk = (n, re) => Object.assign({ id: T.uid('p'), name: n, gender: gender(n), captain: !re && CAPS.has(n) }, re ? { reinforce: true } : {});
+          draft[k] = { pool: LISTS[k].map(n => mk(n)).concat((REINF[k] || []).map(n => mk(n, true))), parents: COACHES[k].map(n => ({ id: T.uid('c'), name: n })), last: null, group: null, done: [] };
+        });
         T.replaceAll({ v: 1, config, teams, games: [], draft });
         cat = cats[0].id; render(); UI.toast('Reinicio real aplicado: 10 equipos y listas de jugadores cargados');
       }

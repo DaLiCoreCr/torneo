@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=54">
+<link rel="stylesheet" href="css/styles.css?v=55">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=54"></script>
-<script src="js/core.js?v=54"></script>
-<script src="js/seed.js?v=54"></script>
-<script src="js/ui.js?v=54"></script>
+<script src="js/firebase-config.js?v=55"></script>
+<script src="js/core.js?v=55"></script>
+<script src="js/seed.js?v=55"></script>
+<script src="js/ui.js?v=55"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -69,7 +69,7 @@ function render() {
   const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).slice(0, 2).join(' ');
   const seenIn = {}, dupes = new Set();
   S.config.categories.forEach(c => {
-    const names = T.draft(S, c.id).pool.map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.map(p => p.name)));
+    const names = T.draft(S, c.id).pool.filter(p => !p.reinforce).map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.map(p => p.name)));
     new Set(names.map(keyOf)).forEach(k => { if (seenIn[k] && seenIn[k] !== c.id) dupes.add(k); seenIn[k] = seenIn[k] || c.id; });
   });
   const dupWarn = dupes.size ? `<div class="card" style="margin-bottom:16px;border-color:var(--live)"><b style="color:var(--live)">⚠ Posibles jugadores repetidos entre categorías:</b> ${[...dupes].map(esc).join(', ')}. Revisa que cada jugador esté en una sola categoría (Administración → Jugadores y sorteo).</div>` : '';
@@ -89,6 +89,13 @@ function render() {
       <div><label class="lbl">Equipo a formar</label><select class="inp" id="draw-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === dTeam ? 'selected' : ''}>${esc(t.name)}${done.includes(t.id) ? ' ✓' : ''}</option>`).join('')}</select></div>
       <button class="btn gold" data-act="drawteam" ${eligible.length && !caps.length ? '' : 'disabled'}>Sortear equipo</button></div>
     <p class="note">${caps.length ? '<b>Primero termina el sorteo de capitanes</b> (paso 1). ' : ''}Participan <b>${eligible.length}</b> jugadores. El sistema reparte parejo la cantidad total y el género entre los equipos que faltan, contando a los capitanes. ✓ = equipo ya sorteado.</p></div>`;
+
+  const nextWho = caps.length ? 'capitán' : 'jugador';
+  const nextOk = caps.length ? noCap.length > 0 : d.pool.length > 0;
+  const stepPanel = `<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><h3 class="gold" style="font-size:24px">🎯 Sorteo jugador por jugador</h3>
+    <p class="note" style="margin-top:6px">Cada clic sortea <b>un solo ${nextWho}</b> y a qué equipo va, con el efecto en la presentación. Salen primero los <b>capitanes marcados</b> (de a uno por equipo) y luego los demás jugadores, repartidos parejo en cantidad y género. Puedes combinarlo con los otros sorteos o deshacer el último.</p>
+    <div class="row"><button class="btn gold" data-act="drawnext" ${nextOk ? '' : 'disabled'}>🎲 Sortear siguiente ${nextWho}</button>
+      <span class="muted" style="font-size:14px">Capitanes por sortear: <b>${caps.length}</b> · Jugadores por sortear: <b>${eligible.length}</b></span></div></div>`;
 
   const others = S.config.categories.filter(c => c.id !== cat);
   const taken = new Set(parents.map(p => p.name.toLowerCase()).concat(teams.flatMap(t => T.coachList(t).map(c => c.toLowerCase()))));
@@ -116,7 +123,7 @@ function render() {
     <div class="pills">${S.config.categories.map(c => `<button class="pill ${c.id === cat ? 'on' : ''}" data-act="cat" data-id="${esc(c.id)}">${esc(c.name)}</button>`).join('')}</div>
     <p class="note">Orden: <b>1)</b> marca con la <b>C</b> a los capitanes, <b>2)</b> sortea los capitanes, <b>3)</b> sortea los jugadores. Para corregir a mano, toca un jugador y luego el equipo (o arrástralo). La presentación se actualiza sola.</p>
     ${!teams.length ? `<div class="empty">No hay equipos en esta categoría. Créalos en <a class="gold" href="admin.html">Administración</a> (nombre y logo) y vuelve aquí.</div>` : `
-    ${locked ? `<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><h3 class="gold" style="font-size:24px">🔒 Sorteo de ${esc(UI.catName(S, cat))} cerrado</h3><p class="note" style="margin-top:6px">Ya no se puede sortear. Los jugadores o coaches que lleguen después se registran <b>a mano</b> en <a class="gold" href="admin.html">Administración → Equipos</a> (agregar jugador o coach al equipo). Si necesitas volver a sortear, usa <b>Reabrir sorteo</b>.</p></div>` : `${complete ? '<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><b class="gold">✅ Todos los jugadores ya tienen equipo.</b> Cuando termines los coaches, pulsa <b>Cerrar sorteo</b> para que nadie pueda volver a sortear por error.</div>' : ''}${dupWarn}${capPanel}${drawPanel}${parPanel}`}
+    ${locked ? `<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><h3 class="gold" style="font-size:24px">🔒 Sorteo de ${esc(UI.catName(S, cat))} cerrado</h3><p class="note" style="margin-top:6px">Ya no se puede sortear. Los jugadores o coaches que lleguen después se registran <b>a mano</b> en <a class="gold" href="admin.html">Administración → Equipos</a> (agregar jugador o coach al equipo). Si necesitas volver a sortear, usa <b>Reabrir sorteo</b>.</p></div>` : `${complete ? '<div class="card" style="margin-bottom:16px;border-color:var(--gold)"><b class="gold">✅ Todos los jugadores ya tienen equipo.</b> Cuando termines los coaches, pulsa <b>Cerrar sorteo</b> para que nadie pueda volver a sortear por error.</div>' : ''}${dupWarn}${stepPanel}${capPanel}${drawPanel}${parPanel}`}
     <div class="draft">
       ${locked ? '' : `<div class="card">
         <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3></div>
@@ -236,6 +243,11 @@ app.addEventListener('click', e => {
       drawTeam = null;
       UI.toast(got ? `Equipo formado con ${got} jugadores` : 'No hay jugadores disponibles para sortear', got ? '' : 'bad');
       render(); break;
+    }
+    case 'drawnext': {
+      let r; m(s => { r = T.draftNext(s, cat); });
+      if (r !== 'ok') UI.toast({ nocapslot: 'Todos los equipos ya tienen sus capitanes: desmarca la C de los sobrantes', empty: 'No quedan jugadores', noteam: 'No hay equipos en esta categoría', fail: 'No se pudo sortear' }[r] || 'No se pudo sortear', 'bad');
+      break;
     }
     case 'undo': m(s => T.draftUndo(s, cat)); break;
   }

@@ -507,6 +507,35 @@
     d.last = null;
     return picked.length;
   }
+  /* Sorteo jugador por jugador: sale UN jugador al azar y se sortea su equipo. Primero los capitanes marcados (cada uno a un equipo
+     que aún necesite capitanes, repartiendo parejo), luego el resto (al equipo con menos jugadores; a igualdad, con menos de su mismo género). */
+  function draftNext(S, cat) {
+    if (draftLocked(S, cat)) return 'locked';
+    const d = draftW(S, cat);
+    const teams = S.teams.filter(x => x.cat === cat);
+    if (!teams.length) return 'noteam';
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    const caps = d.pool.filter(p => p.captain);
+    let p, cands;
+    if (caps.length) {
+      const need = teams.filter(t => capCount(t) < capsPer(S));
+      if (!need.length) return 'nocapslot';
+      p = pick(caps);
+      const m = Math.min(...need.map(capCount));
+      cands = need.filter(t => capCount(t) === m);
+    } else {
+      if (!d.pool.length) return 'empty';
+      p = pick(d.pool);
+      const m = Math.min(...teams.map(t => t.players.length));
+      cands = teams.filter(t => t.players.length === m);
+      const g = x => x.players.filter(y => (y.gender === 'F') === (p.gender === 'F')).length;
+      const mg = Math.min(...cands.map(g));
+      cands = cands.filter(t => g(t) === mg);
+    }
+    const t = pick(cands);
+    d.group = null;
+    return draftAssign(S, cat, p.id, t.id) ? 'ok' : 'fail';
+  }
   /* Deshace lo más reciente: el equipo sorteado completo o la última asignación suelta */
   function draftUndo(S, cat) {
     if (draftLocked(S, cat)) return false;
@@ -534,7 +563,7 @@
   w.T = {
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
-    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftLocked, setDraftLock, draftCaptainGroup, draftParentGroup, addParents, draftReset, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftLocked, setDraftLock, draftCaptainGroup, draftParentGroup, addParents, draftReset, draftNext, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
