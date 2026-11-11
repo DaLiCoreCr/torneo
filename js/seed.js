@@ -163,7 +163,7 @@
       const REINF = { plus12: ['Ben Kenigsvain', 'Sara Roldán', 'Valentina Pérez'] };
       /* Coaches por categoría, para sortear en el Paso 3. U12: jugadores de Plus 12 (en 4 grupos: Lucía/Luis Correa/Dylan · Jhon/Samuel/David Padilla/Luis Acuña · Amanda/Sareth/Naomy/James · Mia/Celeste/Julián/Itay). Plus 12: 6 adultos. */
       const COACHES = {
-        u12: ['Lucía Amen Valverde', 'Luis Correa Fernández', 'Dylan Quesada Rivera', 'Jhon Burgos Araya', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Luis Acuña Acuña', 'Amanda Segura Acuña', 'Sareth Jiménez Mena', 'Naomy Amen Obando', 'James Wilfong Valverde', 'Mia Azcurra', 'Celeste Gonzales Guisao', 'Julián Fernández Brenes', 'Itay Kenigsvain'],
+        u12: ['Lucía Amen Valverde', 'Luis Correa Fernández', 'Dylan Quesada Rivera', 'Jhon Burgos Araya', 'Samuel Madrigal Solano', 'David Padilla Fallas', 'Luis Acuña Acuña', 'Amanda Segura Acuña', 'Sareth Jiménez Mena', 'Naomy Amen Obando', 'James Wilfong Valverde', 'Mia Azcurra', 'Celeste Gonzales Guisao', 'Julián Fernández Brenes', 'Itay Kenigsvain', 'Liah Quesada Agüero'],
         plus12: ['Daniel Hernández', 'David Zúñiga', 'Carlos Fernández Muñoz', 'Kleiber', 'Verónica Serrano', 'Fernando Quesada']
       };
       const draft = {};
