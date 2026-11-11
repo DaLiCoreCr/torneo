@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=31">
+<link rel="stylesheet" href="css/styles.css?v=33">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=31"></script>
-<script src="js/core.js?v=31"></script>
-<script src="js/seed.js?v=31"></script>
-<script src="js/ui.js?v=31"></script>
+<script src="js/firebase-config.js?v=33"></script>
+<script src="js/core.js?v=33"></script>
+<script src="js/seed.js?v=33"></script>
+<script src="js/ui.js?v=33"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -179,14 +179,14 @@ function drawView(S) {
       <div class="frm">${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dl-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dl-gap'))}${field('Modo de captura', modes('dl-m'))}
       <button class="btn gold" data-act="drawleague">${lg.length ? 'Volver a sortear' : 'Sortear partidos'}</button></div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">2. Llaves</h3>
-    <div class="card"><p class="muted">Se arman con los mejores de la tabla de posiciones (los partidos de llaves no cuentan en la tabla). Con 4 clasificados: semifinales 1.º vs 4.º y 2.º vs 3.º. Al terminar las semifinales usa <b>Generar final</b>.</p>
+    <div class="card"><p class="muted">No se sortean: se arman por puntos con los mejores de la tabla de posiciones (los partidos de llaves no cuentan en la tabla). Con 4 clasificados: semifinales 1.º vs 4.º y 2.º vs 3.º. Al terminar las semifinales usa <b>Generar final</b>.</p>
       <div class="frm">${field('Clasifican', '<select class="inp" id="dp-n"><option value="4">Los 4 mejores (semifinales y final)</option><option value="2">Los 2 mejores (solo final)</option></select>')}
       ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="0">No</option><option value="1">Sí</option></select>')}
       ${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dp-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dp-gap'))}${field('Modo de captura', modes('dp-m'))}
-      <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Sortear llaves'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
+      <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Armar llaves con la tabla'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Así quedan las llaves</h3>
     ${UI.bracketView(S, cat)}
-    <p class="note"><a href="llaves.html" style="color:var(--gold)">Ver la pantalla pública de llaves →</a> · Puedes cambiar la fecha o eliminar partidos en la pestaña Partidos.</p>`;
+    <p class="note"><a href="llaves.html" style="color:var(--gold)">Ver la pantalla pública de llaves →</a> · <a href="presentacion-llaves.html?cat=${esc(cat)}" target="_blank" style="color:var(--gold)">Presentación de llaves con suspenso ↗</a> · Puedes cambiar la fecha o eliminar partidos en la pestaña Partidos.</p>`;
 }
 
 function rulesView(S) {
@@ -224,7 +224,7 @@ function dataView() {
 
 /* Monitoreo: dispositivos conectados ahora y lecturas/escrituras del día (suma de lo que reporta cada dispositivo) */
 const ONLINE_MS = 300000, QUOTA = { reads: 50000, writes: 20000 };
-const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación' };
+const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación', 'presentacion-llaves': 'Presentación de llaves' };
 let unUsage = null, lastUsage = null;
 function monitorView() {
   if (!T.cloud || !T.watchUsage) return '<div class="card"><p class="muted">El monitoreo solo funciona con los datos en la nube (no en modo local).</p></div>';
@@ -370,7 +370,7 @@ app.addEventListener('click', e => {
       if ((!lg.length || left) && !confirm(!lg.length ? 'No hay fase regular: las llaves saldrían de una tabla en ceros. ¿Continuar?' : `Faltan ${left} partidos de la fase regular. ¿Armar las llaves con la tabla actual?`)) return;
       if (prev.length && !confirm('Ya hay llaves programadas. ¿Reemplazarlas?')) return;
       mt(s => { T.drawPlayoffs(s, cat, { start: d, gapMin: Math.max(0, +val('dp-gap') || 0), mode: +val('dp-m'), n, third: val('dp-third') === '1' }); });
-      UI.toast('Llaves sorteadas'); break;
+      UI.toast('Llaves armadas con la tabla de posiciones'); break;
     }
     case 'advance': {
       const d = val('dp-d');

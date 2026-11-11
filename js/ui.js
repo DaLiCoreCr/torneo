@@ -53,7 +53,7 @@
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
          <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
-         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="admin.html">Administración</a></span>
+         <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="presentacion-llaves.html">Presentación de llaves</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');
     renderTicker();

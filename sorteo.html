@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=31">
+<link rel="stylesheet" href="css/styles.css?v=33">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=31"></script>
-<script src="js/core.js?v=31"></script>
-<script src="js/seed.js?v=31"></script>
-<script src="js/ui.js?v=31"></script>
+<script src="js/firebase-config.js?v=33"></script>
+<script src="js/core.js?v=33"></script>
+<script src="js/seed.js?v=33"></script>
+<script src="js/ui.js?v=33"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -30,7 +30,8 @@ const app = document.getElementById('app');
 let cat = UI.getCat(false), sel = null, query = '';
 let capTeam = null, drawTeam = null;
 const capSel = new Set(), parSel = new Set();
-let capCoach = true;
+let capCoach = false;
+let fromOpen = false, fromQ = '';
 
 function start() { render(); T.subscribe(render); }
 
@@ -43,6 +44,7 @@ function render() {
   const placed = teams.reduce((n, t) => n + t.players.length, 0);
   if (sel && !d.pool.some(p => p.id === sel)) sel = null;
   const active = document.activeElement && document.activeElement.id === 'q';
+  const activeFrom = document.activeElement && document.activeElement.id === 'from-q';
 
   const done = teams.filter(t => T.isTeamDone(d, t)).map(t => t.id);
   const caps = d.pool.filter(p => p.captain);
@@ -86,12 +88,20 @@ function render() {
       <button class="btn gold" data-act="drawteam" ${eligible.length && !caps.length ? '' : 'disabled'}>Sortear equipo</button></div>
     <p class="note">${caps.length ? '<b>Primero termina el sorteo de capitanes</b> (paso 1). ' : ''}Participan <b>${eligible.length}</b> jugadores. El sistema reparte parejo la cantidad total y el género entre los equipos que faltan, contando a los capitanes. ✓ = equipo ya sorteado.</p></div>`;
 
-  const parPanel = `<div class="card" style="margin-bottom:16px"><h3 class="gold" style="font-size:24px">${parents.length ? '🎲' : '➕'} Paso 3 · Padres como coaches (opcional)</h3>
-    <textarea class="inp" id="par-text" rows="3" placeholder="Pega la lista de padres: uno por línea" style="margin-top:10px"></textarea>
+  const others = S.config.categories.filter(c => c.id !== cat);
+  const taken = new Set(parents.map(p => p.name.toLowerCase()).concat(teams.flatMap(t => T.coachList(t).map(c => c.toLowerCase()))));
+  const fromNames = [...new Set(others.flatMap(c => T.draft(S, c.id).pool.map(p => p.name).concat(S.teams.filter(t => t.cat === c.id).flatMap(t => t.players.map(p => p.name)))))]
+    .filter(n => !taken.has(n.toLowerCase()) && (!fromQ.trim() || n.toLowerCase().includes(fromQ.trim().toLowerCase()))).sort((x, y) => x.localeCompare(y));
+  const fromLabel = others.map(c => c.name).join(' / ');
+  const parPanel = `<div class="card" style="margin-bottom:16px"><h3 class="gold" style="font-size:24px">${parents.length ? '🎲' : '➕'} Paso 3 · Coaches de ${esc(UI.catName(S, cat))} (opcional)</h3>
+    <p class="note" style="margin-top:6px">Los coaches pueden ser <b>jugadores mayores</b> (de ${esc(fromLabel || 'otra categoría')}) o <b>padres</b>. Arma grupos de los que van juntos y sortea a qué equipo de <b>${esc(UI.catName(S, cat))}</b> le toca el grupo.</p>
+    <div class="row" style="margin:8px 0">${others.length ? `<button class="btn" data-act="fromtoggle">${fromOpen ? 'Cerrar lista' : 'Elegir de los jugadores de ' + esc(fromLabel)}</button>` : ''}</div>
+    ${fromOpen ? `<div class="card" style="margin-bottom:10px"><input class="inp" id="from-q" placeholder="Buscar jugador…" value="${esc(fromQ)}"><div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;max-height:240px;overflow:auto">${fromNames.map(n => `<a href="#" class="chip soft" data-act="addfrom" data-name="${esc(n)}" style="font-size:13px;padding:5px 9px;color:inherit">+ ${esc(n)}</a>`).join('') || '<span class="muted" style="font-size:13px">Sin resultados.</span>'}</div></div>` : ''}
+    <textarea class="inp" id="par-text" rows="2" placeholder="O pega nombres (padres u otros): uno por línea" style="margin-top:6px"></textarea>
     <div class="row" style="margin:8px 0"><button class="btn" data-act="addparents">Agregar a la lista</button></div>
     ${parents.length ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0"><span class="muted" style="font-size:13px;align-self:center">Toca el nombre para elegirlo (✕ lo quita de la lista):</span>${parents.map(p => `<span class="chip ${parSel.has(p.id) ? '' : 'soft'}" style="display:inline-flex;gap:8px;align-items:center;font-size:13px;padding:5px 9px;${parSel.has(p.id) ? 'background:var(--gold);color:#000' : ''}"><a href="#" data-act="parsel" data-id="${esc(p.id)}" style="color:inherit">${esc(p.name)}</a> <a href="#" data-act="delparent" data-id="${esc(p.id)}" style="color:inherit" title="Quitar">✕</a></span>`).join('')}</div>
     <div class="row"><button class="btn gold" data-act="drawparents" ${parSel.size ? '' : 'disabled'}>Sortear equipo para los ${parSel.size} elegidos</button></div>
-    <p class="note">Los elegidos quedan como <b>coaches</b> del equipo sorteado. Equipos que aún no reciben padres: <b>${parFree}</b>. Si ya todos recibieron un grupo, el siguiente puede ir a cualquiera.</p>` : '<p class="note">Cuando tengas la lista de padres, pégala aquí. Arma grupos (por ejemplo, los 2 padres de un mismo jugador) y sortea el equipo de cada grupo.</p>'}</div>`;
+    <p class="note">Los elegidos quedan como <b>coaches</b> del equipo sorteado (los jugadores mayores siguen jugando en su categoría). Equipos que aún no reciben coaches: <b>${parFree}</b>. Si ya todos recibieron un grupo, el siguiente puede ir a cualquiera.</p>` : ''}</div>`;
 
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
@@ -121,11 +131,12 @@ function render() {
         </div>`).join('')}</div>
     </div>`}`;
   if (active) { const i = document.getElementById('q'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  if (activeFrom) { const i = document.getElementById('from-q'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
 }
 
 const m = fn => T.mutate(s => fn(s));
 
-app.addEventListener('input', e => { if (e.target.id === 'q') { query = e.target.value; render(); } });
+app.addEventListener('input', e => { if (e.target.id === 'q') { query = e.target.value; render(); } else if (e.target.id === 'from-q') { fromQ = e.target.value; render(); } });
 
 app.addEventListener('click', e => {
   const b = e.target.closest('[data-act]');
@@ -144,6 +155,8 @@ app.addEventListener('click', e => {
       if (!sel) return UI.toast('Primero toca un jugador de la lista', 'bad');
       { const pid = sel; sel = null; let ok = true; m(s => { ok = T.draftAssign(s, cat, pid, b.dataset.team); }); if (!ok) UI.toast('No se pudo mover (un capitán no cambia de equipo: devuélvelo con ✕)', 'bad'); } break;
     case 'capsel': e.stopPropagation(); e.preventDefault(); if (capSel.has(id)) capSel.delete(id); else capSel.add(id); render(); break;
+    case 'fromtoggle': fromOpen = !fromOpen; render(); break;
+    case 'addfrom': e.preventDefault(); { const nm = b.dataset.name; m(s => { T.addParents(s, cat, [nm]); }); } break;
     case 'parsel': e.stopPropagation(); e.preventDefault(); if (parSel.has(id)) parSel.delete(id); else parSel.add(id); render(); break;
     case 'delparent': e.stopPropagation(); e.preventDefault(); m(s => { const dd = T.draftW(s, cat); dd.parents = (dd.parents || []).filter(p => p.id !== id); }); break;
     case 'addparents': {
