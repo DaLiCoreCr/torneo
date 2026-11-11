@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=25">
+<link rel="stylesheet" href="css/styles.css?v=26">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=25"></script>
-<script src="js/core.js?v=25"></script>
-<script src="js/seed.js?v=25"></script>
-<script src="js/ui.js?v=25"></script>
+<script src="js/firebase-config.js?v=26"></script>
+<script src="js/core.js?v=26"></script>
+<script src="js/seed.js?v=26"></script>
+<script src="js/ui.js?v=26"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -44,7 +44,7 @@ function render() {
 
   const done = d.done || [];
   const caps = d.pool.filter(p => p.captain);
-  const noCap = teams.filter(t => !T.hasCaptain(t));
+  const per = T.capsPer(S), noCap = teams.filter(t => T.capCount(t) < per), needCaps = noCap.reduce((n, t) => n + per - T.capCount(t), 0);
   const eligible = d.pool.filter(p => !p.captain);
   const left = teams.filter(t => !done.includes(t.id));
   if (!noCap.some(t => t.id === capTeam)) capTeam = null;
@@ -52,9 +52,9 @@ function render() {
   const cTeam = capTeam || (noCap[0] || {}).id;
   const dTeam = drawTeam || (left[0] || teams[0] || {}).id;
   const step1Done = !caps.length && !noCap.length;
-  const capWarn = caps.length && caps.length !== noCap.length
-    ? `<p class="note" style="color:var(--live)">Hay <b>${caps.length}</b> capitanes marcados y <b>${noCap.length}</b> equipos sin capitán. Debe haber uno por equipo: marca o desmarca la <b>C</b> en la lista.</p>` : '';
-  const stat = t => { const f = t.players.filter(p => p.gender === 'F').length; return `${t.players.length} · ♀${f} ♂${t.players.length - f}`; };
+  const capWarn = caps.length && caps.length !== needCaps
+    ? `<p class="note" style="color:var(--live)">Hay <b>${caps.length}</b> capitanes marcados y se necesitan <b>${needCaps}</b> (${per} por equipo). Marca o desmarca la <b>C</b> en la lista.</p>` : '';
+  const stat = t => t.players.length;
   const keyOf = n => n.toLowerCase().normalize('NFD').replace(/\p{M}/gu, '').split(/\s+/).slice(0, 2).join(' ');
   const seenIn = {}, dupes = new Set();
   S.config.categories.forEach(c => {
@@ -66,14 +66,14 @@ function render() {
 
   const capPanel = `<div class="card" style="margin-bottom:16px">${stepHead(1, 'Sorteo de capitanes', step1Done)}
     <div class="frm" style="margin-top:10px">
-      <div><label class="lbl">Equipo que recibe capitán</label><select class="inp" id="cap-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === cTeam ? 'selected' : ''}>${esc(t.name)}${T.hasCaptain(t) ? ' ✓' : ''}</option>`).join('')}</select></div>
-      <button class="btn gold" data-act="drawcap" ${caps.length && noCap.length ? '' : 'disabled'}>Sortear capitán</button></div>
-    ${capWarn}<p class="note">Capitanes marcados sin equipo: <b>${caps.length}</b> · Equipos sin capitán: <b>${noCap.length}</b>. Cada capitán queda en un solo equipo y cada equipo recibe uno. ✓ = ya tiene capitán.</p></div>`;
+      <div><label class="lbl">Equipo que recibe sus capitanes</label><select class="inp" id="cap-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === cTeam ? 'selected' : ''}>${esc(t.name)}${T.capCount(t) >= per ? ' ✓' : ''}</option>`).join('')}</select></div>
+      <button class="btn gold" data-act="drawcap" ${caps.length && noCap.length ? '' : 'disabled'}>Sortear capitanes</button></div>
+    ${capWarn}<p class="note">Capitanes marcados sin equipo: <b>${caps.length}</b> · Se necesitan: <b>${needCaps}</b> (${per} por equipo, se cambia en Administración → Reglas). Cada capitán queda en un solo equipo. ✓ = equipo completo.</p></div>`;
   const drawPanel = `<div class="card" style="margin-bottom:16px">${stepHead(2, 'Sorteo de jugadores', !eligible.length && !caps.length && placed > 0)}
     <div class="frm" style="margin-top:10px">
       <div><label class="lbl">Equipo a formar</label><select class="inp" id="draw-team">${teams.map(t => `<option value="${esc(t.id)}" ${t.id === dTeam ? 'selected' : ''}>${esc(t.name)}${done.includes(t.id) ? ' ✓' : ''}</option>`).join('')}</select></div>
       <button class="btn gold" data-act="drawteam" ${eligible.length && !caps.length ? '' : 'disabled'}>Sortear equipo</button></div>
-    <p class="note">${caps.length ? '<b>Primero termina el sorteo de capitanes</b> (paso 1). ' : ''}Participan <b>${eligible.length}</b> jugadores. El sistema reparte parejo la cantidad total y la de niñas entre los equipos que faltan, contando a los capitanes. ✓ = equipo ya sorteado.</p></div>`;
+    <p class="note">${caps.length ? '<b>Primero termina el sorteo de capitanes</b> (paso 1). ' : ''}Participan <b>${eligible.length}</b> jugadores. El sistema reparte parejo la cantidad total y el género entre los equipos que faltan, contando a los capitanes. ✓ = equipo ya sorteado.</p></div>`;
 
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;align-items:flex-end;gap:12px">
@@ -89,7 +89,7 @@ function render() {
         <div class="row" style="justify-content:space-between"><h3 class="gold" style="font-size:24px">Sin equipo (${d.pool.length})</h3></div>
         <input class="inp" id="q" placeholder="Buscar jugador…" value="${esc(query)}" style="margin-top:10px">
         <div class="dp-list">${pool.map(p => `<div class="dp ${sel === p.id ? 'on' : ''}" draggable="true" data-act="sel" data-id="${esc(p.id)}">
-            <span class="nm">${esc(p.name)}</span><small>${p.gender === 'F' ? 'Niña' : p.gender === 'M' ? 'Niño' : ''}</small>
+            <span class="nm">${esc(p.name)}</span>
             <button class="cbtn ${p.captain ? 'on' : ''}" data-act="cap" data-id="${esc(p.id)}" title="Capitán">C</button></div>`).join('')
           || `<div class="empty">${d.pool.length ? 'Sin resultados.' : (placed ? '¡Todos los jugadores ya tienen equipo!' : 'No hay jugadores. Cárgalos en Administración → Jugadores y sorteo.')}</div>`}</div>
       </div>
@@ -128,7 +128,7 @@ app.addEventListener('click', e => {
       let r;
       m(s => { r = T.draftCaptain(s, cat, tid); });
       capTeam = null;
-      if (r !== 'ok') UI.toast({ has: 'Ese equipo ya tiene capitán', none: 'No hay capitanes marcados sin equipo', noteam: 'Equipo no válido' }[r], 'bad');
+      if (r === 'short') UI.toast('Había menos capitanes marcados de los necesarios: faltan por asignar', 'bad'); else if (r !== 'ok') UI.toast({ has: 'Ese equipo ya tiene todos sus capitanes', none: 'No hay capitanes marcados sin equipo', noteam: 'Equipo no válido' }[r], 'bad');
       render(); break;
     }
     case 'drawteam': {

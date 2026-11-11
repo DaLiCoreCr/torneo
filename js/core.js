@@ -372,25 +372,39 @@
     d.pool.push(p); d.last = null;
     return true;
   }
+  const capCount = t => t.players.filter(p => p.captain).length;
+  const capsPer = S => Math.max(1, S.config.captainsPerTeam || 2);
   const hasCaptain = t => t.players.some(p => p.captain);
-  /* Fase 1: sortea un capitán (entre los marcados con C y sin equipo) para un equipo que aún no tiene. Un capitán nunca queda en dos equipos. */
+  /* Fase 1: sortea los capitanes de un equipo (por defecto 2) entre los marcados con C y sin equipo. Un capitán nunca queda en dos equipos. */
   function draftCaptain(S, cat, teamId) {
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
     const d = draftW(S, cat);
     if (!t) return 'noteam';
-    if (hasCaptain(t)) return 'has';
+    const need = capsPer(S) - capCount(t);
+    if (need <= 0) return 'has';
     const caps = d.pool.filter(p => p.captain);
     if (!caps.length) return 'none';
-    const p = caps[Math.floor(Math.random() * caps.length)];
-    d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
-    p.num = freeNum(t, p.num);
-    t.players.push(p);
-    d.last = { pid: p.id, name: p.name, teamId, cap: true, ts: Date.now() };
-    d.group = null;
-    return 'ok';
+    const shuf = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+    /* Equilibrio también entre capitanes: el género de los capitanes se reparte parejo entre los equipos que aún faltan */
+    const isF = p => p.gender === 'F';
+    const F = shuf(caps.filter(isF)), R = shuf(caps.filter(p => !isF(p)));
+    const slots = S.teams.filter(x => x.cat === cat).reduce((n, x) => n + Math.max(0, capsPer(S) - capCount(x)), 0);
+    const exp = F.length * need / Math.max(need, slots);
+    const want = Math.floor(exp) + (Math.random() < exp - Math.floor(exp) ? 1 : 0);
+    const nTake = Math.min(need, caps.length);
+    const fN = Math.max(Math.max(0, nTake - R.length), Math.min(Math.min(nTake, F.length), want));
+    const picked = F.slice(0, fN).concat(R.slice(0, nTake - fN));
+    picked.forEach(p => {
+      d.pool.splice(d.pool.findIndex(x => x.id === p.id), 1);
+      p.num = freeNum(t, p.num);
+      t.players.push(p);
+    });
+    d.group = { teamId, kind: 'cap', pids: picked.map(p => p.id), roster: t.players.map(p => ({ id: p.id, name: p.name, cap: !!p.captain })), ts: Date.now() };
+    d.last = null;
+    return picked.length < need ? 'short' : 'ok';
   }
   /* Fase 2: sortea el equipo completo con los jugadores sin equipo (los capitanes no entran). Equilibrio automático:
-     entre los equipos que faltan por sortear, cada uno recibe piso o techo del promedio, tanto en cantidad total como en niñas
+     entre los equipos que faltan por sortear, cada uno recibe piso o techo del promedio, tanto en cantidad total como en género
      (se cuentan los jugadores que el equipo ya tiene, p. ej. su capitán). Se recalcula con lo que queda en cada sorteo. */
   function draftGroup(S, cat, teamId) {
     const t = S.teams.find(x => x.id === teamId && x.cat === cat);
@@ -427,7 +441,7 @@
     if (g && (!l || g.ts >= l.ts)) {
       const team = S.teams.find(x => x.id === g.teamId);
       g.pids.forEach(pid => { if (team && team.players.some(y => y.id === pid)) draftReturn(S, cat, pid); });
-      d.done = (d.done || []).filter(x => x !== g.teamId);
+      if (g.kind !== 'cap') d.done = (d.done || []).filter(x => x !== g.teamId);
       d.group = null; d.last = null;
       return true;
     }
@@ -442,7 +456,7 @@
   w.T = {
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
-    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, hasCaptain, draftUndo,
+    draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, hasCaptain, capCount, capsPer, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,

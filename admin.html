@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=25">
+<link rel="stylesheet" href="css/styles.css?v=26">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=25"></script>
-<script src="js/core.js?v=25"></script>
-<script src="js/seed.js?v=25"></script>
-<script src="js/ui.js?v=25"></script>
+<script src="js/firebase-config.js?v=26"></script>
+<script src="js/core.js?v=26"></script>
+<script src="js/seed.js?v=26"></script>
+<script src="js/ui.js?v=26"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -67,12 +67,12 @@ function teamsView(S) {
           <div class="row"><input class="inp" id="nc-name-${esc(t.id)}" placeholder="Nombre del coach (papá, mamá o jugador mayor)" style="flex:1;min-width:200px"><button class="btn gold" data-act="addcoach" data-id="${esc(t.id)}">Agregar coach</button></div></div>
         <div><label class="lbl">Jugadores (${t.players.length})</label>
         ${t.players.map(p => `<div class="pl-row" style="margin-bottom:6px"><input class="inp" type="number" data-pf="num" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${p.num}"><input class="inp" data-pf="name" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${esc(p.name)}">
-          <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
+          <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>F</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>M</option></select>
           <label class="chk" title="Capitán"><input type="checkbox" data-pf="captain" data-id="${esc(t.id)}" data-p="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
           <button class="btn sm ghost" data-act="p2coach" data-id="${esc(t.id)}" data-p="${esc(p.id)}" title="Agregar a este jugador como coach del equipo">${T.coachList(t).includes(p.name) ? '✓ Coach' : '→ Coach'}</button>
           <button class="btn danger sm" data-act="delpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}">✕</button></div>`).join('')}
         <div class="pl-row" style="margin-top:10px;grid-template-columns:70px 1fr 90px auto"><input class="inp" type="number" id="np-num" placeholder="#"><input class="inp" id="np-name" placeholder="Nombre del jugador">
-          <select class="inp" id="np-g"><option value="F">Niña</option><option value="M">Niño</option></select><button class="btn gold sm" data-act="addpl" data-id="${esc(t.id)}">Agregar</button></div></div>
+          <select class="inp" id="np-g"><option value="F">F</option><option value="M">M</option></select><button class="btn gold sm" data-act="addpl" data-id="${esc(t.id)}">Agregar</button></div></div>
       </div>` : ''}</div>`;
     }).join('') || '<div class="empty">No hay equipos en esta categoría.</div>'}</div>`;
 }
@@ -92,7 +92,7 @@ function poolView(S) {
       ${d.pool.length ? '<button class="btn sm danger" data-act="clearpool">Vaciar lista</button>' : ''}</div>
     <div class="cols">${d.pool.map(p => `<div class="pl-row" style="grid-template-columns:1fr 90px 52px auto">
       <input class="inp" data-pool="name" data-pid="${esc(p.id)}" value="${esc(p.name)}">
-      <select class="inp" data-pool="gender" data-pid="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
+      <select class="inp" data-pool="gender" data-pid="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>F</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>M</option></select>
       <label class="chk" title="Capitán"><input type="checkbox" data-pool="captain" data-pid="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
       <button class="btn danger sm" data-act="delpool" data-pid="${esc(p.id)}">✕</button></div>`).join('') || '<div class="empty">No hay jugadores sin equipo. Pega una lista arriba.</div>'}</div>`;
 }
@@ -169,7 +169,7 @@ function rulesView(S) {
       ${S.config.categories.map((c, i) => field('Categoría ' + (i + 1), `<input class="inp" id="r-cat${i}" value="${esc(c.name)}">`)).join('')}
     </div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Tiempo de juego</h3>
-    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}${num('onCourt', 'Jugadores en cancha por equipo')}</div></div>
+    <div class="card"><div class="frm">${num('periods', 'Períodos (2 tiempos o 4 cuartos)')}${num('minutes', 'Minutos por período')}${num('otMinutes', 'Minutos de prórroga (se repite si sigue el empate)')}${num('timeouts', 'Tiempos muertos por equipo')}${field('Capitanes por equipo (sorteo)', `<input class="inp" type="number" min="1" id="r-capn" value="${S.config.captainsPerTeam || 2}">`)}${num('onCourt', 'Jugadores en cancha por equipo')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Faltas</h3>
     <div class="card"><div class="frm">${num('foulsOut', 'Faltas personales para eliminar al jugador')}${num('bonusFouls', 'Faltas colectivas por período para activar el bonus')}</div></div>
     <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Puntos en la tabla</h3>
@@ -335,6 +335,7 @@ app.addEventListener('click', e => {
       mt(s => {
         s.config.name = val('r-name') || s.config.name;
         s.config.categories.forEach((c, i) => { c.name = val('r-cat' + i) || c.name; });
+        s.config.captainsPerTeam = Math.max(1, +document.getElementById('r-capn').value || 2);
         keys.forEach(k => { s.config.rules[k] = Math.max(0, +document.getElementById('r-' + k).value || 0); });
         if (document.getElementById('r-refresh')) s.config.refreshSec = Math.max(5, +document.getElementById('r-refresh').value || 15);
         s.games.filter(g => g.status === 'scheduled').forEach(g => { g.clock.remainingMs = T.periodLen(1); });
