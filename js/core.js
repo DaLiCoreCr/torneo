@@ -83,7 +83,7 @@
   function reload() { if (backend) return state; const s = readRaw(); if (s) state = s; return state; }
   function mutate(fn) { fn(state); persist(); subs.forEach(f => f(state)); }
   function subscribe(f) { subs.push(f); }
-  function replaceAll(s) { state = s; persist(); notify(); }
+  function replaceAll(s) { state = s; persist(); if (backend && backend.bumpEpoch) backend.bumpEpoch(); notify(); }
   w.addEventListener('storage', e => {
     if (e.key === KEY && e.newValue) { state = JSON.parse(e.newValue); subs.forEach(f => f(state)); }
   });

@@ -92,7 +92,7 @@ export function connect(cfg, host, opts) {
       }
     }
     fetching = true; lastFetch = Date.now();
-    const needTeams = !cache || !cache.tt || Date.now() - cache.tt > TEAMS_MS || (opts.force && !cache.teams);
+    const needTeams = !cache || !cache.tt || Date.now() - cache.tt > TEAMS_MS || (opts.force && !cache.teams) || !!opts.teams;
     const count = snap => { if (!snap.metadata.fromCache) usage.reads(snap.size === undefined ? (snap.exists() ? 1 : 0) : snap.size); };
     Promise.all([getDoc(doc(db, 'config', 'main')), needTeams ? getDocs(collection(db, 'teams')) : null, getDocs(collection(db, 'games'))])
       .then(([c, t, g]) => {
@@ -100,21 +100,29 @@ export function connect(cfg, host, opts) {
         if (t) { count(t); remote.teams.clear(); t.forEach(d => remote.teams.set(d.id, d.data())); }
         count(g); remote.games.clear(); g.forEach(d => remote.games.set(d.id, d.data()));
         rebuild();
-        saveSnap({ t: Date.now(), sig: metaSig, tt: t ? Date.now() : (cache ? cache.tt : Date.now()), config: remote.config, teams: [...remote.teams.values()], games: [...remote.games.values()] });
+        saveSnap({ t: Date.now(), sig: metaSig, ep: metaEp, tt: t ? Date.now() : (cache ? cache.tt : Date.now()), config: remote.config, teams: [...remote.teams.values()], games: [...remote.games.values()] });
       })
       .catch(err => console.error('lectura', err))
       .finally(() => { fetching = false; if (onReady) { onReady(); onReady = null; } });
   }
   /* Aviso de resultados: documento diminuto meta/results que la mesa actualiza al cambiar un partido finalizado.
      Las páginas sin tiempo real lo escuchan (1 lectura al abrir + 1 por cambio) y recargan los datos solo cuando cambia. */
-  let metaUn = null, metaSig = null;
+  let metaUn = null, metaSig = null, metaEp = null;
   function metaWatch() {
     if (liveMode || metaUn) return;
     metaUn = onSnapshot(doc(db, 'meta', 'results'), snap => {
       if (!snap.metadata.fromCache) usage.reads(1);
       const sig = snap.exists() ? String(snap.data().sig) : '';
-      if (metaSig === null) { metaSig = sig; const c = readSnap(); if (c && c.sig == null) saveSnap(Object.assign(c, { sig })); else if (c && c.sig !== sig) fetchOnce({ force: true }); }
-      else if (sig !== metaSig) { metaSig = sig; fetchOnce({ force: true }); }
+      const ep = snap.exists() && snap.data().epoch ? String(snap.data().epoch) : ''; // cambia con cada reinicio o restauración de datos
+      if (metaSig === null) {
+        metaSig = sig; metaEp = ep;
+        const c = readSnap();
+        if (c && c.sig == null) saveSnap(Object.assign(c, { sig, ep }));
+        else if (c && (c.sig !== sig || (c.ep || '') !== ep)) fetchOnce({ force: true, teams: (c.ep || '') !== ep });
+      } else if (sig !== metaSig || ep !== metaEp) {
+        const reset = ep !== metaEp;
+        metaSig = sig; metaEp = ep; fetchOnce({ force: true, teams: reset });
+      }
     }, err => console.warn('meta', err.code || err));
   }
   function metaStop() { if (metaUn) { metaUn(); metaUn = null; } }
@@ -190,7 +198,7 @@ export function connect(cfg, host, opts) {
     const sig = sigOf(state.games);
     if (lastSig !== null && sig !== lastSig) {
       lastSig = sig;
-      setDoc(doc(db, 'meta', 'results'), { sig }).catch(err => console.warn('meta', err.code || err));
+      setDoc(doc(db, 'meta', 'results'), { sig }, { merge: true }).catch(err => console.warn('meta', err.code || err));
       usage.writes(1);
     }
     const dels = [...known.keys()].filter(p => !seen.has(p) && known.get(p) !== '');
@@ -204,9 +212,15 @@ export function connect(cfg, host, opts) {
     }
   }
 
+  /* Tras reemplazar todos los datos (reinicio, restauración, respaldo): avisa a las páginas sin tiempo real para que vuelvan a leer equipos y partidos */
+  function bumpEpoch() {
+    usage.writes(1);
+    setDoc(doc(db, 'meta', 'results'), { epoch: Date.now() }, { merge: true }).catch(err => console.warn('meta', err.code || err));
+  }
+
   return new Promise(resolve => {
     onReady = () => resolve({
-      save, watchUsage,
+      save, watchUsage, bumpEpoch,
       setStaff: v => { staff = v; if (v && !unsubs.length) attach(); },
       auth: {
         onChange: cb => onAuthStateChanged(auth, cb),
