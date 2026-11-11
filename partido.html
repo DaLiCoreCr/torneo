@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=22">
+<link rel="stylesheet" href="css/styles.css?v=23">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=22"></script>
-<script src="js/core.js?v=22"></script>
-<script src="js/seed.js?v=22"></script>
-<script src="js/ui.js?v=22"></script>
+<script src="js/firebase-config.js?v=23"></script>
+<script src="js/core.js?v=23"></script>
+<script src="js/seed.js?v=23"></script>
+<script src="js/ui.js?v=23"></script>
 <script>
 T.load().then(() => {
 UI.layout('res');
@@ -48,7 +48,7 @@ function boxTable(S, g, side) {
   const tot = T.derive(T.sumStats(rows.map(r => r.s)));
   const mk = (m, a) => `${m}/${a}`;
   const body = rows.map(({ p, s }) => `<tr class="${s.pf >= out ? 'out' : (s.pf > 0 && s.pf === out - 1) ? 'warn' : ''}"><td class="l">${ocNow.has(p.id) ? '<span class="oc-dot" title="En cancha">●</span>' : ''}#${p.num} ${esc(p.name)}${UI.capMark(p)}</td><td class="hl">${s.pts}</td><td>${mk(s.p1m, s.p1a)}</td><td>${mk(s.p2m, s.p2a)}</td><td>${mk(s.p3m, s.p3a)}</td><td>${s.reb}</td><td>${s.ast}</td><td>${s.stl}</td><td>${s.blk}</td><td>${s.to}</td><td>${s.pf}</td><td>${s.fd}</td>${mpCells(p)}</tr>`).join('');
-  return `<div class="sec"><div class="sec-h"><h2 style="display:flex;align-items:center;gap:10px">${UI.badge(t)}${esc(t.name)}</h2><span class="muted" style="font-size:13px">${esc(t.coach || '')}</span></div>
+  return `<div class="sec"><div class="sec-h"><h2 style="display:flex;align-items:center;gap:10px">${UI.badge(t)}${esc(t.name)}</h2><span class="muted" style="font-size:13px">${esc(T.coachList(t).join(', '))}</span></div>
     <div class="tbl-wrap"><table class="tbl box"><thead><tr><th class="l">Jugador</th><th>PTS</th><th>TL</th><th>2P</th><th>3P</th><th>REB</th><th>AST</th><th>ROB</th><th>TAP</th><th>PER</th><th title="Faltas cometidas">FC</th><th title="Faltas recibidas">FR</th><th title="Minutos jugados">MIN</th><th title="Diferencia de puntos con el jugador en cancha">+/-</th></tr></thead><tbody>${body}
     <tr class="tot"><td class="l">Equipo</td><td class="hl">${tot.pts}</td><td>${mk(tot.p1m, tot.p1a)}</td><td>${mk(tot.p2m, tot.p2a)}</td><td>${mk(tot.p3m, tot.p3a)}</td><td>${tot.reb}</td><td>${tot.ast}</td><td>${tot.stl}</td><td>${tot.blk}</td><td>${tot.to}</td><td>${tot.pf}</td><td>${tot.fd}</td><td></td><td></td></tr></tbody></table></div></div>`;
 }

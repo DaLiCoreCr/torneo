@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=22">
+<link rel="stylesheet" href="css/styles.css?v=23">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -19,10 +19,10 @@
 <body>
 <main><div class="wrap pres"><div id="app"></div></div></main>
 <div class="reveal" id="reveal"></div>
-<script src="js/firebase-config.js?v=22"></script>
-<script src="js/core.js?v=22"></script>
-<script src="js/seed.js?v=22"></script>
-<script src="js/ui.js?v=22"></script>
+<script src="js/firebase-config.js?v=23"></script>
+<script src="js/core.js?v=23"></script>
+<script src="js/seed.js?v=23"></script>
+<script src="js/ui.js?v=23"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -96,7 +96,7 @@ function render() {
         <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div></div>
     ${teams.length ? `<div class="pt-grid">${teams.map(t => {
       const ps = t.players.slice().sort((a, b) => (b.captain ? 1 : 0) - (a.captain ? 1 : 0));
-      return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${t.coach ? 'Coach ' + esc(t.coach.replace(/^coach\s+/i, '')) + ' · ' : ''}${t.players.length} jugador${t.players.length === 1 ? '' : 'es'}</small></div></div>
+      return `<div class="pt"><div class="pt-h">${UI.badge(t)}<div><h2>${esc(t.name)}</h2><small>${T.coachList(t).length ? (T.coachList(t).length > 1 ? 'Coaches ' : 'Coach ') + esc(T.coachList(t).map(c => c.replace(/^coach\s+/i, '')).join(', ')) + ' · ' : ''}${t.players.length} jugador${t.players.length === 1 ? '' : 'es'}</small></div></div>
         <ul>${ps.map(p => `<li class="${p.captain ? 'capi' : ''} ${fresh.has(p.id) ? 'fresh' : ''}">${esc(p.name)}${UI.capMark(p)}</li>`).join('') || '<li class="muted">—</li>'}</ul></div>`;
     }).join('')}</div>` : '<div class="empty" style="margin-top:20px">Aún no hay equipos en esta categoría.</div>'}
     ${d.pool.length ? `<div class="pool-strip">${d.pool.map(p => `<span>${esc(p.name)}</span>`).join('')}</div>` : ''}`;

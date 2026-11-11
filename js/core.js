@@ -253,7 +253,7 @@
     const R = S.config.rules;
     const rows = {};
     S.teams.filter(t => t.cat === cat).forEach(t => { rows[t.id] = { team: t, pj: 0, g: 0, e: 0, p: 0, pf: 0, pc: 0, pts: 0 }; });
-    S.games.filter(g => g.cat === cat && g.status === 'final').forEach(g => {
+    S.games.filter(g => g.cat === cat && !g.stage && g.status === 'final').forEach(g => { // las llaves (semifinal, final) no cuentan en la tabla
       const h = rows[g.home], a = rows[g.away];
       if (!h || !a) return;
       h.pj++; a.pj++;
@@ -266,6 +266,68 @@
     });
     return Object.values(rows).map(r => Object.assign(r, { dif: r.pf - r.pc }))
       .sort((x, y) => y.pts - x.pts || y.dif - x.dif || y.pf - x.pf || x.team.name.localeCompare(y.team.name));
+  }
+
+  /* ---------- Sorteo de partidos y llaves ----------
+     Fase regular: todos contra todos a una vuelta (partidos sin "stage"). Llaves: games con stage 'sf' (slot 1-2), 'final' o 'third'.
+     Las categorías nunca se mezclan. Las llaves se arman con los mejores de la tabla de posiciones. */
+  const STAGES = { sf: 'Semifinal', final: 'Final', third: 'Tercer lugar' };
+  const shuffleArr = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pad2 = n => String(n).padStart(2, '0');
+  const isoLocal = d => d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + 'T' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  const addMin = (iso, m) => isoLocal(new Date(new Date(iso).getTime() + m * 60000));
+  const stageName = g => (g.stage === 'sf' ? 'Semifinal ' + g.slot : STAGES[g.stage] || '');
+  const leagueGames = (S, cat) => S.games.filter(g => g.cat === cat && !g.stage);
+  const playoffGames = (S, cat) => S.games.filter(g => g.cat === cat && g.stage);
+  const gameWinner = g => (g.status === 'final' && g.score.h !== g.score.a ? (g.score.h > g.score.a ? g.home : g.away) : null);
+  const gameLoser = g => (g.status === 'final' && g.score.h !== g.score.a ? (g.score.h > g.score.a ? g.away : g.home) : null);
+  const pushGame = (S, cat, o, date, stage, slot, h, a, extra) => {
+    const g = newGame({ cat, home: h, away: a, date, mode: o.mode });
+    if (stage) { g.stage = stage; g.slot = slot; }
+    S.games.push(Object.assign(g, extra || {}));
+  };
+  /* Todos contra todos (método del círculo, orden al azar). o = { start, gapMin, mode }. Devuelve cuántos partidos creó, o -1 si ya hay partidos iniciados */
+  function drawLeague(S, cat, o) {
+    if (leagueGames(S, cat).some(g => g.status !== 'scheduled')) return -1;
+    const ids = shuffleArr(S.teams.filter(t => t.cat === cat).map(t => t.id));
+    if (ids.length < 2) return 0;
+    S.games = S.games.filter(g => !(g.cat === cat && !g.stage));
+    if (ids.length % 2) ids.push(null);
+    const n = ids.length;
+    let t = o.start, count = 0;
+    for (let r = 0; r < n - 1; r++) {
+      for (let i = 0; i < n / 2; i++) {
+        const a = ids[i], b = ids[n - 1 - i];
+        if (!a || !b) continue;
+        const flip = Math.random() < 0.5;
+        pushGame(S, cat, o, t, null, 0, flip ? a : b, flip ? b : a);
+        t = addMin(t, o.gapMin); count++;
+      }
+      ids.splice(1, 0, ids.pop());
+    }
+    return count;
+  }
+  /* Llaves: los n mejores de la tabla (2 = solo final, 4 = semifinales 1.º vs 4.º y 2.º vs 3.º). o = { start, gapMin, mode, n, third } */
+  function drawPlayoffs(S, cat, o) {
+    if (playoffGames(S, cat).some(g => g.status !== 'scheduled')) return -1;
+    const top = standings(S, cat).slice(0, o.n).map(r => r.team.id);
+    if (top.length < o.n) return 0;
+    S.games = S.games.filter(g => !(g.cat === cat && g.stage));
+    if (o.n === 2) { pushGame(S, cat, o, o.start, 'final', 1, top[0], top[1], { seeds: { h: 1, a: 2 } }); return 1; }
+    pushGame(S, cat, o, o.start, 'sf', 1, top[0], top[3], { seeds: { h: 1, a: 4 }, thirdPlace: !!o.third });
+    pushGame(S, cat, o, addMin(o.start, o.gapMin), 'sf', 2, top[1], top[2], { seeds: { h: 2, a: 3 }, thirdPlace: !!o.third });
+    return 2;
+  }
+  /* Con las semifinales terminadas crea la final (y el tercer lugar). Devuelve: ok | nosf | exists | pending | tie */
+  function advancePlayoffs(S, cat, o) {
+    const sf = S.games.filter(g => g.cat === cat && g.stage === 'sf').sort((a, b) => a.slot - b.slot);
+    if (sf.length < 2) return 'nosf';
+    if (S.games.some(g => g.cat === cat && g.stage === 'final')) return 'exists';
+    if (sf.some(g => g.status !== 'final')) return 'pending';
+    if (sf.some(g => !gameWinner(g))) return 'tie';
+    pushGame(S, cat, o, o.start, 'final', 1, gameWinner(sf[0]), gameWinner(sf[1]));
+    if (sf[0].thirdPlace) pushGame(S, cat, o, addMin(o.start, -o.gapMin), 'third', 1, gameLoser(sf[0]), gameLoser(sf[1]));
+    return 'ok';
   }
 
   /* ---------- Sorteo de equipos ----------
@@ -352,7 +414,13 @@
     return false;
   }
 
+  /* Un equipo puede tener varios coaches: t.coaches es la lista; t.coach guarda los nombres unidos para compatibilidad */
+  const coachList = t => (Array.isArray(t.coaches) ? t.coaches : (t.coach ? [t.coach] : []));
+  function setCoaches(t, list) { t.coaches = list; t.coach = list.join(', '); }
+
   w.T = {
+    coachList, setCoaches,
+    STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
     draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftUndo,
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,

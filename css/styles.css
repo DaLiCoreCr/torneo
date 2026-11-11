@@ -217,7 +217,7 @@ nav a.on { color: var(--gold); border-bottom-color: var(--gold); }
 .cap { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--gold); color: #000; font: 700 11px Inter, sans-serif; margin-left: 6px; vertical-align: middle; flex-shrink: 0; }
 .pl { position: relative; }
 .pl .cap { position: absolute; top: 4px; right: 4px; margin: 0; }
-.pl-row { grid-template-columns: 70px 1fr 90px 52px auto; }
+.pl-row { grid-template-columns: 70px 1fr 90px 52px auto auto; }
 
 /* Sorteo (pantalla del organizador) */
 .draft { display: grid; gap: 16px; grid-template-columns: 320px 1fr; align-items: start; }
@@ -448,3 +448,13 @@ body.mesa-on { background: var(--bg); }
 .cap-tbl .cm { display: block; width: 100%; height: 22px; margin-top: 3px; background: transparent; border: 0; color: var(--muted); font-size: 16px; line-height: 1; }
 .cap-tbl .cm:disabled { opacity: .2; }
 .cap-head .m-team .s { font-size: 52px; }
+
+/* Llaves */
+.bracket { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; margin-top: 12px; }
+.bracket.one { grid-template-columns: minmax(0, 420px); }
+.bk-col { display: grid; gap: 12px; }
+.bk-h { font-family: 'Bebas Neue', sans-serif; font-size: 22px; font-weight: 400; color: var(--gold); letter-spacing: .04em; }
+.bk-ph { border-style: dashed; opacity: .85; }
+.bk-ph:hover { border-color: var(--line); transform: none; }
+.bk-champ { margin-top: 12px; padding: 12px 16px; border: 1px solid var(--gold); border-radius: var(--r); background: var(--gold-soft); font-size: 18px; }
+@media (max-width: 700px) { .bracket { grid-template-columns: 1fr; } }

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=22">
+<link rel="stylesheet" href="css/styles.css?v=23">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=22"></script>
-<script src="js/core.js?v=22"></script>
-<script src="js/seed.js?v=22"></script>
-<script src="js/ui.js?v=22"></script>
+<script src="js/firebase-config.js?v=23"></script>
+<script src="js/core.js?v=23"></script>
+<script src="js/seed.js?v=23"></script>
+<script src="js/ui.js?v=23"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -29,7 +29,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null;
 
-const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -56,10 +56,11 @@ function teamsView(S) {
       <button class="btn gold" data-act="addteam">Crear equipo</button></div></div>
     <div class="cols">${teams.map(t => {
       const open = openTeam === t.id;
-      return `<div class="team-card"><div class="team-h" data-act="toggle" data-id="${esc(t.id)}">${UI.badge(t)}<div class="grow"><b>${esc(t.name)}</b><small>${esc(t.coach || 'Sin coach')} · ${t.players.length} jugadores</small></div><span class="muted">${open ? '▲' : '▼'}</span></div>
+      return `<div class="team-card"><div class="team-h" data-act="toggle" data-id="${esc(t.id)}">${UI.badge(t)}<div class="grow"><b>${esc(t.name)}</b><small>${esc(T.coachList(t).join(', ') || 'Sin coach')} ·${t.players.length} jugadores</small></div><span class="muted">${open ? '▲' : '▼'}</span></div>
       ${open ? `<div class="team-b">
         <div class="frm">${field('Nombre', `<input class="inp" data-f="name" data-id="${esc(t.id)}" value="${esc(t.name)}">`)}
-          ${field('Coach', `<input class="inp" data-f="coach" data-id="${esc(t.id)}" value="${esc(t.coach || '')}">`)}
+          ${field('Coaches', `<div>${T.coachList(t).map((c, i) => `<span class="chip soft" style="display:inline-flex;gap:6px;align-items:center;margin:0 6px 6px 0;font-size:13px">${esc(c)} <a href="#" data-act="delcoach" data-id="${esc(t.id)}" data-i="${i}" title="Quitar" style="color:inherit">✕</a></span>`).join('') || '<span class="muted" style="font-size:13px">Sin coaches. Agrégalos aquí o desde un jugador (botón "→ Coach").</span>'}</div>
+            <div class="row"><input class="inp" id="nc-name-${esc(t.id)}" placeholder="Nombre del coach" style="flex:1"><button class="btn sm gold" data-act="addcoach" data-id="${esc(t.id)}">Agregar</button></div>`)}
           ${field('Color', `<input class="inp" type="color" data-f="color" data-id="${esc(t.id)}" value="${esc(t.color || '#c9a84c')}" style="height:42px;padding:4px">`)}
           ${field('Logo', `<div class="row">${t.logo ? UI.badge(t) : ''}<label class="btn sm ghost" style="cursor:pointer">${t.logo ? 'Cambiar' : 'Subir'}<input type="file" accept="image/*" data-logo="${esc(t.id)}" hidden></label>${t.logo ? `<button class="btn sm danger" data-act="dellogo" data-id="${esc(t.id)}">Quitar</button>` : ''}</div>`)}
           <button class="btn danger" data-act="delteam" data-id="${esc(t.id)}">Eliminar equipo</button></div>
@@ -67,6 +68,7 @@ function teamsView(S) {
         ${t.players.map(p => `<div class="pl-row" style="margin-bottom:6px"><input class="inp" type="number" data-pf="num" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${p.num}"><input class="inp" data-pf="name" data-id="${esc(t.id)}" data-p="${esc(p.id)}" value="${esc(p.name)}">
           <select class="inp" data-pf="gender" data-id="${esc(t.id)}" data-p="${esc(p.id)}"><option value="" ${!p.gender ? 'selected' : ''}>—</option><option value="F" ${p.gender === 'F' ? 'selected' : ''}>Niña</option><option value="M" ${p.gender === 'M' ? 'selected' : ''}>Niño</option></select>
           <label class="chk" title="Capitán"><input type="checkbox" data-pf="captain" data-id="${esc(t.id)}" data-p="${esc(p.id)}" ${p.captain ? 'checked' : ''}>C</label>
+          <button class="btn sm ghost" data-act="p2coach" data-id="${esc(t.id)}" data-p="${esc(p.id)}" title="Agregar a este jugador como coach del equipo">${T.coachList(t).includes(p.name) ? '✓ Coach' : '→ Coach'}</button>
           <button class="btn danger sm" data-act="delpl" data-id="${esc(t.id)}" data-p="${esc(p.id)}">✕</button></div>`).join('')}
         <div class="pl-row" style="margin-top:10px;grid-template-columns:70px 1fr 90px auto"><input class="inp" type="number" id="np-num" placeholder="#"><input class="inp" id="np-name" placeholder="Nombre del jugador">
           <select class="inp" id="np-g"><option value="F">Niña</option><option value="M">Niño</option></select><button class="btn gold sm" data-act="addpl" data-id="${esc(t.id)}">Agregar</button></div></div>
@@ -131,8 +133,31 @@ function gamesView(S) {
       <button class="btn gold" data-act="addgame">Programar</button></div>
       <p class="note">Básico: puntos, faltas, tiempos muertos (las colectivas se cuentan solas). Intermedio: + rebotes, asistencias, robos, pérdidas, tapones y tiros fallados. Completo: + faltas recibidas.</p></div>
     <div class="gm-list">${games.map(g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
-      <div class="muted" style="font-size:13px">${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · ${T.MODES[g.mode]} · ${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : 'Programado'}</div></div>
+      <div class="muted" style="font-size:13px">${g.stage ? T.stageName(g) + ' · ' : ''}${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · ${T.MODES[g.mode]} · ${g.status === 'final' ? 'Final ' + g.score.h + '–' + g.score.a : g.status === 'live' ? 'En vivo' : 'Programado'}</div></div>
       <div class="row"><a class="btn sm gold" href="mesa.html?id=${esc(g.id)}">Mesa</a><button class="btn sm danger" data-act="delgame" data-id="${esc(g.id)}">Eliminar</button></div></div>`).join('') || '<div class="empty">No hay partidos en esta categoría.</div>'}</div>`;
+}
+
+function drawView(S) {
+  const nt = S.teams.filter(t => t.cat === cat).length;
+  const lg = T.leagueGames(S, cat), played = lg.filter(g => g.status === 'final').length;
+  const po = T.playoffGames(S, cat);
+  const modes = id => `<select class="inp" id="${id}">${T.MODES.map((m, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${m}</option>`).join('')}</select>`;
+  const gap = id => `<input class="inp" type="number" min="0" id="${id}" value="60">`;
+  return `${catBar(S)}
+    <h3 class="gold" style="margin:14px 0 8px;font-size:22px">1. Fase regular: todos contra todos</h3>
+    <div class="card"><p class="muted">${nt} equipos → <b>${nt * (nt - 1) / 2}</b> partidos a una vuelta. El sistema sortea el orden y quién es local. Solo se enfrentan equipos de esta categoría.
+      <br>Ahora: <b>${lg.length}</b> programados, <b>${played}</b> finalizados.</p>
+      <div class="frm">${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dl-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dl-gap'))}${field('Modo de captura', modes('dl-m'))}
+      <button class="btn gold" data-act="drawleague">${lg.length ? 'Volver a sortear' : 'Sortear partidos'}</button></div></div>
+    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">2. Llaves</h3>
+    <div class="card"><p class="muted">Se arman con los mejores de la tabla de posiciones (los partidos de llaves no cuentan en la tabla). Con 4 clasificados: semifinales 1.º vs 4.º y 2.º vs 3.º. Al terminar las semifinales usa <b>Generar final</b>.</p>
+      <div class="frm">${field('Clasifican', '<select class="inp" id="dp-n"><option value="4">Los 4 mejores (semifinales y final)</option><option value="2">Los 2 mejores (solo final)</option></select>')}
+      ${field('Partido por el tercer lugar', '<select class="inp" id="dp-third"><option value="0">No</option><option value="1">Sí</option></select>')}
+      ${field('Fecha y hora del primer partido', `<input class="inp" type="datetime-local" id="dp-d" value="${nowLocal()}">`)}${field('Minutos entre partidos', gap('dp-gap'))}${field('Modo de captura', modes('dp-m'))}
+      <div class="row"><button class="btn gold" data-act="drawplayoffs">${po.length ? 'Rehacer llaves' : 'Sortear llaves'}</button><button class="btn" data-act="advance">Generar final</button></div></div></div>
+    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Así quedan las llaves</h3>
+    ${UI.bracketView(S, cat)}
+    <p class="note"><a href="llaves.html" style="color:var(--gold)">Ver la pantalla pública de llaves →</a> · Puedes cambiar la fecha o eliminar partidos en la pestaña Partidos.</p>`;
 }
 
 function rulesView(S) {
@@ -170,7 +195,7 @@ function dataView() {
 
 /* Monitoreo: dispositivos conectados ahora y lecturas/escrituras del día (suma de lo que reporta cada dispositivo) */
 const ONLINE_MS = 300000, QUOTA = { reads: 50000, writes: 20000 };
-const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación' };
+const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación' };
 let unUsage = null, lastUsage = null;
 function monitorView() {
   if (!T.cloud || !T.watchUsage) return '<div class="card"><p class="muted">El monitoreo solo funciona con los datos en la nube (no en modo local).</p></div>';
@@ -209,7 +234,7 @@ function render() {
   if (tab === 'monitor') startUsage(); else stopUsage();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
 }
 
 app.addEventListener('click', e => {
@@ -226,9 +251,23 @@ app.addEventListener('click', e => {
       if (!name) return UI.toast('Escribe el nombre del equipo', 'bad');
       const colors = ['#c9a84c', '#e53935', '#1e88e5', '#43a047', '#8e24aa', '#fb8c00', '#00acc1', '#d81b60'];
       const tid = T.uid('t');
-      mt(s => s.teams.push({ id: tid, cat, name, coach: val('nt-coach'), color: colors[s.teams.length % colors.length], players: [] }));
+      mt(s => s.teams.push({ id: tid, cat, name, coach: val('nt-coach'), coaches: val('nt-coach') ? [val('nt-coach')] : [], color: colors[s.teams.length % colors.length], players: [] }));
       openTeam = tid; render(); break;
     }
+    case 'addcoach': {
+      const name = val('nc-name-' + id);
+      if (!name) return UI.toast('Escribe el nombre del coach', 'bad');
+      if (T.coachList(T.state().teams.find(t => t.id === id)).some(c => c.toLowerCase() === name.toLowerCase())) return UI.toast('Ese coach ya está en el equipo', 'bad');
+      mt(s => { const t = s.teams.find(x => x.id === id); T.setCoaches(t, T.coachList(t).concat(name)); }); break;
+    }
+    case 'p2coach': {
+      const t0 = T.state().teams.find(t => t.id === id), p0 = t0.players.find(p => p.id === b.dataset.p);
+      if (!p0) return;
+      if (T.coachList(t0).includes(p0.name)) return UI.toast(p0.name + ' ya es coach del equipo');
+      mt(s => { const t = s.teams.find(x => x.id === id); T.setCoaches(t, T.coachList(t).concat(p0.name)); });
+      UI.toast(p0.name + ' agregado como coach'); break;
+    }
+    case 'delcoach': e.preventDefault(); mt(s => { const t = s.teams.find(x => x.id === id); T.setCoaches(t, T.coachList(t).filter((c, i) => i !== +b.dataset.i)); }); break;
     case 'delteam':
       if (confirm('¿Eliminar el equipo y sus partidos?')) mt(s => { s.teams = s.teams.filter(t => t.id !== id); s.games = s.games.filter(g => g.home !== id && g.away !== id); });
       break;
@@ -260,6 +299,36 @@ app.addEventListener('click', e => {
       UI.toast('Partido programado'); break;
     }
     case 'delgame': if (confirm('¿Eliminar el partido y sus jugadas?')) mt(s => { s.games = s.games.filter(g => g.id !== id); }); break;
+    case 'drawleague': {
+      const d = val('dl-d');
+      if (!d) return UI.toast('Elige fecha y hora del primer partido', 'bad');
+      const S0 = T.state(), prev = T.leagueGames(S0, cat);
+      if (S0.teams.filter(t => t.cat === cat).length < 2) return UI.toast('Se necesitan al menos 2 equipos', 'bad');
+      if (prev.some(g => g.status !== 'scheduled')) return UI.toast('Ya hay partidos iniciados o finalizados: no se puede volver a sortear', 'bad');
+      if (prev.length && !confirm(`Ya hay ${prev.length} partidos programados en esta categoría. ¿Reemplazarlos por un nuevo sorteo?`)) return;
+      let n = 0;
+      mt(s => { n = T.drawLeague(s, cat, { start: d, gapMin: Math.max(0, +val('dl-gap') || 0), mode: +val('dl-m') }); });
+      UI.toast(`${n} partidos sorteados`); break;
+    }
+    case 'drawplayoffs': {
+      const d = val('dp-d'), n = +val('dp-n');
+      if (!d) return UI.toast('Elige fecha y hora del primer partido', 'bad');
+      const S0 = T.state(), lg = T.leagueGames(S0, cat), prev = T.playoffGames(S0, cat);
+      if (S0.teams.filter(t => t.cat === cat).length < n) return UI.toast(`Se necesitan al menos ${n} equipos`, 'bad');
+      if (prev.some(g => g.status !== 'scheduled')) return UI.toast('Ya hay llaves iniciadas o finalizadas: no se pueden rehacer', 'bad');
+      const left = lg.filter(g => g.status !== 'final').length;
+      if ((!lg.length || left) && !confirm(!lg.length ? 'No hay fase regular: las llaves saldrían de una tabla en ceros. ¿Continuar?' : `Faltan ${left} partidos de la fase regular. ¿Armar las llaves con la tabla actual?`)) return;
+      if (prev.length && !confirm('Ya hay llaves programadas. ¿Reemplazarlas?')) return;
+      mt(s => { T.drawPlayoffs(s, cat, { start: d, gapMin: Math.max(0, +val('dp-gap') || 0), mode: +val('dp-m'), n, third: val('dp-third') === '1' }); });
+      UI.toast('Llaves sorteadas'); break;
+    }
+    case 'advance': {
+      const d = val('dp-d');
+      if (!d) return UI.toast('Elige fecha y hora de la final', 'bad');
+      let r;
+      mt(s => { r = T.advancePlayoffs(s, cat, { start: d, gapMin: Math.max(0, +val('dp-gap') || 0), mode: +val('dp-m') }); });
+      UI.toast({ ok: 'Final generada', nosf: 'Primero sortea las llaves con semifinales', exists: 'La final ya existe', pending: 'Faltan semifinales por terminar', tie: 'Una semifinal quedó empatada: define el ganador' }[r], r === 'ok' ? '' : 'bad'); break;
+    }
     case 'saverules': {
       const keys = ['periods', 'minutes', 'otMinutes', 'timeouts', 'onCourt', 'foulsOut', 'bonusFouls', 'ptsWin', 'ptsDraw', 'ptsLoss', 'forfeitWin', 'forfeitLoss'];
       mt(s => {

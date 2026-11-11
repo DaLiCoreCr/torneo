@@ -39,7 +39,7 @@
     document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="assets/logo.jpg">');
     parallax();
     const S = T.state();
-    const links = [['index.html', 'live', 'En vivo'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['estadisticas.html', 'est', 'Estadísticas']]
+    const links = [['index.html', 'live', 'En vivo'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['llaves.html', 'llaves', 'Llaves'],['estadisticas.html', 'est', 'Estadísticas']]
       .map(([h, k, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${l}</a>`).join('');
     document.body.insertAdjacentHTML('afterbegin',
       `<div class="ticker" id="ticker"></div>
@@ -130,7 +130,7 @@
       : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : `<span class="chip soft">${fmtTime(g.date)}</span>`;
     const row = (t, sc, win, side) => `<div class="g-row ${win ? 'win' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">${badge(t)}<span class="tname">${esc(t.name)}</span><span class="sc" data-sc="${esc(g.id)}:${side}">${g.status === 'scheduled' ? '–' : sc}</span></div>`;
     return `<a class="game ${live ? 'is-live' : ''}" href="partido.html?id=${esc(g.id)}">
-      <div class="g-meta"><span>${esc(catName(S, g.cat))} · ${fmtDate(g.date)}</span>${status}</div>
+      <div class="g-meta"><span>${esc(catName(S, g.cat))}${g.stage ? ' · ' + esc(T.stageName(g)) : ''} · ${fmtDate(g.date)}</span>${status}</div>
       ${row(h, g.score.h, fin && g.score.h > g.score.a, 'h')}
       ${row(a, g.score.a, fin && g.score.a > g.score.h, 'a')}
       ${live ? `<div class="g-clock"><span class="clk" data-gid="${esc(g.id)}">${clockText(g)}</span></div>` : ''}
@@ -323,5 +323,26 @@
     });
   }
 
-  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, standingsTable, toast, gate, scoreFx, shareResult };
+  /* Cuadro de llaves de una categoría: semifinales → final (y tercer lugar). Lo que aún no se define se muestra como "Por definir". */
+  function bracketView(S, cat) {
+    const g = st => S.games.filter(x => x.cat === cat && x.stage === st).sort((a, b) => a.slot - b.slot);
+    const sf = g('sf'), fin = g('final')[0], third = g('third')[0];
+    const table = T.standings(S, cat);
+    const ph = (title, a, b) => `<div class="game bk-ph"><div class="g-meta"><span>${esc(title)}</span><span class="chip soft">Por definir</span></div>
+      <div class="g-row"><span class="tname">${esc(a)}</span></div><div class="g-row"><span class="tname">${esc(b)}</span></div></div>`;
+    const seed = n => n + '.º · ' + (table[n - 1] ? table[n - 1].team.name : '—');
+    const hasSF = sf.length > 0, direct = !hasSF && !!fin;
+    const wantsThird = (sf[0] && sf[0].thirdPlace) || !!third;
+    const semis = hasSF ? sf.map(gameCard) : direct ? [] : [ph('Semifinal 1', seed(1), seed(4)), ph('Semifinal 2', seed(2), seed(3))];
+    const finalCard = fin ? gameCard(fin) : ph('Final', direct ? seed(1) : 'Ganador semifinal 1', direct ? seed(2) : 'Ganador semifinal 2');
+    const thirdCard = third ? gameCard(third) : wantsThird ? ph('Tercer lugar', 'Perdedor semifinal 1', 'Perdedor semifinal 2') : '';
+    const champId = fin ? T.gameWinner(fin) : null;
+    const champ = champId ? `<div class="bk-champ">🏆 Campeón: <b>${esc(team(S, champId).name)}</b></div>` : '';
+    return `${champ}<div class="bracket ${semis.length ? '' : 'one'}">
+      ${semis.length ? `<div class="bk-col"><h3 class="bk-h">Semifinales</h3>${semis.join('')}</div>` : ''}
+      <div class="bk-col"><h3 class="bk-h">Final</h3>${finalCard}${thirdCard ? `<h3 class="bk-h" style="margin-top:8px">Tercer lugar</h3>${thirdCard}` : ''}</div></div>
+      ${!hasSF && !fin ? '<p class="note">Las llaves se definen al terminar la fase regular, con los mejores de la tabla de posiciones. Lo que ves arriba es provisional según la tabla actual.</p>' : ''}`;
+  }
+
+  w.UI = { initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult };
 })(window);
