@@ -2,9 +2,9 @@
    - Archivos propios: red primero, con copia guardada como respaldo.
    - Librerías de Firebase y fuentes (versionadas): copia primero.
    - Las consultas a Firestore no pasan por aquí; su propio caché guarda los datos. */
-const CACHE = 'hoopz-v56';
-const SHELL = ['./', 'index.html', 'resultados.html', 'posiciones.html', 'llaves.html', 'estadisticas.html', 'partido.html', 'tv.html', 'mesa.html', 'captura.html', 'sorteo.html', 'presentacion.html', 'presentacion-llaves.html', 'podio.html', 'admin.html',
-  'css/styles.css?v=56', 'js/firebase-config.js?v=56', 'js/core.js?v=56', 'js/seed.js?v=56', 'js/ui.js?v=56', 'js/store-firebase.js',
+const CACHE = 'hoopz-v57';
+const SHELL = ['./', 'index.html', 'resultados.html', 'posiciones.html', 'llaves.html', 'estadisticas.html', 'equipos.html', 'partido.html', 'tv.html', 'mesa.html', 'captura.html', 'sorteo.html', 'presentacion.html', 'presentacion-llaves.html', 'podio.html', 'admin.html',
+  'css/styles.css?v=57', 'js/firebase-config.js?v=57', 'js/core.js?v=57', 'js/seed.js?v=57', 'js/ui.js?v=57', 'js/store-firebase.js',
   'assets/logo.jpg', 'assets/hero.webp', 'assets/bg-hoop.jpg', 'icons/icon-192.png'];
 const STATIC_HOSTS = ['www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 

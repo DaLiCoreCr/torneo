@@ -486,3 +486,44 @@ body.tv .podium { max-width: 1500px; }
 .pl-row.pl-show { grid-template-columns: 56px 1fr 90px 52px auto auto auto; }
 .pl-row.pl-edit { grid-template-columns: 70px 1fr auto auto; }
 @media (max-width: 700px) { .pl-row.pl-show { grid-template-columns: 56px 1fr 90px; } .pl-row.pl-edit { grid-template-columns: 70px 1fr; } .pl-row.pl-edit .btn { justify-self: start; } }
+
+/* Equipos: lista a la izquierda y detalle a la derecha; en celular se ve una a la vez */
+.eq { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; margin-top: 14px; align-items: start; }
+.eq-list { display: grid; gap: 10px; max-height: calc(100vh - 150px); overflow-y: auto; padding-right: 2px; position: sticky; top: 84px; }
+.eq-q { width: 100%; position: sticky; top: 0; z-index: 2; font-size: 16px; }
+.eq-team { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--tc); border-radius: var(--r); overflow: hidden; }
+.eq-team.on { border-color: var(--tc); box-shadow: 0 0 0 1px var(--tc); }
+.eq-th { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 12px; text-align: left; min-height: 56px; }
+.eq-tn { flex: 1; min-width: 0; font-weight: 600; }
+.eq-tn small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.eq-go { font-style: normal; font-size: 22px; color: var(--muted); }
+.eq-pl { list-style: none; margin: 0; padding: 0 0 6px; }
+.eq-pl button { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; border-top: 1px solid var(--line); padding: 11px 12px; text-align: left; font-size: 15px; min-height: 44px; }
+.eq-pl button:hover { background: rgba(255, 255, 255, .04); }
+.eq-pl button.on { background: var(--gold-soft); color: var(--gold); font-weight: 600; }
+.eq-pl .n, .eq-tbl .n { color: var(--muted); min-width: 30px; display: inline-block; font-variant-numeric: tabular-nums; }
+.eq-none { padding: 8px 12px; font-size: 14px; }
+.eq-back { display: none; background: none; border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-size: 14px; margin-bottom: 12px; }
+.eq-head { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--tc); border-radius: var(--r); }
+.eq-head .badge { width: 52px; height: 52px; font-size: 22px; }
+.eq-head h2 { font-size: 34px; line-height: 1; }
+.eq-head p { margin: 4px 0 0; }
+.eq-card { margin-top: 12px; padding: 14px; background: var(--card); border: 1px solid var(--gold); border-radius: var(--r); }
+.eq-card h3 { font-size: 28px; color: var(--gold); }
+.eq-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.eq-tiles.sm { grid-template-columns: repeat(4, 1fr); }
+.eq-card .eq-tiles { margin-top: 0; }
+.eq-tiles div { background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 4px; text-align: center; }
+.eq-tiles b { display: block; font: 400 30px/1 'Bebas Neue', sans-serif; }
+.eq-tiles span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.eq-tbl tbody tr { cursor: pointer; }
+.eq-tbl tbody tr:hover, .eq-tbl tbody tr.cur { background: var(--gold-soft); }
+@media (max-width: 760px) {
+  .eq { grid-template-columns: 1fr; }
+  .eq-list { max-height: none; position: static; overflow: visible; }
+  .eq-q { position: static; }
+  .eq.show-det .eq-list { display: none; }
+  .eq:not(.show-det) .eq-det { display: none; }
+  .eq-back { display: inline-block; }
+  .eq-head h2 { font-size: 28px; }
+}

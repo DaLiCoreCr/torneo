@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Equipos · Torneo interno Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=57">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hoopz">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+</head>
+<body>
+<main><div class="wrap page">
+  <h1 class="page-title">Equipos y <b>jugadores</b></h1>
+  <div class="pills" id="cats"></div>
+  <div class="eq" id="eq">
+    <aside class="eq-list" id="list"></aside>
+    <section class="eq-det" id="det"></section>
+  </div>
+</div></main>
+<script src="js/firebase-config.js?v=57"></script>
+<script src="js/core.js?v=57"></script>
+<script src="js/seed.js?v=57"></script>
+<script src="js/ui.js?v=57"></script>
+<script>
+T.load({ live: false }).then(() => {
+UI.layout('eq');
+const { esc } = T;
+const $ = id => document.getElementById(id);
+let cat = UI.catPicker($('cats'), { all: false }, c => { cat = c; sel = { t: null, p: null }; q = ''; render(); });
+let sel = { t: null, p: null }, q = '';
+const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const byNum = (a, b) => (a.num == null ? 999 : a.num) - (b.num == null ? 999 : b.num) || a.name.localeCompare(b.name, 'es');
+const avg = (r, k) => (r && r.gp ? (r[k] / r.gp).toFixed(1) : '–');
+
+function teamsOf(S) { return S.teams.filter(t => t.cat === cat).sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true })); }
+
+function renderList(S) {
+  const teams = teamsOf(S), nq = norm(q);
+  const blocks = teams.map(t => {
+    const players = t.players.slice().sort(byNum);
+    const teamHit = nq && norm(t.name).includes(nq);
+    const shown = nq && !teamHit ? players.filter(p => norm(p.name).includes(nq)) : players;
+    if (nq && !teamHit && !shown.length) return '';
+    return `<div class="eq-team ${sel.t === t.id ? 'on' : ''}" style="--tc:${esc(t.color || '#c9a84c')}">
+      <button class="eq-th" data-t="${esc(t.id)}">${UI.badge(t)}<span class="eq-tn">${esc(t.name)}<small>${players.length} jugador${players.length === 1 ? '' : 'es'}</small></span><i class="eq-go" aria-hidden="true">›</i></button>
+      <ul class="eq-pl">${shown.map(p => `<li><button data-t="${esc(t.id)}" data-p="${esc(p.id)}" class="${sel.p === p.id ? 'on' : ''}"><span class="n">${p.num != null ? '#' + p.num : ''}</span>${esc(p.name)}${UI.capMark(p)}</button></li>`).join('') || '<li class="muted eq-none">Aún sin jugadores</li>'}</ul></div>`;
+  }).join('');
+  $('list').innerHTML = `<input class="inp eq-q" id="q" type="search" placeholder="Buscar jugador o equipo" autocomplete="off" value="${esc(q)}">
+    ${blocks || '<div class="empty">No se encontró ningún jugador.</div>'}`;
+  if (document.activeElement === document.body && q) { const el = $('q'); el.focus(); el.setSelectionRange(q.length, q.length); }
+}
+
+function renderDetail(S) {
+  const det = $('det');
+  const t = S.teams.find(x => x.id === sel.t && x.cat === cat);
+  if (!t) { det.innerHTML = '<div class="empty">Toca un equipo o un jugador de la lista para ver su información.</div>'; return; }
+  const stats = {}; T.tournamentStats(S, cat).forEach(r => { stats[r.pid] = r; });
+  const st = T.standings(S, cat).find(r => r.team.id === t.id);
+  const coaches = T.coachList(t);
+  const players = t.players.slice().sort(byNum);
+  const cur = players.find(p => p.id === sel.p);
+  const rs = cur && stats[cur.id];
+
+  const playerCard = !cur ? '' : `<div class="eq-card"><h3>${cur.num != null ? '#' + cur.num + ' ' : ''}${esc(cur.name)}${UI.capMark(cur)}</h3>
+    <p class="muted" style="margin:2px 0 12px">${esc(t.name)}${rs ? ` · ${rs.gp} partido${rs.gp === 1 ? '' : 's'} jugado${rs.gp === 1 ? '' : 's'}` : ''}</p>
+    ${rs ? `<div class="eq-tiles">${[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'ROB'], ['blk', 'TAP']].map(([k, l]) => `<div><b>${avg(rs, k)}</b><span>${l}</span></div>`).join('')}</div>
+      <p class="note" style="margin-top:10px">Promedio por partido. Totales: ${rs.pts} pts · ${rs.reb} reb · ${rs.ast} ast · ${rs.stl} rob · ${rs.blk} tap · triples ${rs.p3m}/${rs.p3a} · tiros libres ${rs.p1m}/${rs.p1a}.</p>`
+      : '<div class="empty" style="padding:14px">Aún no tiene partidos jugados, por eso todavía no hay estadísticas.</div>'}</div>`;
+
+  const rows = players.map(p => {
+    const r = stats[p.id];
+    return `<tr class="${sel.p === p.id ? 'cur' : ''}" data-t="${esc(t.id)}" data-p="${esc(p.id)}"><td class="l"><span class="n">${p.num != null ? '#' + p.num : ''}</span> ${esc(p.name)}${UI.capMark(p)}</td><td>${r ? r.gp : 0}</td>${['pts', 'reb', 'ast', 'stl', 'blk'].map(k => `<td class="${k === 'pts' ? 'hl' : ''}">${avg(r, k)}</td>`).join('')}</tr>`;
+  }).join('');
+
+  $('det').innerHTML = `<button class="eq-back" id="back">‹ Volver a la lista</button>
+    <div class="eq-head" style="--tc:${esc(t.color || '#c9a84c')}">${UI.badge(t)}<div><h2>${esc(t.name)}</h2>
+      <p class="muted">${coaches.length ? (coaches.length > 1 ? 'Coaches: ' : 'Coach: ') + '<b style="color:var(--text)">' + esc(coaches.join(', ')) + '</b>' : 'Coach por definir'}</p></div></div>
+    ${st && st.pj ? `<div class="eq-tiles sm"><div><b>${st.pj}</b><span>PJ</span></div><div><b>${st.g}</b><span>Ganados</span></div><div><b>${st.p}</b><span>Sin ganar</span></div><div><b>${st.pts}</b><span>Puntos</span></div></div>` : ''}
+    ${playerCard}
+    <div class="sec" style="margin-top:18px"><div class="sec-h"><h2>Jugadores del <b>equipo</b></h2></div>
+      ${players.length ? `<div class="tbl-wrap"><table class="tbl eq-tbl"><thead><tr><th class="l">Jugador</th><th>PJ</th><th>PTS</th><th>REB</th><th>AST</th><th>ROB</th><th>TAP</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="note">Promedios por partido. Toca un jugador para ver sus estadísticas completas arriba.</p>` : '<div class="empty">Este equipo aún no tiene jugadores.</div>'}</div>`;
+}
+
+function render() {
+  const S = T.state();
+  const open = !!sel.t;
+  $('eq').classList.toggle('show-det', open);
+  renderList(S); renderDetail(S);
+}
+
+function select(t, p, scroll) {
+  sel = { t, p: p || null };
+  render();
+  if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  try { history.replaceState(null, '', '#' + encodeURIComponent(t) + (p ? '/' + encodeURIComponent(p) : '')); } catch (e) { /* ignore */ }
+}
+
+$('list').addEventListener('click', e => {
+  const b = e.target.closest('[data-t]'); if (!b) return;
+  select(b.dataset.t, b.dataset.p, true);
+});
+$('det').addEventListener('click', e => {
+  if (e.target.closest('#back')) { sel = { t: null, p: null }; try { history.replaceState(null, '', location.pathname); } catch (x) { /* ignore */ } render(); window.scrollTo({ top: 0 }); return; }
+  const r = e.target.closest('tr[data-p]'); if (r) { select(r.dataset.t, r.dataset.p, true); }
+});
+$('list').addEventListener('input', e => {
+  if (e.target.id !== 'q') return;
+  q = e.target.value; renderList(T.state());
+  const el = $('q'); el.focus(); el.setSelectionRange(q.length, q.length);
+});
+
+// Enlace directo: equipos.html#idEquipo/idJugador (cambia de categoría si hace falta)
+const h = decodeURIComponent(location.hash.slice(1)).split('/');
+if (h[0]) {
+  const t = T.state().teams.find(x => x.id === h[0]);
+  if (t) { cat = t.cat; try { localStorage.setItem('torneo.cat', cat); } catch (e) { /* ignore */ } document.querySelectorAll('#cats [data-cat]').forEach(b => b.classList.toggle('on', b.dataset.cat === cat)); sel = { t: t.id, p: h[1] || null }; }
+}
+render();
+UI.autoRefresh(() => { const S = T.state(); renderList(S); renderDetail(S); });
+});
+</script>
+</body>
+</html>
