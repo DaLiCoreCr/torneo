@@ -527,3 +527,15 @@ body.tv .podium { max-width: 1500px; }
   .eq-back { display: inline-block; }
   .eq-head h2 { font-size: 28px; }
 }
+
+/* Barras de desplazamiento delgadas y en el estilo de la página */
+:root { color-scheme: dark; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+* { scrollbar-width: thin; scrollbar-color: rgba(201, 168, 76, .55) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, .45); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); background-clip: padding-box; border: 2px solid transparent; }
+.eq-list { overscroll-behavior: contain; scroll-padding-top: 56px; padding-bottom: 12px; mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); }
+@media (max-width: 760px) { .eq-list { mask-image: none; -webkit-mask-image: none; } }
