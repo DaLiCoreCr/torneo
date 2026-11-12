@@ -40,7 +40,7 @@
     document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="assets/logo.jpg">');
     parallax();
     const S = T.state();
-    const links = [['index.html', 'live', 'En vivo'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['llaves.html', 'llaves', 'Llaves'], ['equipos.html', 'eq', 'Equipos'], ['estadisticas.html', 'est', 'Estadísticas']]
+    const links = [['index.html', 'live', 'En vivo'], ['equipos.html', 'eq', 'Equipos'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['llaves.html', 'llaves', 'Llaves'], ['estadisticas.html', 'est', 'Estadísticas']]
       .map(([h, k, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${l}</a>`).join('');
     document.body.insertAdjacentHTML('afterbegin',
       `<div class="ticker" id="ticker"></div>
