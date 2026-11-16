@@ -174,6 +174,7 @@ function compute(S, c) {
 }
 
 const teamOf = (S, id) => UI.team(S, id);
+const isStaff = () => { try { return sessionStorage.getItem('torneo.staff') === '1'; } catch (e) { return false; } }; // la muestra de ejemplo solo la ve el staff
 function card(title, sub, unit, items, big, note) {
   const f = items[0], rest = items.slice(1);
   return `<article class="hf-card ${big ? 'big' : ''}"><header><small>${esc(sub)}${note ? ' · ' + esc(note) : ''}</small><h3>${esc(title)}</h3></header>
@@ -203,7 +204,7 @@ function winCard(S, w) {
 }
 
 function empty(S, c) {
-  return `<div class="hf-empty"><b>El salón se abre con el primer partido</b>Aquí aparecerán los mejores de ${esc(UI.catName(S, c))}: anotadores, triplistas, reboteadores y más.<br>${demo ? '' : `<a class="btn sm ghost" style="margin-top:12px" href="salon.html?demo=1&cat=${esc(c)}">Ver una muestra</a>`}</div>`;
+  return `<div class="hf-empty"><b>El salón se abre con el primer partido</b>Aquí aparecerán los mejores de ${esc(UI.catName(S, c))}: anotadores, triplistas, reboteadores y más.<br>${demo || !isStaff() ? '' : `<a class="btn sm ghost" style="margin-top:12px" href="salon.html?demo=1&cat=${esc(c)}">Ver una muestra</a>`}</div>`;
 }
 
 /* ---------- Vista de sitio: todo en una página ---------- */
