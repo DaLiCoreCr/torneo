@@ -40,7 +40,7 @@
     document.head.insertAdjacentHTML('beforeend', '<link rel="icon" href="assets/logo.jpg">');
     parallax();
     const S = T.state();
-    const links = [['index.html', 'live', 'En vivo'], ['equipos.html', 'eq', 'Equipos'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['llaves.html', 'llaves', 'Llaves'], ['estadisticas.html', 'est', 'Estadísticas']]
+    const links = [['index.html', 'live', 'En vivo'], ['equipos.html', 'eq', 'Equipos'], ['resultados.html', 'res', 'Resultados'], ['posiciones.html', 'pos', 'Posiciones'], ['llaves.html', 'llaves', 'Llaves'], ['estadisticas.html', 'est', 'Estadísticas'], ['salon.html', 'salon', 'Salón de la fama']]
       .map(([h, k, l]) => `<a href="${h}" class="${k === active ? 'on' : ''}">${l}</a>`).join('');
     document.body.insertAdjacentHTML('afterbegin',
       `<div class="ticker" id="ticker"></div>
@@ -53,7 +53,7 @@
        </div></header>`);
     document.body.insertAdjacentHTML('beforeend',
       `<footer class="foot"><div class="wrap">
-         <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
+         <span>${esc(S.config.name)} · Hoopz Academia de Baloncesto · <a href="tv.html">Marcador TV</a> · <a href="salon.html?tv=1">Salón de la fama TV</a> · <a href="#" id="install" hidden>📲 Instalar app</a></span>
          <span class="staff">Staff: <a href="mesa.html">Mesa de anotación</a> · <a href="captura.html">Captura final</a> · <a href="sorteo.html">Sorteo</a> · <a href="presentacion.html">Presentación</a> · <a href="presentacion-llaves.html">Presentación de llaves</a> · <a href="podio.html">Podio</a> · <a href="admin.html">Administración</a></span>
        </div></footer>`);
     if (T.offline) document.querySelector('main').insertAdjacentHTML('afterbegin', '<div class="wrap"><div class="empty" style="margin-top:16px;border-color:var(--live);color:var(--live)">No se pudo conectar con la base de datos. Revisa tu conexión y recarga la página.</div></div>');

@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Salón de la fama · Torneo interno Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=57">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hoopz">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+  .hf-hero { text-align: center; padding: 26px 0 8px; }
+  .hf-hero small { color: var(--gold); letter-spacing: .28em; text-transform: uppercase; font-size: 12px; font-weight: 700; }
+  .hf-hero h1 { font: 400 clamp(46px, 9vw, 104px)/.95 'Bebas Neue', sans-serif; letter-spacing: .04em; margin: 6px 0 4px; }
+  .hf-hero h1 b { color: var(--gold); font-weight: 400; }
+  .hf-hero p { color: var(--muted); max-width: 640px; margin: 8px auto 0; font-size: 15px; line-height: 1.5; }
+  .hf-rule { height: 1px; max-width: 360px; margin: 16px auto 0; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+  .hf-tools { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; align-items: center; margin: 18px 0 6px; }
+  .hf-tools .pills { margin: 0; }
+  .hf-sec { margin-top: 34px; }
+  .hf-sec h2 { font: 400 clamp(28px, 4.4vw, 44px)/1 'Bebas Neue', sans-serif; letter-spacing: .05em; margin: 0 0 4px; }
+  .hf-sec h2 b { color: var(--gold); font-weight: 400; }
+  .hf-sec .lead-p { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .hf-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 310px), 1fr)); gap: 16px; }
+  .hf-card { position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(201, 168, 76, .12), var(--card) 46%); border: 1px solid var(--line); border-top: 3px solid var(--gold); border-radius: var(--r); padding: 18px 18px 12px; }
+  .hf-card::after { content: '★'; position: absolute; right: 14px; top: 6px; color: rgba(201, 168, 76, .16); font-size: 70px; line-height: 1; pointer-events: none; }
+  .hf-card header small { color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+  .hf-card h3 { font: 400 30px/1.05 'Bebas Neue', sans-serif; color: var(--gold); letter-spacing: .04em; margin: 3px 0 14px; }
+  .hf-1 { display: flex; align-items: center; gap: 12px; }
+  .hf-1 .badge { flex: none; }
+  .hf-who { min-width: 0; }
+  .hf-who b { display: block; font-size: 18px; line-height: 1.15; }
+  .hf-who span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hf-big { margin-left: auto; text-align: right; font: 400 58px/1 'Bebas Neue', sans-serif; color: var(--text); white-space: nowrap; }
+  .hf-big em { display: block; font: 600 11px/1.2 Inter, sans-serif; font-style: normal; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-top: 2px; }
+  .hf-sub { font-size: 12px; color: var(--muted); margin: 10px 0 10px; }
+  .hf-rest { list-style: none; margin: 0; padding: 6px 0 0; border-top: 1px solid var(--line); }
+  .hf-rest li { display: flex; align-items: center; gap: 8px; padding: 5px 0; font-size: 13px; }
+  .hf-rest .n { width: 16px; color: var(--muted); }
+  .hf-rest .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hf-rest .nm small { color: var(--muted); }
+  .hf-rest b { font: 400 21px 'Bebas Neue', sans-serif; }
+  .hf-rec .hf-big { font-size: 66px; }
+  .hf-rec h3 { font-size: 24px; margin-bottom: 12px; }
+  .hf-empty { text-align: center; border: 1px dashed var(--line); border-radius: var(--r); padding: 34px 18px; margin-top: 22px; color: var(--muted); line-height: 1.6; }
+  .hf-empty b { color: var(--gold); display: block; font: 400 30px 'Bebas Neue', sans-serif; letter-spacing: .05em; margin-bottom: 4px; }
+  .hf-foot { text-align: center; margin: 40px 0 6px; color: var(--muted); font-size: 14px; }
+  .hf-foot b { color: var(--gold); font: 400 28px 'Bebas Neue', sans-serif; letter-spacing: .06em; display: block; }
+
+  /* Vista de TV: una diapositiva a la vez, con rotación automática */
+  .hf-stage { min-height: 62vh; display: flex; align-items: center; justify-content: center; padding: 10px 0; animation: hfin .8s ease both; }
+  @keyframes hfin { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+  .hf-slide { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .hf-slide .hf-card.big { width: 100%; max-width: 1080px; padding: clamp(20px, 3vw, 46px); }
+  .big header small { font-size: clamp(12px, 1.5vw, 20px); }
+  .big h3 { font-size: clamp(40px, 5.4vw, 82px); margin-bottom: clamp(14px, 2vw, 30px); }
+  .big .hf-who b { font-size: clamp(24px, 3.4vw, 54px); }
+  .big .hf-who span { font-size: clamp(13px, 1.7vw, 24px); }
+  .big .hf-big { font-size: clamp(84px, 13vw, 210px); }
+  .big .hf-big em { font-size: clamp(12px, 1.5vw, 20px); }
+  .big .hf-1 .badge { width: clamp(70px, 10vw, 150px); height: clamp(70px, 10vw, 150px); font-size: clamp(26px, 3.6vw, 54px); }
+  .big .hf-sub { font-size: clamp(13px, 1.7vw, 24px); }
+  .big .hf-rest li { font-size: clamp(15px, 2vw, 30px); padding: clamp(5px, .8vw, 12px) 0; }
+  .big .hf-rest b { font-size: clamp(24px, 3vw, 46px); }
+  .hf-stage .hf-grid { width: 100%; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: clamp(12px, 1.6vw, 26px); }
+  .hf-stage.multi .hf-card h3 { font-size: clamp(24px, 2.8vw, 42px); }
+  .hf-stage.multi .hf-who b { font-size: clamp(16px, 1.9vw, 28px); }
+  .hf-stage.multi .hf-big { font-size: clamp(54px, 6.4vw, 100px); }
+  .hf-stage.multi .hf-who span, .hf-stage.multi .hf-sub { font-size: clamp(12px, 1.3vw, 18px); }
+  .hf-intro { text-align: center; }
+  .hf-intro small { color: var(--gold); letter-spacing: .3em; text-transform: uppercase; font-size: clamp(13px, 1.8vw, 24px); font-weight: 700; }
+  .hf-intro h2 { font: 400 clamp(56px, 11vw, 170px)/.92 'Bebas Neue', sans-serif; margin: 8px 0; letter-spacing: .04em; }
+  .hf-intro h2 b { color: var(--gold); font-weight: 400; }
+  .hf-intro .hf-cat { display: inline-block; font: 400 clamp(30px, 5vw, 76px) 'Bebas Neue', sans-serif; letter-spacing: .12em; color: #000; background: var(--gold); padding: 2px 26px; border-radius: 6px; margin-top: 6px; }
+  .hf-intro p { color: var(--muted); font-size: clamp(14px, 2vw, 28px); max-width: 900px; margin: 18px auto 0; line-height: 1.45; }
+  .hf-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .hf-dots { display: flex; gap: 7px; justify-content: center; margin: 8px 0 0; flex-wrap: wrap; }
+  .hf-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); transition: .3s; }
+  .hf-dots i.on { background: var(--gold); transform: scale(1.35); }
+  .hf-cattag { text-align: center; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; font-size: clamp(12px, 1.5vw, 20px); margin-bottom: 4px; }
+  .hf-cattag b { color: var(--gold); }
+  @media (max-width: 520px) { .hf-big { font-size: 48px; } .hf-card h3 { font-size: 26px; } }
+  @media (prefers-reduced-motion: reduce) { .hf-stage { animation: none; } }
+</style>
+</head>
+<body>
+<main><div class="wrap pres" id="wrap"><div id="app"></div></div></main>
+<script src="js/firebase-config.js?v=57"></script>
+<script src="js/core.js?v=57"></script>
+<script src="js/seed.js?v=57"></script>
+<script src="js/ui.js?v=57"></script>
+<script>
+/* Salón de la fama: lo mejor de cada categoría (solo cosas positivas). Todo se calcula con los partidos finalizados; no escribe nada.
+   ?tv=1 → vista de pantalla grande con rotación automática · ?demo=1 → muestra con datos de ejemplo (en memoria) */
+T.load({ live: false }).then(() => {
+UI.layout('salon');
+const { esc } = T;
+const params = new URLSearchParams(location.search);
+const TV = params.get('tv') === '1', demo = params.get('demo') === '1';
+if (TV) document.body.classList.add('tv');
+const app = document.getElementById('app');
+const SLIDE_MS = 10000, MIN_ATT = 5;
+const getS = () => (demo ? (window.__demoS || (window.__demoS = Seed.build())) : T.state());
+const cats = () => getS().config.categories;
+let cat = params.get('cat');
+if (!(cat === 'all' && TV) && !cats().some(c => c.id === cat)) cat = TV ? 'all' : UI.getCat(false);
+let idx = 0, paused = false, timer = null;
+
+const LEAD = [
+  { t: 'Máximo anotador', s: 'El que más puntos suma', unit: 'puntos', val: r => r.pts, sub: r => `${(r.pts / r.gp).toFixed(1)} por partido · ${r.gp} PJ` },
+  { t: 'Rey de los triples', s: 'Letal desde la distancia', unit: 'triples', val: r => r.p3m, sub: r => `${r.p3m} de ${r.p3a} intentos · ${r.gp} PJ` },
+  { t: 'Dueño del tablero', s: 'Manda en los rebotes', unit: 'rebotes', val: r => r.reb, sub: r => `${(r.reb / r.gp).toFixed(1)} por partido · ${r.gp} PJ` },
+  { t: 'Maestro de las asistencias', s: 'Hace brillar a todo el equipo', unit: 'asistencias', val: r => r.ast, sub: r => `${(r.ast / r.gp).toFixed(1)} por partido · ${r.gp} PJ` },
+  { t: 'Manos rápidas', s: 'Los reyes del robo', unit: 'robos', val: r => r.stl, sub: r => `${(r.stl / r.gp).toFixed(1)} por partido · ${r.gp} PJ` },
+  { t: 'Muralla defensiva', s: 'Nadie pasa por aquí', unit: 'tapones', val: r => r.blk, sub: r => `${(r.blk / r.gp).toFixed(1)} por partido · ${r.gp} PJ` },
+  { t: 'Sangre fría', s: 'Mejor efectividad en tiros libres', note: `Mínimo ${MIN_ATT} intentos`, unit: 'tiros libres', ok: r => r.p1a >= MIN_ATT, val: r => r.p1m / r.p1a, fmt: v => Math.round(v * 100) + '%', sub: r => `${r.p1m} de ${r.p1a} tiros libres` },
+  { t: 'Impacto en cancha', s: 'Su equipo domina cuando él juega', unit: '+/-', ok: r => r.mgp > 0, val: r => r.pm, fmt: v => (v > 0 ? '+' : '') + v, sub: r => `${(r.pm / r.mgp).toFixed(1)} por partido · ${r.mgp} PJ` }
+];
+const REC = [
+  ['Más puntos en un partido', 'puntos', s => s.pts], ['Más triples en un partido', 'triples', s => s.p3m], ['Más rebotes en un partido', 'rebotes', s => s.oreb + s.dreb],
+  ['Más asistencias en un partido', 'asistencias', s => s.ast], ['Más robos en un partido', 'robos', s => s.stl], ['Más tapones en un partido', 'tapones', s => s.blk]
+];
+const TAGS = ['Los nombres cambian partido a partido. ¿Quién será el siguiente en aparecer?', 'Aquí se escribe la historia del torneo. Cada jugada cuenta.', 'Esfuerzo, equipo y corazón: así se llega al salón de la fama.'];
+
+const rankOf = (list, key) => { let r = 0, last = null; return list.map((x, i) => { if (x[key] !== last) { r = i + 1; last = x[key]; } return Object.assign({ rank: r }, x); }); };
+
+function compute(S, c) {
+  const idxp = T.playerIndex(S);
+  const finals = S.games.filter(g => g.cat === c && g.status === 'final');
+  const rows = T.tournamentStats(S, c);
+  const leaders = LEAD.map(L => {
+    const list = rows.filter(r => (!L.ok || L.ok(r))).map(r => ({ r, v: L.val(r) })).filter(x => x.v > 0)
+      .sort((a, b) => b.v - a.v || b.r.pts / b.r.gp - a.r.pts / a.r.gp || a.r.player.name.localeCompare(b.r.player.name));
+    return { L, top: rankOf(list, 'v').slice(0, 5) };
+  }).filter(x => x.top.length);
+  const recs = REC.map(([t, unit, fn]) => {
+    let best = 0, list = [];
+    finals.forEach(g => Object.entries(T.playerStats(g.events)).forEach(([pid, s]) => {
+      const v = fn(s); if (!idxp[pid] || v <= 0) return;
+      if (v > best) { best = v; list = []; }
+      if (v === best) list.push({ pid, g });
+    }));
+    return best ? { t, unit, v: best, list } : null;
+  }).filter(Boolean);
+  const ts = S.teams.filter(t => t.cat === c), st = {};
+  ts.forEach(t => { st[t.id] = { t, gp: 0, pf: 0, pa: 0, w: 0, best: 0, run: 0 }; });
+  let bigWin = null;
+  finals.filter(g => !g.forfeit).forEach(g => {
+    [[g.home, g.score.h, g.score.a], [g.away, g.score.a, g.score.h]].forEach(([id, f, a]) => { const x = st[id]; if (x) { x.gp++; x.pf += f; x.pa += a; } });
+    const m = Math.abs(g.score.h - g.score.a);
+    if (m > 0 && (!bigWin || m > bigWin.m)) bigWin = { g, m };
+  });
+  finals.slice().sort(UI.byDate).forEach(g => ts.forEach(t => {
+    if (g.home !== t.id && g.away !== t.id) return;
+    const x = st[t.id];
+    if (T.gameWinner(g) === t.id) { x.run++; x.best = Math.max(x.best, x.run); } else x.run = 0;
+  }));
+  const arr = Object.values(st).filter(x => x.gp > 0);
+  const teams = [];
+  if (arr.length) {
+    teams.push({ t: 'Mejor ataque', s: 'Más puntos anotados por partido', unit: 'pts / partido', list: rankOf(arr.map(x => ({ x, v: +(x.pf / x.gp).toFixed(1) })).sort((a, b) => b.v - a.v), 'v').slice(0, 3), sub: x => `${x.pf} puntos en ${x.gp} PJ` });
+    teams.push({ t: 'Mejor defensa', s: 'Menos puntos recibidos por partido', unit: 'pts / partido', list: rankOf(arr.map(x => ({ x, v: +(x.pa / x.gp).toFixed(1) })).sort((a, b) => a.v - b.v), 'v').slice(0, 3), sub: x => `${x.pa} puntos en contra en ${x.gp} PJ` });
+    const streak = arr.filter(x => x.best >= 2).map(x => ({ x, v: x.best })).sort((a, b) => b.v - a.v);
+    if (streak.length) teams.push({ t: 'Racha ganadora', s: 'Más victorias seguidas', unit: 'victorias', list: rankOf(streak, 'v').slice(0, 3), sub: x => `${x.best} seguidas en ${x.gp} PJ` });
+  }
+  return { finals: finals.length, players: rows.length, leaders, recs, teams, bigWin };
+}
+
+const teamOf = (S, id) => UI.team(S, id);
+function card(title, sub, unit, items, big, note) {
+  const f = items[0], rest = items.slice(1);
+  return `<article class="hf-card ${big ? 'big' : ''}"><header><small>${esc(sub)}${note ? ' · ' + esc(note) : ''}</small><h3>${esc(title)}</h3></header>
+    <div class="hf-1">${UI.badge(f.team)}<div class="hf-who"><b>${esc(f.name)}</b><span>${esc(f.meta)}</span></div><div class="hf-big">${esc(f.vs)}<em>${esc(unit)}</em></div></div>
+    ${f.sub ? `<p class="hf-sub">${esc(f.sub)}</p>` : ''}
+    ${rest.length ? `<ol class="hf-rest">${rest.map(x => `<li><span class="n">${x.rank}</span><span class="nm">${esc(x.name)} <small>· ${esc(x.meta)}</small></span><b>${esc(x.vs)}</b></li>`).join('')}</ol>` : ''}</article>`;
+}
+function leaderItems(S, e) {
+  return e.top.map((x, i) => ({ rank: x.rank, team: x.r.team, name: x.r.player.name, meta: `#${x.r.player.num} · ${x.r.team.name}`, vs: e.L.fmt ? e.L.fmt(x.v) : String(x.v), sub: i === 0 ? e.L.sub(x.r) : '' }));
+}
+function teamItems(e) {
+  return e.list.map((o, i) => ({ rank: o.rank, team: o.x.t, name: o.x.t.name, meta: `${o.x.gp} PJ`, vs: String(o.v), sub: i === 0 ? e.sub(o.x) : '' }));
+}
+function recCard(S, R) {
+  const f = R.list[0], p = T.playerIndex(S)[f.pid], g = f.g;
+  const opp = teamOf(S, g.home === p.team.id ? g.away : g.home);
+  const more = R.list.length > 1 ? ` (+${R.list.length - 1} más con la misma marca)` : '';
+  return `<article class="hf-card hf-rec"><header><small>Récord del torneo</small><h3>${esc(R.t)}</h3></header>
+    <div class="hf-1">${UI.badge(p.team)}<div class="hf-who"><b>${esc(p.p.name)}</b><span>#${esc(p.p.num)} · ${esc(p.team.name)}</span></div><div class="hf-big">${R.v}<em>${esc(R.unit)}</em></div></div>
+    <p class="hf-sub">Ante ${esc(opp.name)} · ${esc(UI.fmtDate(g.date))}${g.stage ? ' · ' + esc(T.stageName(g)) : ''}${more}</p></article>`;
+}
+function winCard(S, w) {
+  const g = w.g, hw = g.score.h > g.score.a, win = teamOf(S, hw ? g.home : g.away), lose = teamOf(S, hw ? g.away : g.home);
+  return `<article class="hf-card hf-rec"><header><small>Récord del torneo</small><h3>Mayor victoria</h3></header>
+    <div class="hf-1">${UI.badge(win)}<div class="hf-who"><b>${esc(win.name)}</b><span>Ante ${esc(lose.name)}</span></div><div class="hf-big">+${w.m}<em>${Math.max(g.score.h, g.score.a)} – ${Math.min(g.score.h, g.score.a)}</em></div></div>
+    <p class="hf-sub">${esc(UI.fmtDate(g.date))}${g.stage ? ' · ' + esc(T.stageName(g)) : ''}</p></article>`;
+}
+
+function empty(S, c) {
+  return `<div class="hf-empty"><b>El salón se abre con el primer partido</b>Aquí aparecerán los mejores de ${esc(UI.catName(S, c))}: anotadores, triplistas, reboteadores y más.<br>${demo ? '' : `<a class="btn sm ghost" style="margin-top:12px" href="salon.html?demo=1&cat=${esc(c)}">Ver una muestra</a>`}</div>`;
+}
+
+/* ---------- Vista de sitio: todo en una página ---------- */
+function siteView(S, c) {
+  const d = compute(S, c);
+  const tools = `<div class="hf-tools">${S.config.categories.length > 1 ? `<div class="pills">${S.config.categories.map(x => `<button class="pill ${x.id === c ? 'on' : ''}" data-cat="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>` : ''}
+    <a class="btn sm ghost" href="salon.html?tv=1&cat=${esc(c)}${demo ? '&demo=1' : ''}">Ver en pantalla grande</a></div>`;
+  const hero = `<div class="hf-hero"><small>Torneo interno Hoopz · ${esc(UI.catName(S, c))}</small><h1>Salón de la <b>fama</b></h1><div class="hf-rule"></div>
+    <p>Los mejores de la categoría, partido a partido. ${d.finals ? `Después de <b>${d.finals}</b> ${d.finals === 1 ? 'partido jugado' : 'partidos jugados'}, estos son los que están dejando huella.` : 'Todo está por escribirse.'}</p></div>${tools}`;
+  const banner = demo ? '<div class="chip soft" style="display:table;margin:8px auto;font-size:13px;padding:6px 12px">MUESTRA · datos de ejemplo</div>' : '';
+  if (!d.finals) return hero + banner + empty(S, c);
+  const leaders = d.leaders.map(e => card(e.L.t, e.L.s, e.L.unit, leaderItems(S, e), false, e.L.note)).join('');
+  const recs = d.recs.map(R => recCard(S, R)).join('') + (d.bigWin ? winCard(S, d.bigWin) : '');
+  const teams = d.teams.map(e => card(e.t, e.s, e.unit, teamItems(e), false)).join('');
+  return hero + banner +
+    `<section class="hf-sec"><h2>Líderes del <b>torneo</b></h2><p class="lead-p">Los mejores en cada categoría de juego, con el total acumulado.</p><div class="hf-grid">${leaders}</div></section>` +
+    (recs ? `<section class="hf-sec"><h2>Récords de un <b>partido</b></h2><p class="lead-p">Las mejores actuaciones individuales del torneo.</p><div class="hf-grid">${recs}</div></section>` : '') +
+    (teams ? `<section class="hf-sec"><h2>Equipos <b>destacados</b></h2><p class="lead-p">Los que mejor están jugando como grupo.</p><div class="hf-grid">${teams}</div></section>` : '') +
+    `<div class="hf-foot"><b>¿Quién será el próximo?</b>${TAGS[0]}</div>`;
+}
+
+/* ---------- Vista de TV: diapositivas ---------- */
+function slidesFor(S, c, ci) {
+  const name = UI.catName(S, c), d = compute(S, c), out = [];
+  const tag = `<div class="hf-cattag">${esc(S.config.name)} · <b>${esc(name)}</b></div>`;
+  out.push(`<div class="hf-intro"><small>${esc(S.config.name)}</small><h2>Salón de la <b>fama</b></h2><div class="hf-cat">${esc(name)}</div><p>${d.finals ? esc(TAGS[ci % TAGS.length]) : 'Aquí aparecerán los mejores en cuanto se juegue el primer partido.'}</p></div>`);
+  if (!d.finals) return out;
+  d.leaders.forEach(e => out.push(tag + card(e.L.t, e.L.s, e.L.unit, leaderItems(S, e), true, e.L.note)));
+  const recs = d.recs.map(R => recCard(S, R)); if (d.bigWin) recs.push(winCard(S, d.bigWin));
+  if (recs.length) out.push(`${tag}<div class="hf-grid multi">${recs.join('')}</div>`);
+  if (d.teams.length) out.push(`${tag}<div class="hf-grid multi">${d.teams.map(e => card(e.t, e.s, e.unit, teamItems(e), false)).join('')}</div>`);
+  return out;
+}
+function tvSlides(S) {
+  const list = cat === 'all' ? S.config.categories.map(c => c.id) : [cat];
+  return list.flatMap((c, i) => slidesFor(S, c, i));
+}
+function tvView(S, animate) {
+  const slides = tvSlides(S);
+  if (idx >= slides.length) idx = 0;
+  const bar = `<div class="hf-bar"><div class="row" style="gap:8px">${S.config.categories.length > 1 ? `<div class="pills" style="margin:0"><button class="pill ${cat === 'all' ? 'on' : ''}" data-cat="all">Todas</button>${S.config.categories.map(x => `<button class="pill ${x.id === cat ? 'on' : ''}" data-cat="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>` : ''}</div>
+    <div class="row" style="gap:8px"><button class="btn sm ghost" id="prev">‹</button><button class="btn sm ghost" id="pause">${paused ? '▶ Seguir' : '⏸ Pausar'}</button><button class="btn sm ghost" id="next">›</button><a class="btn sm ghost" href="salon.html?cat=${esc(cat === 'all' ? cats()[0].id : cat)}${demo ? '&demo=1' : ''}">Ver en el sitio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir' : 'Pantalla completa'}</button></div></div>`;
+  const multi = /hf-grid multi/.test(slides[idx]);
+  app.innerHTML = bar + `<div class="hf-stage ${multi ? 'multi' : ''}" id="stage" ${animate ? '' : 'style="animation:none"'}><div class="hf-slide">${slides[idx]}</div></div>
+    <div class="hf-dots">${slides.map((_, i) => `<i class="${i === idx ? 'on' : ''}"></i>`).join('')}</div>`;
+  UI.fitTV();
+}
+
+function render() {
+  const S = getS();
+  if (TV) return tvView(S, false);
+  app.innerHTML = siteView(S, cat);
+}
+
+app.addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]');
+  if (b) { cat = b.dataset.cat; idx = 0; history.replaceState(null, '', '?' + (TV ? 'tv=1&' : '') + (demo ? 'demo=1&' : '') + 'cat=' + cat); try { localStorage.setItem('torneo.cat', cat); } catch (err) { /* ignore */ } return TV ? tvView(getS(), true) : render(); }
+  const id = e.target.id;
+  if (id === 'pause') { paused = !paused; tvView(getS(), false); }
+  if (id === 'next') { idx++; tvView(getS(), true); }
+  if (id === 'prev') { idx = Math.max(0, idx - 1); tvView(getS(), true); }
+  if (id === 'fs') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
+});
+document.addEventListener('keydown', e => {
+  if (!TV) return;
+  if (e.key === 'ArrowRight') { idx++; tvView(getS(), true); }
+  else if (e.key === 'ArrowLeft') { idx = Math.max(0, idx - 1); tvView(getS(), true); }
+  else if (e.key === ' ') { e.preventDefault(); paused = !paused; tvView(getS(), false); }
+});
+document.addEventListener('fullscreenchange', () => { if (TV) tvView(getS(), false); });
+render();
+if (TV) timer = setInterval(() => { if (!paused && !document.hidden) { idx++; tvView(getS(), true); } }, SLIDE_MS);
+if (!demo) UI.autoRefresh(render);
+});
+</script>
+</body>
+</html>
