@@ -48,6 +48,7 @@ function picker(S) {
   const row = g => `<div class="gm"><div><b>${esc(UI.team(S, g.home).name)}</b> vs <b>${esc(UI.team(S, g.away).name)}</b>
       <div class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)} · Captura ${T.MODES[g.mode]}</div></div>
       <div class="row">${g.status === 'live' ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : ''}${g.status === 'final' ? `<span class="chip">${g.score.h}–${g.score.a}</span>` : ''}
+      <a class="btn ghost sm" href="boleta.html?id=${esc(g.id)}" target="_blank">Boleta</a>
       <button class="btn gold sm" data-act="open" data-id="${esc(g.id)}">${g.status === 'final' ? 'Reabrir' : 'Abrir'}</button></div></div>`;
   app.innerHTML = `<h1 class="page-title">Mesa de <b>anotación</b></h1>
     <h3 class="gold" style="font-size:22px;margin-top:18px">Elige el partido</h3>
@@ -101,7 +102,8 @@ function control(S, g) {
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
       <span class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · Captura ${T.MODES[g.mode]}</span>
-      <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></div>
+      <span class="row"><a class="btn sm ghost" href="boleta.html?id=${esc(g.id)}" target="_blank">Boleta</a>
+      <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></span></div>
     <div class="mhead">${teamBox('h', h)}
       <div class="clkbox"><div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div>
         <div class="row"><button class="btn sm ${g.clock.running ? '' : 'gold'}" data-act="toggle" ${g.status === 'final' ? 'disabled' : ''}>${g.clock.running ? 'Pausar' : 'Iniciar'}</button>
