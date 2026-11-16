@@ -61,6 +61,90 @@
     T.subscribe(renderTicker);
     setInterval(tick, 500);
     pwa();
+    reminders();
+  }
+
+  /* ---------- Avisos emergentes antes de cada partido ----------
+     Público: "quedan N min para el partido". Staff (mesa/árbitros): recordatorio de registrar a los jugadores que entran, con opción de postergar.
+     Solo usa los datos que la pantalla ya tiene cargados (no agrega lecturas a Firebase) y solo funciona con la app abierta. */
+  const REM_KEY = 'torneo.rem';
+  const remGet = () => { try { return JSON.parse(localStorage.getItem(REM_KEY) || '{}'); } catch (e) { return {}; } };
+  const remSet = o => { try { localStorage.setItem(REM_KEY, JSON.stringify(o)); } catch (e) { /* ignore */ } };
+  const markStaff = () => { try { sessionStorage.setItem('torneo.staff', '1'); } catch (e) { /* ignore */ } };
+  const isStaffView = () => { try { return sessionStorage.getItem('torneo.staff') === '1'; } catch (e) { return false; } };
+
+  function remBeep() {
+    try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch (e) { /* ignore */ }
+    if (!isStaffView()) return;
+    try {
+      const C = new (w.AudioContext || w.webkitAudioContext)(), o = C.createOscillator(), gn = C.createGain();
+      o.connect(gn); gn.connect(C.destination); o.frequency.value = 880; gn.gain.value = 0.08; o.start(); o.stop(C.currentTime + 0.25);
+    } catch (e) { /* el navegador puede bloquear el sonido */ }
+  }
+
+  function reminders() {
+    if (/(^|\/)(tv|podio|presentacion|presentacion-llaves)\.html$/.test(location.pathname)) return;
+    document.head.insertAdjacentHTML('beforeend', `<style>
+      #rem { position: fixed; inset: 0; z-index: 80; background: rgba(0,0,0,.78); display: flex; align-items: center; justify-content: center; padding: 16px; }
+      #rem .rem-card { background: var(--card); border: 2px solid var(--gold); border-radius: var(--r); max-width: 460px; width: 100%; padding: 22px 20px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,.6); max-height: 92vh; overflow: auto; }
+      #rem .rem-k { color: var(--gold); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; }
+      #rem h2 { font-family: 'Bebas Neue', sans-serif; font-size: 44px; line-height: 1; margin: 6px 0 10px; }
+      #rem .rem-g { font-size: 18px; margin: 0 0 4px; }
+      #rem .rem-g small { color: var(--muted); font-size: 14px; }
+      #rem .rem-m { font-size: 15px; line-height: 1.45; margin: 12px 0 14px; color: var(--text); }
+      #rem .rem-pp { border-top: 1px solid var(--line); padding-top: 12px; margin-bottom: 14px; }
+      #rem .rem-pp span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+      #rem .rem-pp .row { justify-content: center; gap: 8px; }
+      #rem .rem-pp label { display: block; font-size: 13px; color: var(--muted); margin-top: 10px; }
+      #rem .rem-act { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    </style>`);
+    let timer = null;
+    const close = () => { const el = document.getElementById('rem'); if (el) el.remove(); clearInterval(timer); };
+    const show = (g, S) => {
+      const staff = isStaffView();
+      const h = team(S, g.home), a = team(S, g.away);
+      const when = () => new Date(g.date).getTime() - Date.now();
+      const title = () => { const m = Math.ceil(when() / 60000); return m > 1 ? `Quedan ${m} min` : m === 1 ? 'Queda 1 min' : 'Es hora del partido'; };
+      const msg = staff
+        ? 'Ve a la mesa y toca en cada equipo a los jugadores que entran a la cancha (modo <b>Cambios</b>) para registrar el quinteto inicial antes de iniciar el reloj. Si el partido se atrasa, pospónlo aquí.'
+        : 'El partido está por comenzar. Prepárate para seguirlo en vivo en la app.';
+      const pp = staff ? `<div class="rem-pp"><span>¿Se atrasa? Postergar</span><div class="row">${[5, 10, 15].map(n => `<button class="btn sm" data-pp="${n}">+${n} min</button>`).join('')}</div>
+        <label><input type="checkbox" id="rem-all" checked> Mover también los siguientes partidos del mismo día</label></div>` : '';
+      const go = staff ? `<a class="btn gold" href="mesa.html?id=${esc(g.id)}">Abrir mesa</a>` : `<a class="btn gold" href="partido.html?id=${esc(g.id)}">Ver partido</a>`;
+      close();
+      document.body.insertAdjacentHTML('beforeend', `<div id="rem" role="alertdialog" aria-modal="true"><div class="rem-card">
+        <div class="rem-k">${staff ? 'Mesa · próximo partido' : 'Próximo partido'}</div><h2>${title()}</h2>
+        <p class="rem-g"><b>${esc(h.name)}</b> vs <b>${esc(a.name)}</b><br><small>${esc(catName(S, g.cat))} · ${fmtTime(g.date)}</small></p>
+        <p class="rem-m">${msg}</p>${pp}<div class="rem-act">${go}<button class="btn" data-x>${staff ? 'Entendido' : 'Cerrar'}</button></div></div></div>`);
+      const mem = remGet(); mem[g.id + '|' + g.date] = 'x'; remSet(mem); // ya se avisó de este horario
+      remBeep();
+      timer = setInterval(() => { const t = document.querySelector('#rem h2'); if (t) t.textContent = title(); }, 5000);
+      document.getElementById('rem').addEventListener('click', e => {
+        const pb = e.target.closest('[data-pp]');
+        if (e.target.closest('[data-x]') || e.target === document.getElementById('rem')) return close();
+        if (!pb) return;
+        const n = +pb.dataset.pp, all = document.getElementById('rem-all').checked, old = g.date, day = old.slice(0, 10);
+        T.mutate(s => s.games.forEach(x => {
+          if (x.status === 'scheduled' && x.date && (x.id === g.id || (all && x.date.slice(0, 10) === day && x.date > old))) x.date = T.addMin(x.date, n);
+        }));
+        const fresh = T.game(g.id), m2 = remGet();
+        if (fresh) m2[fresh.id + '|' + fresh.date] = Date.now() + 60000; // el nuevo aviso no sale antes de 1 minuto
+        remSet(m2); close(); toast('Partido pospuesto ' + n + ' min');
+      });
+    };
+    const check = () => {
+      if (document.hidden || document.getElementById('rem')) return;
+      const S = T.state(), lead = S.config.reminderMin == null ? 5 : +S.config.reminderMin;
+      if (!(lead > 0)) return;
+      const now = Date.now();
+      const g = S.games.filter(x => x.status === 'scheduled' && x.date && new Date(x.date).getTime() >= now - 20 * 60000).sort(byDate)[0];
+      if (!g || new Date(g.date).getTime() - now > lead * 60000) return;
+      const seen = remGet()[g.id + '|' + g.date];
+      if (seen === 'x' || (seen && seen > now)) return;
+      show(g, S);
+    };
+    setInterval(check, 15000);
+    setTimeout(check, 2500);
   }
 
   /* Fondo fijo que se desplaza despacio mientras se baja la página (funciona también en iPhone) */
@@ -283,7 +367,7 @@
     T.auth.onChange(user => {
       if (!user) { started = false; return loginForm(root); }
       if (started) return;
-      started = true; T.setStaff(true); start();
+      started = true; T.setStaff(true); markStaff(); start();
       const s = document.querySelector('.staff');
       if (s) {
         s.insertAdjacentHTML('beforeend', ` · <a href="#" id="logout">Cerrar sesión</a>`);
@@ -310,7 +394,7 @@
   function pinGate(root, start) {
     let ok = false;
     try { ok = sessionStorage.getItem('torneo.auth') === '1'; } catch (e) { /* ignore */ }
-    if (ok) return start();
+    if (ok) { markStaff(); return start(); }
     root.innerHTML = `<form class="gate card" id="gate"><h2>Acceso de staff</h2>
       <p class="muted">Ingresa el PIN para continuar. <small>(Prototipo local: PIN <b>${PIN}</b>. En producción esto será un inicio de sesión con Firebase.)</small></p>
       <input class="inp" id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN" autofocus>
@@ -319,7 +403,7 @@
       e.preventDefault();
       if (document.getElementById('pin').value === PIN) {
         try { sessionStorage.setItem('torneo.auth', '1'); } catch (err) { /* ignore */ }
-        start();
+        markStaff(); start();
       } else document.getElementById('perr').textContent = 'PIN incorrecto';
     });
   }
@@ -363,5 +447,5 @@
   }
   addEventListener('resize', () => { if (document.body.classList.contains('tv')) fitTV(); });
 
-  w.UI = { fitTV, initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult };
+  w.UI = { fitTV, initials, fmtDate, fmtTime, catName, team, badge, capMark, byDate, clockText, layout, tick, autoRefresh, getCat, catPicker, gameCard, bracketView, standingsTable, toast, gate, scoreFx, shareResult, reminders };
 })(window);
