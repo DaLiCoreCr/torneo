@@ -92,7 +92,11 @@
   const game = id => state.games.find(g => g.id === id);
 
   /* ---------- Reloj ---------- */
-  const periodLen = p => (p <= cfg().rules.periods ? cfg().rules.minutes : cfg().rules.otMinutes) * 60000;
+  /* Minutos por período y de prórroga: se pueden fijar por categoría (config.minutesByCat / otMinutesByCat); si no, valen los generales de rules */
+  const byCat = (map, cat, general) => { const v = map && cat != null ? +map[cat] : NaN; return v > 0 ? v : general; };
+  const periodMinutes = cat => byCat(cfg().minutesByCat, cat, cfg().rules.minutes);
+  const otMinutes = cat => byCat(cfg().otMinutesByCat, cat, cfg().rules.otMinutes);
+  const periodLen = (p, cat) => (p <= cfg().rules.periods ? periodMinutes(cat) : otMinutes(cat)) * 60000;
   const periodLabel = p => (p <= cfg().rules.periods ? 'Q' + p : 'OT' + (p - cfg().rules.periods));
   const remaining = (g, now = Date.now()) =>
     g.clock.running ? Math.max(0, g.clock.remainingMs - (now - g.clock.startedAt)) : g.clock.remainingMs;
@@ -105,7 +109,7 @@
   function newGame({ cat, home, away, date, mode }) {
     return {
       id: uid('g'), cat, home, away, date, mode: mode ?? 1, status: 'scheduled',
-      clock: { period: 1, running: false, remainingMs: periodLen(1), startedAt: null },
+      clock: { period: 1, running: false, remainingMs: periodLen(1, cat), startedAt: null },
       score: { h: 0, a: 0 }, events: []
     };
   }
@@ -134,7 +138,7 @@
     if (g.clock.running) g.clock.startedAt = Date.now();
   }
   function nextPeriod(g) {
-    pauseClock(g); g.clock.period++; g.clock.remainingMs = periodLen(g.clock.period);
+    pauseClock(g); g.clock.period++; g.clock.remainingMs = periodLen(g.clock.period, g.cat);
   }
   function finishGame(g) { pauseClock(g); g.status = 'final'; if (!g.forfeit) g.score = score(g.events); }
   /* Quita la última jugada de un jugador (captura sin tiempos) */
@@ -155,7 +159,7 @@
   function clearForfeit(g) { delete g.forfeit; g.status = 'live'; g.score = score(g.events); }
 
   /* ---------- En cancha, minutos y +/- (se calculan recorriendo los cambios registrados) ---------- */
-  const elapsed = (p, c) => { let t = 0; for (let i = 1; i < p; i++) t += periodLen(i); return t + periodLen(p) - c; };
+  const elapsed = (cat, p, c) => { let t = 0; for (let i = 1; i < p; i++) t += periodLen(i, cat); return t + periodLen(p, cat) - c; };
   const hasSubs = g => g.events.some(e => e.type === 'SUB_IN');
   function onCourt(g) {
     const on = { h: new Set(), a: new Set() };
@@ -179,10 +183,10 @@
     g.events.forEach(e => {
       const a = ACTIONS[e.type];
       if (a && a.pts) sc[e.team] += a.pts;
-      if (e.type === 'SUB_IN' && !open[e.pid]) { open[e.pid] = { t: elapsed(e.p, e.c), diff: diff(e.team), team: e.team }; acc(e.pid); }
-      else if (e.type === 'SUB_OUT') close(e.pid, elapsed(e.p, e.c));
+      if (e.type === 'SUB_IN' && !open[e.pid]) { open[e.pid] = { t: elapsed(g.cat, e.p, e.c), diff: diff(e.team), team: e.team }; acc(e.pid); }
+      else if (e.type === 'SUB_OUT') close(e.pid, elapsed(g.cat, e.p, e.c));
     });
-    const now = elapsed(g.clock.period, remaining(g));
+    const now = elapsed(g.cat, g.clock.period, remaining(g));
     Object.keys(open).forEach(pid => close(pid, now));
     return out;
   }
@@ -568,7 +572,7 @@
     cloud: false, live: true, offline: false, auth: null, setStaff: () => {}, watchUsage: null,
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
-    periodLen, periodLabel, remaining, fmtClock,
+    periodLen, periodMinutes, otMinutes, periodLabel, remaining, fmtClock,
     onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, removeEvent, forfeitGame, clearForfeit, teamFouls, timeoutsUsed,
     blank, playerStats, derive, sumStats, pct, playerIndex, tournamentStats, standings
   };

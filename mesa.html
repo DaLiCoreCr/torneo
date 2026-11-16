@@ -72,7 +72,7 @@ function control(S, g) {
   let endBtn = '';
   if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';
   else if (!over) endBtn = `<button class="btn ghost" data-act="next">Siguiente período (${T.periodLabel(g.clock.period + 1)})</button>`;
-  else if (tied) endBtn = `<button class="btn gold" data-act="next">Empate: iniciar prórroga (${T.periodLabel(g.clock.period + 1)} · ${R.otMinutes} min)</button>`;
+  else if (tied) endBtn = `<button class="btn gold" data-act="next">Empate: iniciar prórroga (${T.periodLabel(g.clock.period + 1)} · ${T.otMinutes(g.cat)} min)</button>`;
   else endBtn = '<button class="btn gold" data-act="finish">Finalizar partido</button>';
 
   const players = cur.players.map(p => {

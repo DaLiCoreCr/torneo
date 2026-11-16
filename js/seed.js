@@ -50,7 +50,7 @@
 
   function simulate(r, g, th, ta, periods, lastRemaining) {
     const evs = [];
-    const len = T.periodLen;
+    const len = p => T.periodLen(p, g.cat);
     const court = { h: th.players.slice(0, 5).map(p => p.id), a: ta.players.slice(0, 5).map(p => p.id) };
     ['h', 'a'].forEach(k => court[k].forEach(pid => evs.push({ id: 's' + pid + g.id, p: 1, c: len(1), team: k, pid, type: 'SUB_IN', ts: 0 })));
     for (let p = 1; p <= periods; p++) {
