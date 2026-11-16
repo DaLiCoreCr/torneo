@@ -13,22 +13,24 @@
   .bar a.ghost { background: #333; color: #fff; }
   .sheet { width: 203.9mm; min-height: 263mm; margin: 12px auto; background: #fff; padding: 0; color: #000; }
   .head { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #000; padding-bottom: 3px; }
+  .head .lg { display: flex; align-items: center; gap: 8px; }
+  .head img { height: 15mm; width: auto; display: block; }
   .head h1 { margin: 0; font-size: 17px; letter-spacing: .5px; text-transform: uppercase; }
   .head .sub { font-size: 10.5px; text-align: right; line-height: 1.35; }
   .meta { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 0 10px; font-size: 10px; margin: 4px 0 5px; }
   .meta div { border-bottom: 1px solid #000; padding: 2px 0 1px; min-height: 15px; }
   .meta b { font-size: 8.5px; text-transform: uppercase; margin-right: 4px; }
   .tname { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 0 2px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
-  .tname small { font-size: 9.5px; font-weight: 400; text-transform: none; }
+  .tname small { font-size: 9.5px; font-weight: 400; text-transform: none; text-align: right; line-height: 1.25; }
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th, td { border: 1px solid #000; padding: 0 2px; font-size: 10px; overflow: hidden; }
   th { background: #ddd; font-size: 8.5px; text-transform: uppercase; height: 15px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  td { height: 6.3mm; }
+  td { height: 5.8mm; }
   td.n { text-align: center; font-weight: 700; font-size: 11px; }
   td.nm { white-space: nowrap; text-overflow: ellipsis; }
   td.f { padding: 0; }
   .fouls { display: flex; height: 100%; }
-  .fouls span { flex: 1; border-left: 1px solid #000; text-align: center; font-size: 8px; line-height: 6.1mm; color: #777; }
+  .fouls span { flex: 1; border-left: 1px solid #000; text-align: center; font-size: 8px; line-height: 5.6mm; color: #777; }
   .fouls span:first-child { border-left: 0; }
   td.sh { background: #f2f2f2; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .foot { display: grid; grid-template-columns: 1.25fr 1fr; gap: 12px; margin-top: 8px; }
@@ -36,8 +38,9 @@
   .foot td.l { text-align: left; font-weight: 700; }
   .tmo { display: flex; gap: 3px; justify-content: center; }
   .tmo i { width: 14px; height: 14px; border: 1px solid #000; display: inline-block; }
-  .sign { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 22px; font-size: 9px; text-align: center; }
-  .sign div { border-top: 1px solid #000; padding-top: 2px; }
+  .sign { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 8px; font-size: 9px; text-align: center; }
+  .sign div { height: 17mm; display: flex; align-items: flex-end; }
+  .sign span { display: block; width: 100%; border-top: 1px solid #000; padding-top: 2px; }
   .nota { font-size: 8.5px; margin-top: 6px; color: #333; }
   @media print {
     html, body { background: #fff; }
@@ -71,7 +74,8 @@ T.load().then(() => {
   }
   const R = S.config.rules;
   const h = UI.team(S, g.home), a = UI.team(S, g.away);
-  const coaches = t => (Array.isArray(t.coaches) ? t.coaches : (t.coach ? [t.coach] : [])).filter(Boolean).join(', ');
+  const coachArr = t => (Array.isArray(t.coaches) ? t.coaches : (t.coach ? [t.coach] : [])).filter(Boolean);
+  const coaches = t => { const c = coachArr(t); return c.length ? c.map(esc).join('<br>') : '________________'; };
   const fecha = g.date ? new Date(g.date).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : '';
   const hora = g.date ? UI.fmtTime(g.date) : '';
   const etapa = g.stage ? ' · ' + T.stageName(g) : '';
@@ -86,7 +90,7 @@ T.load().then(() => {
       const fouls = '<div class="fouls">' + Array.from({ length: R.foulsOut }, (_, k) => `<span>${k + 1}</span>`).join('') + '</div>';
       body += `<tr><td class="n">${p ? esc(p.num) : ''}</td><td class="nm">${p ? esc(p.name) + (p.captain ? ' (C)' : '') : ''}</td><td></td><td></td><td></td><td class="f">${fouls}</td><td></td><td></td><td></td><td></td><td></td><td class="sh"></td></tr>`;
     }
-    return `<div class="tname"><span>${lado}: ${esc(t.name)}</span><small>Entrenador(es): ${esc(coaches(t)) || '________________'}</small></div>
+    return `<div class="tname"><span>${lado}: ${esc(t.name)}</span><small>Entrenador(es):<br>${coaches(t)}</small></div>
     <table>
       <colgroup><col style="width:8mm"><col style="width:35mm"><col style="width:20mm"><col style="width:24mm"><col style="width:20mm"><col style="width:${R.foulsOut * 5.2}mm"><col style="width:12mm"><col style="width:12mm"><col style="width:12mm"><col style="width:12mm"><col style="width:12mm"><col style="width:11mm"></colgroup>
       <thead><tr><th>#</th><th>Jugador</th><th>Tiro libre +1</th><th>Tiro de 2 +2</th><th>Triple +3</th><th>Faltas</th><th>Reb</th><th>Ast</th><th>Robo</th><th>Tapón</th><th>Pérd</th><th>Pts</th></tr></thead>
@@ -98,7 +102,7 @@ T.load().then(() => {
   const periodRow = t => `<tr><td class="l">${esc(t.name)}</td>${periodos.map(() => '<td></td>').join('')}<td></td></tr>`;
 
   sheet.innerHTML = `
-    <div class="head"><h1>Boleta de anotación · Torneo interno Hoopz</h1>
+    <div class="head"><div class="lg"><img src="assets/logo-boleta.png" alt=""><h1>Boleta de anotación · Torneo interno Hoopz</h1></div>
       <div class="sub">${esc(UI.catName(S, g.cat))}${esc(etapa)}</div></div>
     <div class="meta"><div><b>Fecha</b>${esc(fecha)}</div><div><b>Hora</b>${esc(hora)}</div><div><b>Árbitro</b></div><div><b>Anotador</b></div></div>
     ${teamTable(h, 'Local')}
@@ -109,7 +113,7 @@ T.load().then(() => {
       <table><thead><tr><th style="width:36%">Tiempos muertos</th><th>Marca (${R.timeouts})</th></tr></thead>
         <tbody><tr><td class="l">${esc(h.name)}</td><td>${tmos(R.timeouts)}</td></tr><tr><td class="l">${esc(a.name)}</td><td>${tmos(R.timeouts)}</td></tr></tbody></table>
     </div>
-    <div class="sign"><div>Árbitro</div><div>Anotador</div><div>Entrenador ${esc(h.name)}</div><div>Entrenador ${esc(a.name)}</div></div>
+    <div class="sign"><div><span>Árbitro</span></div><div><span>Anotador</span></div><div><span>Entrenador ${esc(h.name)}</span></div><div><span>Entrenador ${esc(a.name)}</span></div></div>
     <div class="nota">Cada jugada se marca con una rayita en su columna. Un jugador sale del juego al llegar a ${R.foulsOut} faltas.</div>`;
 });
 </script>
