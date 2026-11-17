@@ -121,9 +121,20 @@
   function addEvent(g, ev) {
     g.events.push(Object.assign({ id: uid('e'), p: g.clock.period, c: remaining(g), ts: Date.now() }, ev));
     g.score = score(g.events);
-    if (g.status === 'scheduled') g.status = 'live';
+    // Un tiempo muerto o un cambio (p. ej. el quinteto inicial) no inician el partido: solo el reloj o una jugada lo ponen en vivo
+    if (g.status === 'scheduled' && ev.type !== 'TMO' && !(ACTIONS[ev.type] && ACTIONS[ev.type].sub)) g.status = 'live';
   }
-  function undo(g) { const e = g.events.pop(); g.score = score(g.events); return e; }
+  /* Un partido en vivo sin jugadas, con el reloj detenido en el primer período, vuelve a "programado" */
+  const isUnstarted = g => g.status === 'live' && !g.events.length && !g.clock.running && g.clock.period === 1 && !g.forfeit;
+  function resetToScheduled(g) {
+    g.status = 'scheduled'; g.score = { h: 0, a: 0 };
+    g.clock = { period: 1, running: false, remainingMs: periodLen(1, g.cat), startedAt: null };
+  }
+  function undo(g) {
+    const e = g.events.pop(); g.score = score(g.events);
+    if (isUnstarted(g) && g.clock.remainingMs === periodLen(1, g.cat)) g.status = 'scheduled';
+    return e;
+  }
   function startClock(g) {
     if (g.clock.running || g.clock.remainingMs <= 0) return;
     g.clock.running = true; g.clock.startedAt = Date.now();
@@ -573,7 +584,7 @@
     KEY, esc, uid, DEFAULT_CONFIG, ACTIONS, MODES,
     load, reload, mutate, subscribe, replaceAll, state: () => state, game, cfg,
     periodLen, periodMinutes, otMinutes, periodLabel, remaining, fmtClock,
-    onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, startClock, pauseClock, setClock, nextPeriod, finishGame, removeEvent, forfeitGame, clearForfeit, teamFouls, timeoutsUsed,
+    onCourt, hasSubs, minutesPM, newGame, score, addEvent, undo, isUnstarted, resetToScheduled, startClock, pauseClock, setClock, nextPeriod, finishGame, removeEvent, forfeitGame, clearForfeit, teamFouls, timeoutsUsed,
     blank, playerStats, derive, sumStats, pct, playerIndex, tournamentStats, standings
   };
 })(window);
