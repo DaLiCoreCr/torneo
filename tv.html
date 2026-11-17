@@ -19,7 +19,7 @@
 /* Espera entre partidos: escudo girando como moneda dentro de un anillo dorado (solo CSS) */
 .tv-wait { position: relative; width: clamp(80px, 9vw, 170px); aspect-ratio: 1; margin: 0 auto clamp(6px, 1vw, 14px); display: grid; place-items: center; perspective: 600px; }
 .tv-wait::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid rgba(201,168,76,.18); border-top-color: var(--gold); border-right-color: var(--gold); animation: tvspin 1.8s linear infinite; }
-.tv-wait img { width: 74%; height: auto; mix-blend-mode: lighten; animation: tvcoin 4s linear infinite; }
+.tv-wait img { width: 74%; height: auto; animation: tvcoin 4s linear infinite; }
 @keyframes tvspin { to { transform: rotate(360deg); } }
 @keyframes tvcoin { to { transform: rotateY(360deg); } }
 @media (prefers-reduced-motion: reduce) { .tv-wait::before, .tv-wait img { animation: none; } }
@@ -101,7 +101,7 @@ function render() {
       ${holding ? '<span class="chip soft">SIGUIENTE PARTIDO EN UNOS SEGUNDOS…</span>' : ''}
       <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div>
     <div class="tv-board ${live ? 'is-live' : ''}">${box(h, 'h')}
-      <div class="tv-mid">${live || fin ? '' : '<div class="tv-wait" aria-hidden="true"><img src="assets/logo.jpg" alt=""></div>'}<div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div></div>${box(a, 'a')}</div>
+      <div class="tv-mid">${live || fin ? '' : '<div class="tv-wait" aria-hidden="true"><img src="assets/logo-boleta.png" alt=""></div>'}<div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div></div>${box(a, 'a')}</div>
     ${plays ? `<ul class="plays tv-plays">${plays}</ul>` : ''}`;
   if (html === lastHtml) return; // sin cambios: no se reescribe, así la animación de espera no se reinicia
   lastHtml = html;
