@@ -120,7 +120,7 @@ function control(S, g) {
   app.innerHTML = `
     <div class="row" style="justify-content:space-between;margin-bottom:8px"><button class="btn sm" data-act="back">← Partidos</button>
       <span class="muted" style="font-size:13px">${esc(UI.catName(S, g.cat))} · Captura ${T.MODES[g.mode]}</span>
-      <span class="row"><span class="row" style="gap:4px" title="Tamaño de la mesa"><button class="btn sm ghost" data-act="zm" aria-label="Reducir">A−</button><button class="btn sm ${autoFit ? 'gold' : 'ghost'}" data-act="za">Auto${autoFit ? ' ' + Math.round(zoom * 100) + '%' : ''}</button><button class="btn sm ghost" data-act="zp" aria-label="Ampliar">A+</button></span>
+      <span class="row">${g.status !== 'final' ? '<button class="btn sm gold" data-act="tv">Enviar partido a pantalla</button>' : ''}<span class="row" style="gap:4px" title="Tamaño de la mesa"><button class="btn sm ghost" data-act="zm" aria-label="Reducir">A−</button><button class="btn sm ${autoFit ? 'gold' : 'ghost'}" data-act="za">Auto${autoFit ? ' ' + Math.round(zoom * 100) + '%' : ''}</button><button class="btn sm ghost" data-act="zp" aria-label="Ampliar">A+</button></span>
       <a class="btn sm ghost" href="boleta.html?id=${esc(g.id)}" target="_blank">Boleta</a>
       <a class="btn sm ghost" href="partido.html?id=${esc(g.id)}" target="_blank">Ver como público</a></span></div>
     <div class="mhead">${teamBox('h', h)}
@@ -168,6 +168,7 @@ app.addEventListener('click', e => {
   switch (b.dataset.act) {
     case 'open': gid = b.dataset.id; sel = null; side = 'h'; history.replaceState(null, '', '?id=' + gid); render(); break;
     case 'back': gid = null; sel = null; history.replaceState(null, '', 'mesa.html'); render(); break;
+    case 'tv': T.mutate(s => { s.config.tvGame = { id: gid, ts: Date.now() }; }); UI.toast('Partido enviado a la pantalla'); break;
     case 'side': side = b.dataset.s; sel = null; render(); break;
     case 'zm': case 'zp':
       autoFit = false; store.set('torneo.mesaAuto', '0');
