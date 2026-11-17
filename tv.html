@@ -31,24 +31,17 @@ const app = document.getElementById('app');
 const fixed = new URLSearchParams(location.search).get('id');
 
 /* Partido a mostrar: el indicado en ?id=, o los que están en vivo (rotando cada 15 s), o el próximo, o el último */
-/* Al terminar un partido se deja su resultado HOLD_MS y luego se pasa solo al siguiente.
-   La mesa puede enviar un partido a la pantalla (config.tvGame); es solo una señal de lectura aquí, no modifica ningún dato. */
+/* Al terminar un partido se deja su resultado HOLD_MS y luego se pasa solo al siguiente (en vivo, o el próximo programado). */
 const HOLD_MS = 10000;
-let cur = null, curOpen = false, pinned = false, holdUntil = 0, seenTs = 0, holdTimer = null, holding = false;
+let cur = null, curOpen = false, holdUntil = 0, holdTimer = null, holding = false;
 
 function pick(S) {
   if (fixed && T.game(fixed)) return T.game(fixed);
   const now = Date.now();
   holding = false;
-  const sent = S.config.tvGame;
-  if (sent && sent.ts > seenTs) { // la mesa envió un partido: cambio inmediato (si ya terminó, se ignora)
-    seenTs = sent.ts;
-    const sg = T.game(sent.id);
-    if (sg && sg.status !== 'final') { cur = sg.id; curOpen = true; pinned = true; holdUntil = 0; }
-  }
   if (cur) {
     const g = T.game(cur);
-    if (!g) { cur = null; pinned = false; }
+    if (!g) cur = null;
     else if (g.status === 'final' && curOpen) { // acaba de terminar: se mantiene el resultado unos segundos
       if (!holdUntil) holdUntil = now + HOLD_MS;
       if (now < holdUntil) {
@@ -56,9 +49,8 @@ function pick(S) {
         clearTimeout(holdTimer); holdTimer = setTimeout(render, holdUntil - now + 50);
         return g;
       }
-      cur = null; pinned = false; holdUntil = 0;
-    } else if (g.status !== 'final' && pinned) { curOpen = true; return g; }
-    else if (g.status === 'final') { cur = null; pinned = false; }
+      cur = null; holdUntil = 0;
+    } else if (g.status === 'final') cur = null;
   }
   const live = S.games.filter(g => g.status === 'live');
   let g;
