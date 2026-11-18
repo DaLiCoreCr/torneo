@@ -372,6 +372,14 @@ body.tv .ticker, body.tv .foot, body.tv .top nav { display: none; }
 .fouls i.on { background: #ffb300; border-color: #ffb300; }
 .tv-mid { text-align: center; }
 .tv-mid .clk { font: 400 clamp(34px, 7vw, 120px)/1 'Bebas Neue', sans-serif; color: var(--gold); letter-spacing: .06em; }
+/* Reloj grande para que los árbitros lo vean de lejos: va en su propia fila, arriba y al centro, sobre los dos equipos */
+.tv-board { grid-template-columns: 1fr 1fr; }
+.tv-mid { grid-column: 1 / -1; order: -1; }
+.tv-mid .clk { font-size: clamp(64px, min(14vw, 19vh), 340px); text-shadow: 0 0 30px var(--gold-soft); }
+.tv-board { margin-top: 6px; padding-top: clamp(6px, 1vw, 20px); padding-bottom: clamp(6px, 1vw, 20px); }
+.tv-t .badge { width: clamp(40px, min(6vw, 8vh), 90px); height: clamp(40px, min(6vw, 8vh), 90px); font-size: clamp(18px, min(2.4vw, 3.2vh), 36px); }
+.tv-t h2 { font-size: clamp(24px, min(3.6vw, 5vh), 60px); }
+.tv-sc { font-size: clamp(80px, min(17vw, 21vh), 300px); }
 .tv-plays { margin-top: 16px; font-size: clamp(14px, 1.8vw, 24px); }
 body.tv .tvwrap ~ * { }
 @media (max-width: 640px) { .tv-board { grid-template-columns: 1fr 1fr; } .tv-mid { grid-column: 1 / -1; order: -1; } }
