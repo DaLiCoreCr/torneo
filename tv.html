@@ -60,21 +60,24 @@ let runAtDown = false;
 ['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, () => { if (ev !== 'click') runAtDown = !!(actx && actx.state === 'running'); if (sndOn && !(actx && actx.state === 'running')) sndUnlock(); }, true));
 sndUnlock();
 function sndBlocked() { return sndOn && !(actx && actx.state === 'running'); }
-let fileBuf = null, fileLoading = null;
-function loadFile() { // el .wav se descarga y decodifica una sola vez
-  if (!fileLoading) fileLoading = fetch('assets/sounds/nba.wav').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => actx.decodeAudioData(b, ok, no))).then(b => { fileBuf = b; }).catch(() => { fileLoading = null; });
-  return fileLoading;
+const SND_BUZZER = 'assets/sounds/nba.wav', SND_10S = 'assets/sounds/diez-segundos-juan.mp3'; // aviso de voz: para usar a María, cambiar a diez-segundos-maria.mp3
+const bufs = {}, loading = {};
+function loadFile(url) { // cada archivo se descarga y decodifica una sola vez
+  if (!loading[url]) loading[url] = fetch(url).then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => actx.decodeAudioData(b, ok, no))).then(b => { bufs[url] = b; }).catch(() => { delete loading[url]; });
+  return loading[url];
 }
-function playFile() {
-  if (!fileBuf) { loadFile().then(() => { if (fileBuf) playFile(); }); return; }
+function playFile(url) {
+  if (!bufs[url]) { loadFile(url).then(() => { if (bufs[url]) playFile(url); }); return; }
   const src = actx.createBufferSource(), g = actx.createGain(); g.gain.value = 1;
-  src.buffer = fileBuf; src.connect(g); g.connect(actx.destination); src.start();
+  src.buffer = bufs[url]; src.connect(g); g.connect(actx.destination); src.start();
 }
-function playSound() {
+function playSound(url) {
   if (!actx || actx.state !== 'running') return;
-  playFile();
+  playFile(url || SND_BUZZER);
 }
-function buzzer() { if (sndOn) playSound(); }
+function preloadSounds() { if (actx) { loadFile(SND_BUZZER); loadFile(SND_10S); } }
+function buzzer() { if (sndOn) playSound(SND_BUZZER); }
+function voice10() { if (sndOn) playSound(SND_10S); }
 /* Detecta el paso del reloj a 0:00 del partido que se muestra (no suena al abrir la página con el período ya terminado) */
 let prevRem = null, prevKey = '';
 setInterval(() => {
@@ -82,6 +85,7 @@ setInterval(() => {
   if (!g || g.status !== 'live') { prevRem = null; return; }
   const key = g.id + ':' + g.clock.period, rem = T.remaining(g);
   if (key === prevKey && prevRem !== null && prevRem > 0 && rem <= 0) buzzer();
+  else if (key === prevKey && g.clock.running && prevRem > 10000 && rem <= 10000 && rem > 0) voice10(); // aviso de voz a los 10 segundos
   prevKey = key; prevRem = rem;
 }, 200);
 
