@@ -224,8 +224,8 @@ function dataView() {
   return `<div class="card" style="display:grid;gap:14px">
     <div><h3 class="gold" style="font-size:22px">Respaldo</h3><p class="muted">Descarga todo el torneo en un archivo JSON, o restaura uno anterior. Sirve también para migrar a la versión del próximo año.</p>
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
-    <div><h3 class="gold" style="font-size:22px">Sonido de alerta</h3><p class="muted">Es el sonido que suena en la pantalla de Modo TV cuando termina el tiempo de cada cuarto. Pruébalo aquí para ajustar el volumen del TV o mostrárselo a los árbitros.</p>
-      <div class="row"><button class="btn gold" data-act="testsound">▶ Probar sonido de alerta</button></div></div>
+    <div><h3 class="gold" style="font-size:22px">Sonido de alerta</h3><p class="muted">Es el sonido que suena en la pantalla de Modo TV cuando termina el tiempo de cada cuarto. Pruébalo aquí para ajustar el volumen del TV o mostrárselo a los árbitros. El aviso de voz usa la voz en español de este dispositivo: pruébalo en el mismo equipo que usarás en la TV.</p>
+      <div class="row"><button class="btn gold" data-act="testsound">▶ Probar sonido de alerta</button><button class="btn ghost" data-act="testvoice">🗣 Probar aviso de voz (10 segundos)</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reinicio real</h3>
@@ -432,6 +432,18 @@ app.addEventListener('click', e => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([JSON.stringify(T.state(), null, 2)], { type: 'application/json' }));
       a.download = 'torneo-respaldo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
+    }
+    case 'testvoice': {
+      if (!('speechSynthesis' in window)) { UI.toast('Este navegador no tiene voz integrada', 'bad'); break; }
+      const speak = () => {
+        const voices = speechSynthesis.getVoices(), es = voices.find(v => /^es[-_]?(CR|MX|US|419)/i.test(v.lang)) || voices.find(v => /^es/i.test(v.lang));
+        const u = new SpeechSynthesisUtterance('Diez segundos');
+        u.lang = es ? es.lang : 'es-ES'; if (es) u.voice = es; u.rate = 1; u.volume = 1;
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
+        UI.toast(es ? 'Voz usada: ' + es.name + ' (' + es.lang + ')' : 'Este dispositivo no tiene voz en español: puede sonar con acento extraño', es ? undefined : 'bad');
+      };
+      if (speechSynthesis.getVoices().length) speak(); else { speechSynthesis.onvoiceschanged = () => { speechSynthesis.onvoiceschanged = null; speak(); }; setTimeout(() => { if (speechSynthesis.onvoiceschanged) { speechSynthesis.onvoiceschanged = null; speak(); } }, 800); }
+      break;
     }
     case 'testsound': {
       try { const au = new Audio('assets/sounds/nba.wav'); au.currentTime = 0; au.play().catch(() => UI.toast('El navegador no permitió reproducir el sonido', 'bad')); }
