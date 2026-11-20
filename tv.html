@@ -45,6 +45,46 @@ const HOLD_MS = 180000; // 3 min con el resultado; si arranca otro partido antes
 let lastHtml = '';
 let cur = null, curOpen = false, holdUntil = 0, holdTimer = null, holding = false;
 
+/* Bocina de fin de período (estilo NBA). Solo suena en esta pantalla. El navegador exige un clic para permitir audio. */
+let actx = null, sndOn = true;
+try { sndOn = localStorage.getItem('torneo.tvSound') !== '0'; } catch (e) {}
+function sndLabel() { return !sndOn ? '🔇 Sonido apagado' : (actx && actx.state === 'running') ? '🔊 Sonido activo' : '🔊 Sonido listo (toca la pantalla)'; }
+function sndUnlock() {
+  try {
+    if (!actx) { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { actx = new AC(); actx.onstatechange = () => { lastHtml = ''; render(); }; } }
+    if (actx && actx.state !== 'running') actx.resume();
+  } catch (e) {}
+}
+/* El sonido queda activo de forma automática: se intenta al abrir la pantalla, y cualquier toque/tecla en la TV lo habilita (el navegador no deja sonar sin una interacción previa) */
+let runAtDown = false;
+['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, () => { if (ev !== 'click') runAtDown = !!(actx && actx.state === 'running'); if (sndOn && !(actx && actx.state === 'running')) sndUnlock(); }, true));
+sndUnlock();
+function sndBlocked() { return sndOn && !(actx && actx.state === 'running'); }
+let fileBuf = null, fileLoading = null;
+function loadFile() { // el .wav se descarga y decodifica una sola vez
+  if (!fileLoading) fileLoading = fetch('assets/sounds/nba.wav').then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => actx.decodeAudioData(b, ok, no))).then(b => { fileBuf = b; }).catch(() => { fileLoading = null; });
+  return fileLoading;
+}
+function playFile() {
+  if (!fileBuf) { loadFile().then(() => { if (fileBuf) playFile(); }); return; }
+  const src = actx.createBufferSource(), g = actx.createGain(); g.gain.value = 1;
+  src.buffer = fileBuf; src.connect(g); g.connect(actx.destination); src.start();
+}
+function playSound() {
+  if (!actx || actx.state !== 'running') return;
+  playFile();
+}
+function buzzer() { if (sndOn) playSound(); }
+/* Detecta el paso del reloj a 0:00 del partido que se muestra (no suena al abrir la página con el período ya terminado) */
+let prevRem = null, prevKey = '';
+setInterval(() => {
+  const g = cur && T.game(cur);
+  if (!g || g.status !== 'live') { prevRem = null; return; }
+  const key = g.id + ':' + g.clock.period, rem = T.remaining(g);
+  if (key === prevKey && prevRem !== null && prevRem > 0 && rem <= 0) buzzer();
+  prevKey = key; prevRem = rem;
+}, 200);
+
 function pick(S) {
   if (fixed && T.game(fixed)) return T.game(fixed);
   const now = Date.now();
@@ -100,8 +140,9 @@ function render() {
   const html = `
     <div class="tv-top"><span>${esc(UI.catName(S, g.cat))} · ${UI.fmtDate(g.date)} ${UI.fmtTime(g.date)}</span>
       ${live ? '<span class="chip live"><i class="dot"></i>EN VIVO</span>' : fin ? `<span class="chip">${g.forfeit ? 'W.O.' : 'FINAL'}</span>` : '<span class="chip soft">PRÓXIMO</span>'}
+      ${live && sndBlocked() ? '<span class="chip soft" style="border-color:var(--gold);color:var(--gold)">⚠ SONIDO BLOQUEADO POR EL NAVEGADOR · TOCA LA PANTALLA UNA VEZ</span>' : ''}
       ${holding ? '<span class="chip soft">SIGUIENTE PARTIDO EN <b id="holdcd"></b> · TOCA LA PANTALLA PARA SALTAR</span>' : ''}
-      <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div>
+      <a class="btn sm ghost" href="index.html">← Inicio</a><button class="btn sm ghost" id="sndtest">▶ Probar</button><button class="btn sm ghost" id="fs">${document.fullscreenElement ? 'Salir de pantalla completa' : 'Pantalla completa'}</button></div>
     <div class="tv-board ${live ? 'is-live' : ''}">${box(h, 'h')}
       <div class="tv-mid">${live || fin ? '' : '<div class="tv-wait" aria-hidden="true"><img src="assets/logo-boleta.png" alt=""></div>'}<div class="clk" data-gid="${esc(g.id)}">${UI.clockText(g)}</div></div>${box(a, 'a')}</div>
     ${plays ? `<ul class="plays tv-plays">${plays}</ul>` : ''}`;
@@ -114,7 +155,9 @@ function render() {
 const fmtLeft = ms => { const t = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
 setInterval(() => { const el = document.getElementById('holdcd'); if (el && holding) el.textContent = fmtLeft(holdUntil - Date.now()); }, 500);
 app.addEventListener('click', e => {
-  if (holding && !e.target.closest('a,button')) { holdUntil = Date.now() - 1; render(); return; } // salta la espera
+  if (e.target.id === 'sndtest') { sndUnlock(); const go = () => playSound(); if (actx && actx.state === 'running') go(); else if (actx) actx.resume().then(go); return; }
+  if (sndOn) sndUnlock();
+  if (holding && !e.target.closest('a,button,select')) { holdUntil = Date.now() - 1; render(); return; } // salta la espera
   if (e.target.id === 'fs') { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); }
 });
 document.addEventListener('fullscreenchange', () => render());

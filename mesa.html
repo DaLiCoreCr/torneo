@@ -28,7 +28,7 @@ UI.layout('');
 const { esc, ACTIONS } = T;
 const app = document.getElementById('app');
 let gid = new URLSearchParams(location.search).get('id');
-let side = 'h', sel = null, adjusting = false, subMode = false;
+let side = 'h', sel = null, adjusting = false, subMode = false, endDismissed = null;
 
 /* Tamaño de la mesa para tablets: A−/A+ (60 % a 120 %) o Auto, que la ajusta sola para que quepa en la pantalla. Se recuerda en este dispositivo. */
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } } };
@@ -83,6 +83,9 @@ function control(S, g) {
   const tied = g.score.h === g.score.a;
   const rem = T.remaining(g);
   const periodOver = rem <= 0 && !g.clock.running;
+  const askKey = g.id + ':' + g.clock.period;
+  if (rem > 0 || g.clock.running) endDismissed = null; // si el reloj vuelve a correr, se vuelve a preguntar al terminar
+  const askEnd = g.status !== 'final' && over && periodOver && !tied && endDismissed !== askKey;
   const oc = T.onCourt(g), N = R.onCourt || 5;
   const teamBox = (k, t) => `<div class="m-team ${side === k ? 'on' : ''}" data-act="side" data-s="${k}"><small>${k === 'h' ? 'Local' : 'Visitante'}</small><h3>${esc(t.name)}</h3><div class="s">${g.score[k]}</div>
     <div class="meta">Faltas ${T.periodLabel(g.clock.period)}: <b>${T.teamFouls(g, k, g.clock.period)}</b>${T.teamFouls(g, k, g.clock.period) >= R.bonusFouls ? ' <span class="bonus">BONUS</span>' : ''} · TM: ${Math.max(0, R.timeouts - T.timeoutsUsed(g, k))}</div></div>`;
@@ -91,7 +94,7 @@ function control(S, g) {
   if (g.status === 'final') endBtn = '<button class="btn ghost" data-act="reopen">Reabrir partido</button>';
   else if (!over) endBtn = `<button class="btn ghost" data-act="next">Siguiente período (${T.periodLabel(g.clock.period + 1)})</button>`;
   else if (tied) endBtn = `<button class="btn gold" data-act="next">Empate: iniciar prórroga (${T.periodLabel(g.clock.period + 1)} · ${T.otMinutes(g.cat)} min)</button>`;
-  else endBtn = '<button class="btn gold" data-act="finish">Finalizar partido</button>';
+  else endBtn = ''; // fin del partido sin empate: lo pregunta la propia mesa al terminar el tiempo (no hay botón grande que se toque sin querer)
 
   const players = cur.players.map(p => {
     const s = stats[p.id] || T.blank();
@@ -128,16 +131,18 @@ function control(S, g) {
         <div class="row"><button class="btn sm ${g.clock.running ? '' : 'gold'}" data-act="toggle" ${g.status === 'final' ? 'disabled' : ''}>${g.clock.running ? 'Pausar' : 'Iniciar'}</button>
         <button class="btn sm ghost" data-act="adjust">Ajustar</button></div>
       </div>${teamBox('a', a)}</div>
-    ${adjusting ? `<div class="adj" style="justify-content:center;margin:8px 0"><input class="inp" id="am" type="number" min="0" value="${mm}"> : <input class="inp" id="as" type="number" min="0" max="59" value="${ss}"><button class="btn sm gold" data-act="setclock">Fijar</button></div>` : ''}
+    ${adjusting ? `<div class="adj" style="justify-content:center;margin:8px 0"><select class="inp" id="ap" aria-label="Período">${Array.from({ length: Math.max(R.periods + 3, g.clock.period) }, (_, i) => `<option value="${i + 1}" ${i + 1 === g.clock.period ? 'selected' : ''}>${T.periodLabel(i + 1)}</option>`).join('')}</select> <input class="inp" id="am" type="number" min="0" value="${mm}"> : <input class="inp" id="as" type="number" min="0" max="59" value="${ss}"><button class="btn sm gold" data-act="setclock">Fijar</button></div>` : ''}
     ${periodOver && g.status !== 'final' ? '<div class="hint" style="margin:0 0 8px;border-color:var(--gold);color:var(--gold)">Fin del período.</div>' : ''}
-    <div class="row" style="margin-bottom:10px">${endBtn}${g.status !== 'final' && !(over && !tied) ? '<button class="btn sm danger" data-act="finish">Finalizar ya</button>' : ''}${T.isUnstarted(g) ? '<button class="btn sm ghost" data-act="unstart" title="Deja el partido como programado, sin iniciar">Volver a programado</button>' : ''}</div>
+    <div class="row" style="margin-bottom:10px">${endBtn}${T.isUnstarted(g) ? '<button class="btn sm ghost" data-act="unstart" title="Deja el partido como programado, sin iniciar">Volver a programado</button>' : ''}</div>
     <div class="row" style="justify-content:space-between"><h3 style="font-size:22px">${esc(cur.name)}</h3>
       <button class="btn sm" data-act="tmo" ${T.timeoutsUsed(g, side) >= R.timeouts || g.status === 'final' ? 'disabled' : ''}>Tiempo muerto</button></div>
     ${g.status === 'final' ? '' : modeBar}
     <div class="mwork"><div class="players">${players}</div>
     ${g.status === 'final' ? '' : subMode ? subCard : pad}${g.status === 'final' || selP || subMode ? '' : '<div class="hint">Toca el número del jugador y luego la jugada.</div>'}</div>
     <div class="log"><div class="row" style="justify-content:space-between"><h3>Últimas jugadas</h3><button class="btn sm danger" data-act="undo" ${g.events.length ? '' : 'disabled'}>Deshacer última</button></div>
-      <ul class="plays">${log || '<li class="muted">Sin jugadas.</li>'}</ul></div>`;
+      <ul class="plays">${log || '<li class="muted">Sin jugadas.</li>'}</ul></div>
+    ${g.status !== 'final' ? `<div class="row" style="justify-content:center;margin:34px 0 60px;padding-top:18px;border-top:1px dashed var(--line)"><button class="btn sm ghost" data-act="finish" style="opacity:.75">Finalizar partido manualmente…</button></div>` : ''}
+    ${askEnd ? `<div id="endask" style="position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.78);display:grid;place-items:center;padding:24px"><div class="card" style="max-width:520px;width:100%;text-align:center;padding:28px;border:1px solid var(--gold)"><h2 class="gold" style="font-size:30px;margin:0 0 6px">¿Finalizó el partido?</h2><p class="muted" style="margin:0 0 6px">Terminó el tiempo de ${T.periodLabel(g.clock.period)}.</p><p style="font-size:28px;font-weight:700;margin:6px 0 22px">${esc(h.name)} ${g.score.h} – ${g.score.a} ${esc(a.name)}</p><div class="row" style="justify-content:center;gap:40px"><button class="btn" data-act="endno" style="min-width:120px">No</button><button class="btn gold" data-act="endyes" style="min-width:120px">Sí</button></div></div></div>` : ''}`;
 }
 
 function render() {
@@ -198,7 +203,8 @@ app.addEventListener('click', e => {
     case 'adjust': adjusting = !adjusting; render(); break;
     case 'setclock': {
       const ms = (Math.max(0, +document.getElementById('am').value || 0) * 60 + Math.min(59, Math.max(0, +document.getElementById('as').value || 0))) * 1000;
-      adjusting = false; m(x => T.setClock(x, ms)); break;
+      const per = Math.max(1, +document.getElementById('ap').value || g.clock.period);
+      adjusting = false; m(x => { x.clock.period = per; T.setClock(x, ms); }); break;
     }
     case 'ev': {
       const type = b.dataset.t, pid = sel;
@@ -215,9 +221,16 @@ app.addEventListener('click', e => {
     case 'tmo': m(x => { T.addEvent(x, { team: side, pid: null, type: 'TMO' }); T.pauseClock(x); }); UI.toast('Tiempo muerto'); break;
     case 'undo': if (g.events.length) { m(x => T.undo(x)); UI.toast('Última jugada deshecha'); } break;
     case 'next': m(x => T.nextPeriod(x)); break;
-    case 'finish':
-      if (confirm('¿Finalizar el partido con el marcador ' + g.score.h + '–' + g.score.a + '?')) { m(x => T.finishGame(x)); }
+    case 'endyes': m(x => T.finishGame(x)); break;
+    case 'endno': endDismissed = g.id + ':' + g.clock.period; render(); break;
+    case 'finish': {
+      const timeUp = g.clock.period >= S.config.rules.periods && !g.clock.running && T.remaining(g) <= 0 && g.score.h !== g.score.a;
+      const left = T.fmtClock(T.remaining(g));
+      const msg = timeUp ? 'El tiempo terminó y no hay empate.\nMarcador final: ' + g.score.h + '–' + g.score.a + '\n\n¿Finalizamos el partido?'
+        : '⚠ EL TIEMPO NO HA TERMINADO\n\nVa en ' + T.periodLabel(g.clock.period) + ' con ' + left + ' por jugar' + (g.clock.running ? ' (el reloj está corriendo)' : '') + '.\nMarcador: ' + g.score.h + '–' + g.score.a + '\n\n¿Seguro que desea FINALIZAR el partido?';
+      if (confirm(msg)) { m(x => T.finishGame(x)); }
       break;
+    }
     case 'reopen': m(x => { x.status = 'live'; }); break;
     case 'unstart':
       if (T.isUnstarted(g) && confirm('El partido aún no tiene jugadas. ¿Volver a dejarlo como programado (sin iniciar)?')) { m(x => T.resetToScheduled(x)); UI.toast('Partido de nuevo como programado'); }

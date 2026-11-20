@@ -224,6 +224,8 @@ function dataView() {
   return `<div class="card" style="display:grid;gap:14px">
     <div><h3 class="gold" style="font-size:22px">Respaldo</h3><p class="muted">Descarga todo el torneo en un archivo JSON, o restaura uno anterior. Sirve también para migrar a la versión del próximo año.</p>
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
+    <div><h3 class="gold" style="font-size:22px">Sonido de alerta</h3><p class="muted">Es el sonido que suena en la pantalla de Modo TV cuando termina el tiempo de cada cuarto. Pruébalo aquí para ajustar el volumen del TV o mostrárselo a los árbitros.</p>
+      <div class="row"><button class="btn gold" data-act="testsound">▶ Probar sonido de alerta</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reinicio real</h3>
@@ -430,6 +432,11 @@ app.addEventListener('click', e => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([JSON.stringify(T.state(), null, 2)], { type: 'application/json' }));
       a.download = 'torneo-respaldo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
+    }
+    case 'testsound': {
+      try { const au = new Audio('assets/sounds/nba.wav'); au.currentTime = 0; au.play().catch(() => UI.toast('El navegador no permitió reproducir el sonido', 'bad')); }
+      catch (e) { UI.toast('No se pudo reproducir el sonido', 'bad'); }
+      break;
     }
     case 'seed': if (confirmDanger('Se reemplazará todo por los datos de ejemplo.')) { T.replaceAll(Seed.build()); render(); UI.toast('Datos de ejemplo restaurados'); } break;
     case 'resetgames':
