@@ -77,7 +77,8 @@ function playSound(url) {
 }
 function preloadSounds() { if (actx) { loadFile(SND_BUZZER); loadFile(SND_10S); } }
 function buzzer() { if (sndOn) playSound(SND_BUZZER); }
-function voice10() { if (sndOn) playSound(SND_10S); }
+const VOICE10_ON = false; // aviso de voz a los 10 s: apagado hasta tener el audio definitivo (poner true y ajustar SND_10S para activarlo)
+function voice10() { if (sndOn && VOICE10_ON) playSound(SND_10S); }
 /* Detecta el paso del reloj a 0:00 del partido que se muestra (no suena al abrir la página con el período ya terminado) */
 let prevRem = null, prevKey = '';
 setInterval(() => {
