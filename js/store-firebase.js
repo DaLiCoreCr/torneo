@@ -182,6 +182,7 @@ export function connect(cfg, host, opts) {
   function stopAuto() { autoUn.forEach(u => u()); autoUn = []; remote.games.clear(); remote.sched.clear(); }
   function streamAuto(on) { autoOn = !!on; if (!autoOn) stopAuto(); else if (!document.hidden || staff) startAuto(); if (!autoOn) rebuild(); }
   function attachStream() {
+    detach(); // si ya había conexiones (p. ej. al volver a hacerse visible la pestaña) se cierran antes: si no, se vaciarían los partidos sin volver a pedirlos
     pending = 1;
     remote.games.clear(); remote.sched.clear(); remote.draft.clear(); known.clear();
     let firstCfg = true;
