@@ -1,0 +1,578 @@
+{
+ "v": 1,
+ "generated": "2026-11-21T21:24:24.450Z",
+ "hash": "1415931702-6345",
+ "teams": [
+  {
+   "id": "t1j2jbv",
+   "name": "Team Mike",
+   "cat": "plus12",
+   "color": "#43a047",
+   "logo": "",
+   "coaches": [
+    "Daniel Hernández"
+   ],
+   "players": [
+    {
+     "id": "pe505be",
+     "num": 1,
+     "name": "Luis Correa Fernández",
+     "captain": true
+    },
+    {
+     "id": "p7p5r1m",
+     "num": 2,
+     "name": "Jhon Burgos Araya",
+     "captain": true
+    },
+    {
+     "id": "pwxq0ea",
+     "num": 3,
+     "name": "Naomy Amen Obando",
+     "captain": false
+    },
+    {
+     "id": "pzr8hal",
+     "num": 4,
+     "name": "Julián Fernández Brenes",
+     "captain": false
+    },
+    {
+     "id": "p9zrmu3",
+     "num": 5,
+     "name": "Samir Fernández Mora",
+     "captain": false
+    },
+    {
+     "id": "pxgq3sg",
+     "num": 6,
+     "name": "Santiago Picado Ureña",
+     "captain": false
+    },
+    {
+     "id": "p71z9x8",
+     "num": 7,
+     "name": "Sareth Jiménez Mena",
+     "captain": false
+    },
+    {
+     "id": "p389q95",
+     "num": 8,
+     "name": "Jeremy Martínez",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "t45sl0d",
+   "name": "Team Woody",
+   "cat": "u12",
+   "color": "#8d6e63",
+   "logo": "",
+   "coaches": [
+    "Mia Azcurra",
+    "Celeste Gonzales Guisao",
+    "Julián Fernández Brenes",
+    "Itay Kenigsvain"
+   ],
+   "players": [
+    {
+     "id": "pa9tbpj",
+     "num": 1,
+     "name": "Connor Pladl",
+     "captain": true
+    },
+    {
+     "id": "p26dj87",
+     "num": 2,
+     "name": "Diego Hernández",
+     "captain": false
+    },
+    {
+     "id": "pmlk2t7",
+     "num": 3,
+     "name": "Larissa Marin",
+     "captain": false
+    },
+    {
+     "id": "pcrxlw3",
+     "num": 4,
+     "name": "Dana Zúñiga Meléndez",
+     "captain": false
+    },
+    {
+     "id": "p1jie2w",
+     "num": 5,
+     "name": "Hans",
+     "captain": false
+    },
+    {
+     "id": "p5zneo4",
+     "num": 6,
+     "name": "Mariana Quesada",
+     "captain": false
+    },
+    {
+     "id": "p0uvflf",
+     "num": 8,
+     "name": "Samuel",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "t68rpud",
+   "name": "Team Buzz",
+   "cat": "plus12",
+   "color": "#8e24aa",
+   "logo": "",
+   "coaches": [
+    "Kleiber"
+   ],
+   "players": [
+    {
+     "id": "pych28p",
+     "num": 1,
+     "name": "Samuel Madrigal Solano",
+     "captain": true
+    },
+    {
+     "id": "p3yxd70",
+     "num": 2,
+     "name": "Celeste Gonzales Guisao",
+     "captain": true
+    },
+    {
+     "id": "papsabc",
+     "num": 3,
+     "name": "Erick Acosta",
+     "captain": false
+    },
+    {
+     "id": "pm41501",
+     "num": 4,
+     "name": "Joao Navas Cordero",
+     "captain": false
+    },
+    {
+     "id": "p9hjr0z",
+     "num": 5,
+     "name": "Emmanuel Vargas",
+     "captain": false
+    },
+    {
+     "id": "p17yyh8",
+     "num": 6,
+     "name": "María F Mora Elizondo",
+     "captain": false
+    },
+    {
+     "id": "pa44nj4",
+     "num": 7,
+     "name": "Ismael O Neill Sweet",
+     "captain": false
+    },
+    {
+     "id": "pr92itf",
+     "num": 8,
+     "name": "Dereck",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "tcjri9c",
+   "name": "Team Stitch",
+   "cat": "plus12",
+   "color": "#1e88e5",
+   "logo": "",
+   "coaches": [
+    "David Zúñiga"
+   ],
+   "players": [
+    {
+     "id": "pvev62q",
+     "num": 1,
+     "name": "Amanda Segura Acuña",
+     "captain": true
+    },
+    {
+     "id": "popbof2",
+     "num": 2,
+     "name": "Hudson Oconnor",
+     "captain": true
+    },
+    {
+     "id": "pz31qve",
+     "num": 3,
+     "name": "Mia Azcurra",
+     "captain": false
+    },
+    {
+     "id": "py30oed",
+     "num": 4,
+     "name": "Luis Acuña Acuña",
+     "captain": false
+    },
+    {
+     "id": "pexhe26",
+     "num": 5,
+     "name": "Ben Kenigsvain",
+     "captain": false
+    },
+    {
+     "id": "pozf678",
+     "num": 6,
+     "name": "Mathias Torres Fonseca",
+     "captain": false
+    },
+    {
+     "id": "ptpvrw5",
+     "num": 7,
+     "name": "Sam O Neill Sweet",
+     "captain": false
+    },
+    {
+     "id": "p54rxsq",
+     "num": 8,
+     "name": "Connor",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "tct9cnh",
+   "name": "Team Simba",
+   "cat": "plus12",
+   "color": "#c9a84c",
+   "logo": "",
+   "coaches": [
+    "Fernando Quesada"
+   ],
+   "players": [
+    {
+     "id": "pyrgovw",
+     "num": 1,
+     "name": "Lucía Amen Valverde",
+     "captain": true
+    },
+    {
+     "id": "pvbvi6r",
+     "num": 2,
+     "name": "Mathias Castillo Mena",
+     "captain": true
+    },
+    {
+     "id": "pcz55xu",
+     "num": 3,
+     "name": "Victoria Fallas",
+     "captain": false
+    },
+    {
+     "id": "pg75qq2",
+     "num": 4,
+     "name": "Ismael Fonseca Ugalde",
+     "captain": false
+    },
+    {
+     "id": "psfxmdc",
+     "num": 5,
+     "name": "River Hermance Jiménez",
+     "captain": false
+    },
+    {
+     "id": "pr76bvq",
+     "num": 6,
+     "name": "Santiago Sibaja Salas",
+     "captain": false
+    },
+    {
+     "id": "pj7v548",
+     "num": 7,
+     "name": "Xavier Robles",
+     "captain": false
+    },
+    {
+     "id": "poq9dre",
+     "num": 8,
+     "name": "Liah Quesada Agüero",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "td4xuwn",
+   "name": "Team Nemo",
+   "cat": "u12",
+   "color": "#fb8c00",
+   "logo": "",
+   "coaches": [
+    "Lucía Amen Valverde",
+    "Luis Correa Fernández",
+    "Dylan Quesada Rivera"
+   ],
+   "players": [
+    {
+     "id": "pwyzzht",
+     "num": 1,
+     "name": "Valentina Pérez",
+     "captain": true
+    },
+    {
+     "id": "pihsg0l",
+     "num": 2,
+     "name": "Leo",
+     "captain": false
+    },
+    {
+     "id": "pxo1tu1",
+     "num": 3,
+     "name": "Liang Mora",
+     "captain": false
+    },
+    {
+     "id": "p0tkvjn",
+     "num": 4,
+     "name": "Elizabeth Cordero",
+     "captain": false
+    },
+    {
+     "id": "pbocxya",
+     "num": 5,
+     "name": "Jonathan Zenan Ocean",
+     "captain": false
+    },
+    {
+     "id": "p2sh3mt",
+     "num": 6,
+     "name": "Nicolas",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "thsxhos",
+   "name": "Team Rayo",
+   "cat": "plus12",
+   "color": "#d81b60",
+   "logo": "",
+   "coaches": [
+    "Verónica Serrano"
+   ],
+   "players": [
+    {
+     "id": "pyikv5e",
+     "num": 1,
+     "name": "Krisna Naranjo Chacón",
+     "captain": true
+    },
+    {
+     "id": "p8rsxu4",
+     "num": 2,
+     "name": "Itay Kenigsvain",
+     "captain": true
+    },
+    {
+     "id": "pir4auj",
+     "num": 3,
+     "name": "Gael Morales Mora",
+     "captain": false
+    },
+    {
+     "id": "p4n8wxo",
+     "num": 4,
+     "name": "Sara Roldán",
+     "captain": false
+    },
+    {
+     "id": "p6s6njr",
+     "num": 5,
+     "name": "Dylan Quesada Rivera",
+     "captain": false
+    },
+    {
+     "id": "p929gj1",
+     "num": 6,
+     "name": "Julián Fernández Chacón",
+     "captain": false
+    },
+    {
+     "id": "p7rva51",
+     "num": 7,
+     "name": "Ian Oguilve Agüero",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "tkdnxtu",
+   "name": "Team Mickey",
+   "cat": "u12",
+   "color": "#e53935",
+   "logo": "",
+   "coaches": [
+    "Amanda Segura Acuña",
+    "Sareth Jiménez Mena",
+    "Naomy Amen Obando",
+    "James Wilfong Valverde",
+    "Liah Quesada Agüero",
+    "Krisna Naranjo Ch."
+   ],
+   "players": [
+    {
+     "id": "p37xm2z",
+     "num": 1,
+     "name": "Ben Kenigsvain",
+     "captain": true
+    },
+    {
+     "id": "ps9b5bl",
+     "num": 2,
+     "name": "Luciana Chacón",
+     "captain": false
+    },
+    {
+     "id": "pe1cy5x",
+     "num": 3,
+     "name": "Lucas Varela Charpentier",
+     "captain": false
+    },
+    {
+     "id": "pclz3vz",
+     "num": 4,
+     "name": "Benjamin",
+     "captain": false
+    },
+    {
+     "id": "pdfl9jo",
+     "num": 5,
+     "name": "Thiago Duran",
+     "captain": false
+    },
+    {
+     "id": "p3f9zv6",
+     "num": 6,
+     "name": "Luka Miranda",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "tsbkoqh",
+   "name": "Team Olaf",
+   "cat": "u12",
+   "color": "#00acc1",
+   "logo": "",
+   "coaches": [
+    "Jhon Burgos Araya",
+    "Samuel Madrigal Solano",
+    "David Padilla Fallas",
+    "Luis Acuña Acuña"
+   ],
+   "players": [
+    {
+     "id": "psnbnis",
+     "num": 1,
+     "name": "Sara Roldán",
+     "captain": true
+    },
+    {
+     "id": "p6bmg5v",
+     "num": 2,
+     "name": "Dylan Araya",
+     "captain": false
+    },
+    {
+     "id": "p44if3n",
+     "num": 3,
+     "name": "Ethan",
+     "captain": false
+    },
+    {
+     "id": "plfoudj",
+     "num": 4,
+     "name": "Noah",
+     "captain": false
+    },
+    {
+     "id": "pod8gm1",
+     "num": 5,
+     "name": "Mateo Fernández",
+     "captain": false
+    },
+    {
+     "id": "p2d6r41",
+     "num": 6,
+     "name": "Calissa",
+     "captain": false
+    },
+    {
+     "id": "pym0lee",
+     "num": 7,
+     "name": "Gael Rivera",
+     "captain": false
+    },
+    {
+     "id": "pbk9xz9",
+     "num": 8,
+     "name": "Yahir",
+     "captain": false
+    }
+   ]
+  },
+  {
+   "id": "tx0esuw",
+   "name": "Team Donald",
+   "cat": "plus12",
+   "color": "#3949ab",
+   "logo": "",
+   "coaches": [
+    "Carlos Fernández Muñoz"
+   ],
+   "players": [
+    {
+     "id": "pqc7tu5",
+     "num": 1,
+     "name": "Gabriel Hernández",
+     "captain": true
+    },
+    {
+     "id": "pcl26ho",
+     "num": 2,
+     "name": "David Padilla Fallas",
+     "captain": true
+    },
+    {
+     "id": "pomy34j",
+     "num": 3,
+     "name": "Valentina Pérez",
+     "captain": false
+    },
+    {
+     "id": "pm0z7wt",
+     "num": 4,
+     "name": "Mathias Herrera Vargas",
+     "captain": false
+    },
+    {
+     "id": "prtwuau",
+     "num": 5,
+     "name": "María Paula Delgado",
+     "captain": false
+    },
+    {
+     "id": "pr75sv7",
+     "num": 6,
+     "name": "Mauricio Castillo Arce",
+     "captain": false
+    },
+    {
+     "id": "puysbtx",
+     "num": 7,
+     "name": "James Wilfong Valverde",
+     "captain": false
+    }
+   ]
+  }
+ ]
+}

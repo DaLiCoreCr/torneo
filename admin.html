@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=61">
+<link rel="stylesheet" href="css/styles.css?v=62">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=61"></script>
-<script src="js/core.js?v=61"></script>
-<script src="js/seed.js?v=61"></script>
-<script src="js/ui.js?v=61"></script>
+<script src="js/firebase-config.js?v=62"></script>
+<script src="js/core.js?v=62"></script>
+<script src="js/seed.js?v=62"></script>
+<script src="js/ui.js?v=62"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -241,7 +241,41 @@ function streamView(S) {
       Cómo calibrar: abre Hoopz Live en un celular mientras alguien anota en la mesa. Si el punto aparece <b>antes</b> de ver el tiro, sube el retraso; si aparece <b>después</b>, bájalo. En YouTube Studio conviene elegir latencia <b>ultra baja</b> (según YouTube, la mayoría de los espectadores ve menos de 5 s de retraso; con "baja", menos de 10 s). Cada espectador tiene unos segundos de diferencia, así que busca el valor que le funcione a la mayoría.</p>
     <div class="row" style="margin-top:12px"><button class="btn gold" data-act="savestream">Guardar transmisión</button>
       <a class="btn" href="hoopzlive.html" target="_blank">Abrir Hoopz Live ↗</a></div></div>
-    <p class="note">Hoopz Live solo escucha el partido que está en vivo (no carga equipos, sorteo ni partidos viejos), así que cada espectador consume muy pocas lecturas. Para cambiar de canal (por ejemplo al de la academia) basta pegar otro enlace aquí; en la cámara se cambia la clave de transmisión del canal nuevo.</p>`;
+    ${queueView(S, st)}
+    <p class="note">Para cambiar de canal (por ejemplo al de la academia) basta pegar otro enlace aquí; en la cámara se cambia la clave de transmisión del canal nuevo.</p>`;
+}
+
+/* Cola del día: partidos que Hoopz Live va mostrando en orden (al terminar uno y pasar 3 minutos, sigue el siguiente).
+   Con cola, cada espectador solo sigue el partido actual; sin cola, Hoopz Live busca solo el partido en vivo y el próximo programado. */
+function queueView(S, st) {
+  const q = Array.isArray(st.queue) ? st.queue : [];
+  const gname = g => `${esc(UI.catName(S, g.cat))} · ${esc(UI.team(S, g.home).name)} vs ${esc(UI.team(S, g.away).name)}${g.date ? ' · ' + esc(UI.fmtDate(g.date)) + ' ' + esc(UI.fmtTime(g.date)) : ''}`;
+  const chip = g => g.status === 'live' ? '<span style="color:var(--live)">● En vivo</span>' : g.status === 'final' ? '<span class="muted">✔ Finalizado</span>' : '<span class="muted">Programado</span>';
+  const rows = q.map((id, i) => { const g = S.games.find(x => x.id === id);
+    return `<div class="row" style="align-items:center;border-bottom:1px solid var(--line);padding:6px 0"><b class="gold" style="min-width:24px">${i + 1}</b><span style="flex:1;min-width:200px">${g ? gname(g) : '<i class="muted">(partido borrado)</i>'}</span>${g ? chip(g) : ''}
+      <button class="btn sm ghost" data-act="qmove" data-i="${i}" data-d="-1" ${i === 0 ? 'disabled' : ''} aria-label="Subir">↑</button><button class="btn sm ghost" data-act="qmove" data-i="${i}" data-d="1" ${i === q.length - 1 ? 'disabled' : ''} aria-label="Bajar">↓</button><button class="btn sm ghost" data-act="qdel" data-i="${i}" aria-label="Quitar">✕</button></div>`; }).join('');
+  const avail = S.games.filter(g => g.status !== 'final' && !q.includes(g.id)).sort(UI.byDate);
+  return `<h3 class="gold" style="margin:18px 0 8px;font-size:22px">Cola del día</h3>
+    <div class="card"><p class="muted" style="margin:0 0 8px">Arma el orden de los partidos que se transmiten hoy. Hoopz Live muestra el primero de la cola (con la lista de jugadores mientras espera) y, al terminar y pasar 3 minutos, pasa solo al siguiente. Si la cola está vacía, muestra el partido en vivo o el próximo del calendario.</p>
+      ${rows || '<div class="empty" style="margin:0 0 8px">La cola está vacía (modo automático).</div>'}
+      <div class="row" style="margin-top:10px;align-items:center"><select class="inp" id="q-sel" style="flex:1;min-width:220px"><option value="">Elige un partido para agregar…</option>${avail.map(g => `<option value="${esc(g.id)}">${gname(g)}</option>`).join('')}</select>
+        <button class="btn gold" data-act="qadd">Agregar</button><button class="btn" data-act="qaddall" ${avail.length ? '' : 'disabled'}>Agregar todos los pendientes</button><button class="btn danger" data-act="qclear" ${q.length ? '' : 'disabled'}>Vaciar cola</button></div></div>
+    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Plantillas (jugadores)</h3>
+    <div class="card"><p class="muted" style="margin:0 0 8px">Hoopz Live toma los equipos y jugadores del archivo <b>plantillas.json</b> publicado junto al sitio, sin consultar la base de datos. Cada vez que cambien jugadores, números, capitanes o equipos, descarga el archivo nuevo, reemplaza el de la carpeta del proyecto y publica.</p>
+      <p id="plstat" style="margin:0 0 10px">Comprobando…</p><div class="row"><button class="btn gold" data-act="dlplant">Descargar plantillas.json</button></div></div>`;
+}
+
+/* Compara el plantillas.json publicado con los datos actuales */
+function checkPlantillas() {
+  if (!document.getElementById('plstat')) return;
+  const cur = T.plantillas(T.state());
+  fetch('plantillas.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null).then(f => {
+    const el = document.getElementById('plstat'); if (!el) return;
+    const when = f && f.generated ? new Date(f.generated).toLocaleString('es') : '';
+    el.innerHTML = !f ? '⚠ No hay plantillas.json publicado: Hoopz Live leerá los equipos de Firebase (más lecturas).'
+      : f.hash === cur.hash ? `<span style="color:#7bd88f">✔ Al día</span> · el archivo publicado coincide con los equipos actuales (generado ${esc(when)}).`
+      : `<span style="color:var(--live)">⚠ Desactualizado</span>: hay cambios en equipos o jugadores desde que se generó el archivo (${esc(when)}). Descarga uno nuevo y publícalo.`;
+  });
 }
 
 function dataView() {
@@ -302,6 +336,7 @@ function render() {
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
     ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'rules' ? rulesView(S) : tab === 'stream' ? streamView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
+  if (tab === 'stream') checkPlantillas();
 }
 
 app.addEventListener('click', e => {
@@ -455,8 +490,30 @@ app.addEventListener('click', e => {
     case 'savestream': {
       const url = val('s-url');
       if (url && !T.ytId(url)) { UI.toast('No reconozco ese enlace de YouTube', 'bad'); break; }
-      mt(s => { s.config.stream = { enabled: val('s-on') !== '0', url, delay: Math.max(0, Math.min(90, +document.getElementById('s-delay').value || 0)) }; });
+      mt(s => { s.config.stream = Object.assign({}, s.config.stream, { enabled: val('s-on') !== '0', url, delay: Math.max(0, Math.min(90, +document.getElementById('s-delay').value || 0)) }); });
       UI.toast('Transmisión guardada'); break;
+    }
+    case 'qadd': case 'qaddall': case 'qmove': case 'qdel': case 'qclear': {
+      const act = b.dataset.act, i = +b.dataset.i;
+      const sel = act === 'qadd' ? (document.getElementById('q-sel') || {}).value : '';
+      if (act === 'qadd' && !sel) { UI.toast('Elige un partido en la lista', 'bad'); break; }
+      const all = act === 'qaddall' ? T.state().games.filter(g => g.status !== 'final').sort(UI.byDate).map(g => g.id) : [];
+      mt(s => {
+        const st = s.config.stream = Object.assign({ enabled: true, url: '', delay: 8 }, s.config.stream);
+        const q = (st.queue || []).slice();
+        if (act === 'qadd') { if (!q.includes(sel)) q.push(sel); }
+        else if (act === 'qaddall') all.forEach(id => { if (!q.includes(id)) q.push(id); });
+        else if (act === 'qmove') { const j = i + (+b.dataset.d); if (j >= 0 && j < q.length) { const x = q[i]; q[i] = q[j]; q[j] = x; } }
+        else if (act === 'qdel') q.splice(i, 1);
+        else if (act === 'qclear') q.length = 0;
+        st.queue = q;
+      });
+      break;
+    }
+    case 'dlplant': {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([JSON.stringify(T.plantillas(T.state()), null, 1) + '\n'], { type: 'application/json' }));
+      a.download = 'plantillas.json'; a.click(); UI.toast('Descargado: reemplaza plantillas.json en la carpeta del proyecto y publica'); break;
     }
     case 'delaystep': case 'delaypreset': {
       const cur = (T.state().config.stream || {}).delay ?? 8;

@@ -72,7 +72,7 @@
           setState: s => { state = s; notify(); },
           onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
         }, opts))
-        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; w.T.fetchGame = b.fetchGame; return state; })
+        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; w.T.fetchGame = b.fetchGame; w.T.watchGame = b.watchGame; w.T.fetchTeams = b.fetchTeams; w.T.streamAuto = b.streamAuto; return state; })
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
     state = readRaw();
@@ -583,8 +583,23 @@
     return m ? m[1] : '';
   };
 
+  /* Plantillas para Hoopz Live: equipos, colores, coaches y jugadores en un archivo pequeño (plantillas.json) que se publica junto al sitio,
+     así los espectadores no leen los equipos de Firebase. "hash" sirve para saber si el archivo publicado coincide con los datos actuales. */
+  function plantillas(S) {
+    const teams = S.teams.map(t => ({
+      id: t.id, name: t.name, cat: t.cat, color: t.color || '', logo: t.logo && !/^data:/.test(t.logo) ? t.logo : '', coaches: coachList(t),
+      players: (t.players || []).map(p => ({ id: p.id, num: p.num, name: p.name, captain: !!p.captain }))
+    })).sort((a, b) => a.id.localeCompare(b.id));
+    const str = JSON.stringify(teams);
+    let h = 5381; for (let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0;
+    return { v: 1, generated: new Date().toISOString(), hash: h + '-' + str.length, teams };
+  }
+
   w.T = {
-    ytId, fetchGame: id => Promise.resolve(game(id) || null),
+    ytId, plantillas, fetchGame: id => Promise.resolve(game(id) || null),
+    /* Hoopz Live: en modo local se siguen los datos del navegador; con Firebase load() los reemplaza por las versiones de la nube */
+    watchGame: (id, cb) => { const f = () => cb(game(id) || null); subs.push(f); f(); return () => { const i = subs.indexOf(f); if (i >= 0) subs.splice(i, 1); }; },
+    fetchTeams: () => Promise.resolve(state ? state.teams : []), streamAuto: () => {},
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
     draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftLocked, setDraftLock, draftCaptainGroup, draftParentGroup, addParents, draftReset, draftNext, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,

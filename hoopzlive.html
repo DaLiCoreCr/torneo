@@ -23,9 +23,17 @@
   .tap { position: absolute; inset: 0; z-index: 2; }
 
   .msg { position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 1.6cqw; text-align: center; padding: 0 8cqw; color: #aeb4c0; font-size: 2.6cqw; }
-  .msg img { width: 14cqw; }
   .msg a { color: #c9a84c; }
   .msg[hidden] { display: none; }
+  /* Sin transmisión: pantalla negra con el logo de Hoopz girando (igual que la espera del Modo TV) */
+  .spin { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; }
+  .spin[hidden] { display: none; }
+  .coin { position: relative; width: 18cqw; aspect-ratio: 1; display: grid; place-items: center; perspective: 600px; }
+  .coin::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: .45cqw solid rgba(201,168,76,.18); border-top-color: #c9a84c; border-right-color: #c9a84c; animation: coinspin 1.8s linear infinite; }
+  .coin img { width: 74%; height: auto; animation: cointurn 4s linear infinite; }
+  @keyframes coinspin { to { transform: rotate(360deg); } }
+  @keyframes cointurn { to { transform: rotateY(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .coin::before, .coin img { animation: none; } }
 
   .logo { position: absolute; z-index: 3; top: 1.6cqw; right: 1.8cqw; width: 8.5cqw; pointer-events: none; filter: drop-shadow(0 .3cqw .8cqw rgba(0,0,0,.65)); }
   .logo img { width: 100%; display: block; }
@@ -93,7 +101,8 @@
 </head>
 <body>
 <div class="stage" id="stage">
-  <div class="msg" id="msg"><img src="assets/logo-boleta.png" alt="Hoopz"><div id="msgTxt">Conectando…</div></div>
+  <div class="spin" id="spin"><div class="coin"><img src="assets/logo-boleta.png" alt="Hoopz"></div></div>
+  <div class="msg" id="msg" hidden><div id="msgTxt"></div></div>
   <div id="player"></div>
   <div class="tap" id="tap"></div>
   <div class="logo"><img src="assets/logo-boleta.png" alt="Hoopz"></div>
@@ -115,10 +124,10 @@
 </div>
 <div class="hint">Gira el celular para ver la transmisión más grande</div>
 
-<script src="js/firebase-config.js?v=61"></script>
-<script src="js/core.js?v=61"></script>
-<script src="js/seed.js?v=61"></script>
-<script src="js/ui.js?v=61"></script>
+<script src="js/firebase-config.js?v=62"></script>
+<script src="js/core.js?v=62"></script>
+<script src="js/seed.js?v=62"></script>
+<script src="js/ui.js?v=62"></script>
 <script>
 /* Hoopz Live: video de YouTube a pantalla completa con el marcador, el reloj y el último anotador encima.
    Los datos salen del partido en vivo (el mismo que usa el Modo TV), con un retraso configurable para coincidir con el video. */
@@ -137,7 +146,8 @@ const delayMs = () => Math.max(0, Math.min(90, qs.has('delay') ? +qs.get('delay'
 
 /* ---------- video ---------- */
 let player = null, curVid = null, ytLoading = null, ready = false;
-function setMsg(t) { $('msg').hidden = !t; if (t) $('msgTxt').innerHTML = t; }
+function showSpin(on) { $('spin').hidden = !on; }
+function setMsg(t) { $('msg').hidden = !t; if (t) { $('msgTxt').innerHTML = t; showSpin(false); } }
 function loadYT() {
   if (!ytLoading) ytLoading = new Promise(res => {
     if (window.YT && YT.Player) return res();
@@ -153,15 +163,15 @@ function mountVideo(id) {
   if (player) { try { player.destroy(); } catch (e) { /* ya no existe */ } player = null; }
   if (!$('player')) $('stage').insertAdjacentHTML('afterbegin', '<div id="player"></div>');
   $('snd').hidden = true;
-  if (!id) { setMsg(streamCfg().enabled === false || !streamCfg().url ? 'La transmisión de este partido aún no está disponible.<br><a href="tv.html">Ver el marcador en Modo TV</a>' : 'La transmisión aún no está disponible.'); return; }
-  setMsg('Conectando con la transmisión…');
+  setMsg(''); showSpin(true); // sin transmisión (o mientras conecta): pantalla negra con el logo girando
+  if (!id) return;
   loadYT().then(() => {
     if (id !== curVid) return;
     if (!(window.YT && YT.Player)) { setMsg('No se pudo cargar el reproductor de YouTube. Revisa tu conexión.'); return; }
     const vars = { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, fs: 0, disablekb: 1, iv_load_policy: 3 };
     if (location.protocol.startsWith('http')) vars.origin = location.origin;
     player = new YT.Player('player', { width: '100%', height: '100%', videoId: id, playerVars: vars, events: {
-      onReady: e => { ready = true; e.target.mute(); e.target.playVideo(); setMsg(''); $('snd').hidden = false; },
+      onReady: e => { ready = true; e.target.mute(); e.target.playVideo(); setMsg(''); showSpin(false); $('snd').hidden = false; },
       onError: e => setMsg((ERR[e.data] || 'No se pudo reproducir el video.') + '<br><a href="tv.html">Ver el marcador en Modo TV</a>')
     } });
   });
@@ -180,14 +190,35 @@ $('fs').onclick = () => {
   else ($('stage').requestFullscreen || $('stage').webkitRequestFullscreen).call($('stage'));
 };
 
+/* ---------- equipos: de plantillas.json (archivo del sitio, sin Firebase); en modo local, de los datos de este navegador ---------- */
+const teamMap = new Map();
+let fallbackTried = false;
+const addTeams = list => (list || []).forEach(t => teamMap.set(t.id, t));
+function teamOf(id) {
+  const t = teamMap.get(id);
+  if (!t && T.cloud) fallbackTeams(); // equipo que no está en el archivo: se leen los equipos de Firebase una sola vez
+  return t || { id, name: '—', players: [], color: '#555' };
+}
+function fallbackTeams() {
+  if (fallbackTried) return;
+  fallbackTried = true;
+  Promise.resolve(T.fetchTeams()).then(l => { addTeams(l); refreshAll(); });
+}
+function loadTeams() {
+  if (!T.cloud) { addTeams(T.state().teams); return Promise.resolve(); }
+  return fetch('plantillas.json', { cache: 'no-cache' }).then(r => (r.ok ? r.json() : null)).catch(() => null)
+    .then(f => { if (f && Array.isArray(f.teams)) addTeams(f.teams); else fallbackTeams(); });
+}
+const catName = c => ((T.state().config.categories || []).find(x => x.id === c) || { name: c }).name;
+
 /* ---------- datos del partido, guardados con la hora de llegada para mostrarlos con retraso ---------- */
-let hist = [], tracked = null, fetchedId = null, lastSig = '', nextM = null;
+let hist = [], lastSig = '', nextM = null;
 const T0 = Date.now();
 const sameDay = iso => !!iso && new Date(iso).toDateString() === new Date().toDateString();
-function model(S, g) {
-  const R = S.config.rules, h = UI.team(S, g.home), a = UI.team(S, g.away), per = g.clock.period;
+function model(g) {
+  const R = T.state().config.rules, h = teamOf(g.home), a = teamOf(g.away), per = g.clock.period;
   const ev = g.events.slice().reverse().find(e => ACTIONS[e.type] && ACTIONS[e.type].pts);
-  const p = ev && ev.pid ? T.playerIndex(S)[ev.pid] : null;
+  const p = ev && ev.pid ? (teamOf(ev.team === 'h' ? g.home : g.away).players || []).find(x => x.id === ev.pid) : null;
   const wait = g.status === 'scheduled';
   const side = s => {
     const t = s === 'h' ? h : a;
@@ -196,9 +227,9 @@ function model(S, g) {
       players: wait ? (t.players || []).slice().sort((x, y) => (+x.num || 0) - (+y.num || 0)).map(p => ({ num: p.num, name: p.name, cap: !!p.captain })) : [] };
   };
   return {
-    id: g.id, status: g.status, cat: UI.catName(S, g.cat) + (g.status === 'scheduled' && g.date && !sameDay(g.date) ? ' · ' + UI.fmtDate(g.date) : ''), when: g.date ? UI.fmtTime(g.date) : '', h: side('h'), a: side('a'), period: per, plabel: T.periodLabel(per),
+    id: g.id, status: g.status, cat: catName(g.cat) + (wait && g.date && !sameDay(g.date) ? ' · ' + UI.fmtDate(g.date) : ''), when: g.date ? UI.fmtTime(g.date) : '', h: side('h'), a: side('a'), period: per, plabel: T.periodLabel(per),
     rem: g.clock.remainingMs, run: !!g.clock.running, st: g.clock.startedAt, fouls: { h: T.teamFouls(g, 'h', per), a: T.teamFouls(g, 'a', per) }, bonus: R.bonusFouls,
-    last: ev ? { id: ev.id, pts: ACTIONS[ev.type].pts, team: ev.team, num: p ? p.p.num : '', name: p ? p.p.name : '', tname: ev.team === 'h' ? h.name : a.name } : null,
+    last: ev ? { id: ev.id, pts: ACTIONS[ev.type].pts, team: ev.team, num: p ? p.num : '', name: p ? p.name : '', tname: ev.team === 'h' ? h.name : a.name } : null,
     t: Date.now()
   };
 }
@@ -209,21 +240,68 @@ function push(m) {
   const cut = Date.now() - KEEP_MS;
   while (hist.length > 1 && hist[1].t < cut) hist.shift();
 }
+function setNext(m2) {
+  const sg = JSON.stringify([m2.id, m2.cat, m2.when, m2.h, m2.a]);
+  if (!nextM || nextM.sig !== sg) { m2.sig = sg; nextM = m2; }
+}
+
+/* Un partido (documento) recibido: programado = datos de espera; en vivo o final = historial con retraso */
+let lastDoc = null;
+function handleGame(g) {
+  lastDoc = g;
+  if (!g) return;
+  if (g.status === 'scheduled') { hist = hist.filter(x => x.id !== g.id); lastSig = ''; setNext(model(g)); }
+  else push(model(g));
+}
+
+/* ---------- modo cola: se sigue un solo partido a la vez (1 documento) y al terminar pasa al siguiente ---------- */
+let mode = '', queueKey = '', curQueue = [], curIdx = -1, unwatch = null;
+const seen = new Set(); // partidos que se vieron programados o en vivo en esta sesión
+const queueIds = () => { const q = qs.get('id') ? [qs.get('id')] : (T.state().config.stream || {}).queue; return Array.isArray(q) ? q.filter(Boolean) : []; };
+function stopWatch() { if (unwatch) { unwatch(); unwatch = null; } }
+function follow(i) {
+  stopWatch(); curIdx = i; lastDoc = null;
+  if (i >= curQueue.length) { nextM = null; return; } // cola terminada: solo video y logo
+  const id = curQueue[i];
+  unwatch = T.watchGame(id, g => {
+    if (i !== curIdx) return;
+    if (!g) return follow(i + 1);                                     // partido borrado
+    if (g.status === 'final' && !seen.has(id)) return follow(i + 1);  // ya había terminado antes de abrir la página
+    if (g.status !== 'final') seen.add(id);
+    handleGame(g);
+  });
+}
+function afterHold() { // terminó el tiempo del resultado final: se pasa al siguiente partido
+  hist = []; lastSig = ''; nextM = null; tracked = null;
+  if (mode === 'queue') follow(curIdx + 1);
+}
+
+/* ---------- modo automático (cola vacía): el partido en vivo o, si no hay, el próximo programado del calendario ---------- */
+let tracked = null, fetchedId = null;
+function autoData() {
+  const S = T.state();
+  const g = S.games.filter(x => x.status === 'live').sort(UI.byDate)[0];
+  const nx = S.games.filter(x => x.status === 'scheduled' && !(g && x.id === g.id)).sort(UI.byDate)[0];
+  if (!nx) nextM = null; else setNext(model(nx));
+  if (g) { tracked = g.id; fetchedId = null; push(model(g)); return; }
+  if (!tracked || fetchedId === tracked) return;
+  const id = tracked; fetchedId = id; // el partido salió de "en vivo": se trae una vez para mostrar el resultado final
+  Promise.resolve(T.fetchGame(id)).then(d => { if (d && d.status === 'final') push(model(d)); else if (d && d.status !== 'live') tracked = null; });
+}
+
+/* Cambios de configuración (URL, cola, retraso) y de datos */
 function onData() {
   mountVideo(videoId());
-  const S = T.state();
-  const fixed = qs.get('id');
-  const g = fixed ? (S.games.find(x => x.id === fixed && x.status === 'live') || null) : S.games.filter(x => x.status === 'live').sort(UI.byDate)[0];
-  // próximo partido (el que sigue en el calendario): se muestra mientras no haya uno en vivo
-  const nx = S.games.filter(x => x.status === 'scheduled' && !(g && x.id === g.id)).sort(UI.byDate)[0];
-  if (!nx) nextM = null;
-  else { const m2 = model(S, nx), sg = JSON.stringify([m2.id, m2.cat, m2.when, m2.h, m2.a]); if (!nextM || nextM.sig !== sg) { m2.sig = sg; nextM = m2; } }
-  if (g) { tracked = g.id; fetchedId = null; push(model(S, g)); return; }
-  if (!tracked || fetchedId === tracked) return;
-  // el partido salió de "en vivo": se trae una vez para mostrar el resultado final
-  const id = tracked; fetchedId = id;
-  Promise.resolve(T.fetchGame(id)).then(d => { if (d && d.status === 'final') push(model(T.state(), d)); else if (d && d.status !== 'live') tracked = null; });
+  if (!T.cloud) addTeams(T.state().teams);
+  const q = queueIds(), key = q.join(',');
+  if (q.length) {
+    if (mode !== 'queue' || key !== queueKey) { mode = 'queue'; queueKey = key; curQueue = q; hist = []; lastSig = ''; nextM = null; T.streamAuto(false); follow(0); }
+  } else {
+    if (mode !== 'auto') { mode = 'auto'; queueKey = ''; stopWatch(); hist = []; lastSig = ''; nextM = null; T.streamAuto(true); }
+    autoData();
+  }
 }
+function refreshAll() { if (mode === 'queue') { if (lastDoc) handleGame(lastDoc); } else autoData(); }
 T.subscribe(onData);
 
 /* ---------- dibujo ---------- */
@@ -261,7 +339,7 @@ function render() {
   let m = null;
   for (let i = hist.length - 1; i >= 0; i--) { if (hist[i].t <= target) { m = hist[i]; break; } }
   if (!m && now - T0 < delayMs() + 1500) m = hist[0] || null; // recién abierta la página: se muestra lo último que hay hasta llenar el retraso
-  if (m && m.status === 'final') { if (!finalSince) finalSince = now; if (now - finalSince > HOLD_MS) { m = null; tracked = null; hist = []; lastSig = ''; } } else finalSince = 0;
+  if (m && m.status === 'final') { if (!finalSince) finalSince = now; if (now - finalSince > HOLD_MS) { m = null; finalSince = 0; afterHold(); } } else finalSince = 0;
   if (!m) m = nextM; // sin partido en vivo ni recién terminado: datos del próximo partido
   $('bar').hidden = !m;
   const wait = !!m && m.status === 'scheduled', fin = !!m && m.status === 'final';
@@ -283,7 +361,7 @@ function render() {
   set($('flH'), !wait && m.fouls.h ? 'F' + m.fouls.h : ''); set($('flA'), !wait && m.fouls.a ? 'F' + m.fouls.a : '');
   const rem = m.run ? Math.max(0, m.rem - (target - m.st)) : m.rem;
   set($('per'), wait ? 'PRONTO' : fin ? 'FIN' : m.plabel);
-  set($('clk'), wait ? (m.when || '––:––') : fin ? 'FINAL' : fmtClock(rem));
+  set($('clk'), wait ? (m.when || '') : fin ? 'FINAL' : fmtClock(rem));
   $('clk').classList.toggle('low', !wait && !fin && rem < 60000);
   $('clk').style.fontSize = wait ? '2.4cqw' : '';
 
@@ -306,8 +384,7 @@ function render() {
   prevTotal = total;
   $('pop').classList.toggle('show', now < popUntil);
 }
-onData();
-setInterval(render, 100);
+loadTeams().then(() => { onData(); setInterval(render, 100); });
 });
 </script>
 </body>

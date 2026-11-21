@@ -126,51 +126,76 @@ export function connect(cfg, host, opts) {
     }, err => console.warn('meta', err.code || err));
   }
   function metaStop() { if (metaUn) { metaUn(); metaUn = null; } }
-  /* Modo transmisión (Hoopz Live): solo escucha la configuración y los partidos EN VIVO (sin equipos, sin sorteo ni partidos viejos).
-     Los equipos se leen una vez y se guardan 15 min en el navegador. Así cada espectador cuesta ~1 lectura por cambio del partido. */
+  /* Modo transmisión (Hoopz Live): escucha solo la configuración. Los equipos y jugadores salen de plantillas.json (archivo del sitio, sin Firebase).
+     El partido se sigue por id con watchGame (cola del día, 1 documento). Sin cola, streamAuto(true) escucha los partidos en vivo y programados.
+     Cada espectador cuesta ~2 lecturas al abrir y 1 por cada cambio del partido que está viendo. */
   const STREAM_TEAMS = 'torneo.stream.teams', STREAM_TEAMS_MS = 900000;
-  function streamTeams() {
+  /* Respaldo: si un equipo no está en plantillas.json se leen los equipos una vez (y se guardan 15 min) */
+  function fetchTeams() {
     try {
       const c = JSON.parse(localStorage.getItem(STREAM_TEAMS) || 'null');
-      if (c && Date.now() - c.t < STREAM_TEAMS_MS) { c.teams.forEach(t => remote.teams.set(t.id, t)); return Promise.resolve(); }
+      if (c && Date.now() - c.t < STREAM_TEAMS_MS) return Promise.resolve(c.teams);
     } catch (e) { /* sin copia */ }
     return getDocs(collection(db, 'teams')).then(s => {
       if (!s.metadata.fromCache) usage.reads(s.size);
-      remote.teams.clear(); s.forEach(d => remote.teams.set(d.id, d.data()));
-      try { localStorage.setItem(STREAM_TEAMS, JSON.stringify({ t: Date.now(), teams: [...remote.teams.values()] })); } catch (e) { /* sin espacio */ }
-    }).catch(err => console.error('teams', err));
+      const teams = []; s.forEach(d => teams.push(d.data()));
+      try { localStorage.setItem(STREAM_TEAMS, JSON.stringify({ t: Date.now(), teams })); } catch (e) { /* sin espacio */ }
+      return teams;
+    }).catch(err => { console.error('teams', err); return []; });
   }
+  /* Seguir un partido por id: un solo documento (1 lectura al abrir + 1 por cambio). Devuelve la función para dejar de seguirlo. */
+  const watchers = new Set();
+  function subWatcher(w) {
+    let srv = false;
+    w.un = onSnapshot(doc(db, 'games', w.id), snap => {
+      if (snap.metadata.fromCache && navigator.onLine && !srv) return; // la copia guardada puede estar vieja: se espera al servidor
+      if (!snap.metadata.fromCache) { srv = true; usage.reads(1); }
+      w.cb(snap.exists() ? snap.data() : null);
+    }, err => { console.warn('partido', err.code || err); retry(); });
+  }
+  function watchGame(id, cb) {
+    const w = { id, cb, un: null };
+    watchers.add(w);
+    if (staff || !document.hidden) subWatcher(w);
+    return () => { if (w.un) { w.un(); w.un = null; } watchers.delete(w); };
+  }
+  /* Modo automático (sin cola): escucha los partidos en vivo y los programados (los programados solo cambian al arrancar o reprogramar) */
+  let autoOn = false, autoUn = [];
+  function startAuto() {
+    if (autoUn.length) return;
+    let gotL = false, gotS = false;
+    autoUn = [
+      onSnapshot(query(collection(db, 'games'), where('status', '==', 'live')), snap => {
+        if (snap.metadata.fromCache && navigator.onLine && !gotL) return;
+        if (!snap.metadata.fromCache) { gotL = true; usage.reads(snap.docChanges().length); }
+        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.games.delete(ch.doc.id); else remote.games.set(ch.doc.id, ch.doc.data()); });
+        rebuild();
+      }, err => { console.warn('en vivo', err.code || err); retry(); }),
+      onSnapshot(query(collection(db, 'games'), where('status', '==', 'scheduled')), snap => {
+        if (snap.metadata.fromCache && navigator.onLine && !gotS) return;
+        if (!snap.metadata.fromCache) { gotS = true; usage.reads(snap.docChanges().length); }
+        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.sched.delete(ch.doc.id); else remote.sched.set(ch.doc.id, ch.doc.data()); });
+        rebuild();
+      }, err => { console.warn('programados', err.code || err); retry(); })
+    ];
+  }
+  function stopAuto() { autoUn.forEach(u => u()); autoUn = []; remote.games.clear(); remote.sched.clear(); }
+  function streamAuto(on) { autoOn = !!on; if (!autoOn) stopAuto(); else if (!document.hidden || staff) startAuto(); if (!autoOn) rebuild(); }
   function attachStream() {
-    pending = 4;
+    pending = 1;
     remote.games.clear(); remote.sched.clear(); remote.draft.clear(); known.clear();
-    let firstCfg = true, firstGames = true, firstSched = true, gotServer = false, gotServerS = false;
-    streamTeams().then(firstDone);
-    setTimeout(() => { // que la página no se quede esperando si no hay red
-      if (firstGames) { firstGames = false; firstDone(); }
-      if (firstSched) { firstSched = false; firstDone(); }
-    }, 8000);
+    let firstCfg = true;
     unsubs = [
       onSnapshot(doc(db, 'config', 'main'), snap => {
         if (!snap.metadata.fromCache) usage.reads(1);
         remote.config = snap.exists() ? snap.data() : null;
         if (firstCfg) { firstCfg = false; firstDone(); } else if (pending === 0) rebuild();
-      }, err => { console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } retry(); }),
-      onSnapshot(query(collection(db, 'games'), where('status', '==', 'live')), snap => {
-        if (snap.metadata.fromCache && navigator.onLine && !gotServer) return; // la copia guardada puede traer un partido que ya terminó: se espera al servidor
-        if (!snap.metadata.fromCache) { gotServer = true; usage.reads(snap.docChanges().length); }
-        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.games.delete(ch.doc.id); else remote.games.set(ch.doc.id, ch.doc.data()); });
-        if (firstGames) { firstGames = false; firstDone(); } else if (pending === 0) rebuild();
-      }, err => { console.error('games', err); if (firstGames) { firstGames = false; firstDone(); } retry(); }),
-      // próximos partidos: solo cambia cuando uno arranca o se reprograma (las jugadas del partido en vivo no pasan por aquí)
-      onSnapshot(query(collection(db, 'games'), where('status', '==', 'scheduled')), snap => {
-        if (snap.metadata.fromCache && navigator.onLine && !gotServerS) return;
-        if (!snap.metadata.fromCache) { gotServerS = true; usage.reads(snap.docChanges().length); }
-        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.sched.delete(ch.doc.id); else remote.sched.set(ch.doc.id, ch.doc.data()); });
-        if (firstSched) { firstSched = false; firstDone(); } else if (pending === 0) rebuild();
-      }, err => { console.error('programados', err); if (firstSched) { firstSched = false; firstDone(); } retry(); })
+      }, err => { console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } retry(); })
     ];
+    watchers.forEach(w => { if (!w.un) subWatcher(w); });
+    if (autoOn) startAuto();
   }
-  /* Un partido por id (una lectura): para mostrar el resultado final cuando ya salió de la lista de "en vivo" */
+  /* Un partido por id (una lectura): para comprobar el estado de un partido de la cola */
   function fetchGame(id) {
     return getDoc(doc(db, 'games', id)).then(s => { if (!s.metadata.fromCache) usage.reads(1); return s.exists() ? s.data() : null; }).catch(() => null);
   }
@@ -192,7 +217,7 @@ export function connect(cfg, host, opts) {
       watch('draft', remote.draft)
     ];
   }
-  function detach() { unsubs.forEach(u => u()); unsubs = []; }
+  function detach() { unsubs.forEach(u => u()); unsubs = []; watchers.forEach(w => { if (w.un) { w.un(); w.un = null; } }); autoUn.forEach(u => u()); autoUn = []; }
   /* Un error de listener lo termina para siempre: se vuelve a conectar solo (visitantes con la pantalla visible o staff) */
   let retryTimer = null;
   function retry() {
@@ -269,7 +294,7 @@ export function connect(cfg, host, opts) {
 
   return new Promise(resolve => {
     onReady = () => resolve({
-      save, watchUsage, bumpEpoch, fetchGame,
+      save, watchUsage, bumpEpoch, fetchGame, watchGame, fetchTeams, streamAuto,
       setStaff: v => { staff = v; if (v && !unsubs.length) attach(); },
       auth: {
         onChange: cb => onAuthStateChanged(auth, cb),
