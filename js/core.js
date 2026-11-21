@@ -3,6 +3,9 @@
 (function (w) {
   'use strict';
 
+  /* Versión con la que se cargó este archivo (?v=NN): se usa también para cargar js/store-firebase.js, así nunca se mezcla un core.js nuevo con un store viejo en caché */
+  const SCRIPT_V = (() => { try { const m = /[?&]v=([\w.-]+)/.exec(document.currentScript.src); return m ? m[1] : ''; } catch (e) { return ''; } })();
+
   const KEY = 'torneo.v1';
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const uid = p => p + Math.random().toString(36).slice(2, 8);
@@ -66,13 +69,13 @@
     if (useCloud()) {
       const emptyState = () => ({ v: 1, config: JSON.parse(JSON.stringify(DEFAULT_CONFIG)), teams: [], games: [], draft: {} });
       state = emptyState();
-      return import(new URL('js/store-firebase.js', document.baseURI).href)
+      return import(new URL('js/store-firebase.js' + (SCRIPT_V ? '?v=' + SCRIPT_V : ''), document.baseURI).href)
         .then(m => m.connect(w.FIREBASE_CONFIG, {
           DEFAULT_CONFIG,
           setState: s => { state = s; notify(); },
           onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
         }, opts))
-        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; w.T.fetchGame = b.fetchGame; w.T.watchGame = b.watchGame; w.T.fetchTeams = b.fetchTeams; w.T.streamAuto = b.streamAuto; return state; })
+        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; ['fetchGame', 'watchGame', 'fetchTeams', 'streamAuto'].forEach(k => { if (typeof b[k] === 'function') w.T[k] = b[k]; }); return state; })
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
     state = readRaw();
