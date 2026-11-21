@@ -72,7 +72,7 @@
           setState: s => { state = s; notify(); },
           onError: err => { console.error(err); if (w.UI) w.UI.toast(err.code === 'permission-denied' ? 'Sin permiso para guardar: inicia sesión con un correo autorizado' : 'No se pudo guardar: ' + err.message, 'bad'); }
         }, opts))
-        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; return state; })
+        .then(b => { backend = b; w.T.cloud = true; w.T.auth = b.auth; w.T.setStaff = b.setStaff; w.T.watchUsage = b.watchUsage; w.T.fetchGame = b.fetchGame; return state; })
         .catch(err => { console.error(err); w.T.offline = true; return state; });
     }
     state = readRaw();
@@ -576,7 +576,15 @@
   const coachList = t => (Array.isArray(t.coaches) ? t.coaches : (t.coach ? [t.coach] : []));
   function setCoaches(t, list) { t.coaches = list; t.coach = list.join(', '); }
 
+  /* Transmisión: id de un video de YouTube a partir de un enlace (watch?v=, youtu.be/, /live/, /embed/, /shorts/) o del id suelto */
+  const ytId = s => {
+    s = String(s || '').trim();
+    const m = s.match(/(?:v=|youtu\.be\/|\/live\/|\/embed\/|\/shorts\/)([\w-]{11})/) || s.match(/^([\w-]{11})$/);
+    return m ? m[1] : '';
+  };
+
   w.T = {
+    ytId, fetchGame: id => Promise.resolve(game(id) || null),
     coachList, setCoaches,
     STAGES, stageName, leagueGames, playoffGames, gameWinner, gameLoser, isoLocal, addMin, drawLeague, drawPlayoffs, advancePlayoffs,
     draft: draftOf, draftW, draftAssign, draftReturn, draftGroup, draftCaptain, draftLocked, setDraftLock, draftCaptainGroup, draftParentGroup, addParents, draftReset, draftNext, isTeamDone, hasCaptain, capCount, capsPer, draftUndo,

@@ -32,7 +32,7 @@ export function connect(cfg, host, opts) {
   const db = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
   const auth = getAuth(app);
 
-  const remote = { config: null, teams: new Map(), games: new Map(), draft: new Map() };
+  const remote = { config: null, teams: new Map(), games: new Map(), draft: new Map(), sched: new Map() }; // sched: solo en modo transmisión (partidos programados)
   const known = new Map(); // 'teams/id' -> json canónico de lo que hay en el servidor
   let unsubs = [], pending = 0, staff = false, onReady = null;
 
@@ -48,7 +48,7 @@ export function connect(cfg, host, opts) {
       v: 1,
       config: remote.config || clone(host.DEFAULT_CONFIG),
       teams: [...remote.teams.values()].sort((a, b) => a.cat.localeCompare(b.cat) || a.name.localeCompare(b.name)),
-      games: [...remote.games.values()].sort((a, b) => (a.date || '~').localeCompare(b.date || '~') || (a.order || 0) - (b.order || 0)),
+      games: [...remote.games.values(), ...[...remote.sched.values()].filter(g => !remote.games.has(g.id))].sort((a, b) => (a.date || '~').localeCompare(b.date || '~') || (a.order || 0) - (b.order || 0)),
       draft: Object.fromEntries([...remote.draft.entries()])
     });
   }
@@ -126,8 +126,57 @@ export function connect(cfg, host, opts) {
     }, err => console.warn('meta', err.code || err));
   }
   function metaStop() { if (metaUn) { metaUn(); metaUn = null; } }
+  /* Modo transmisión (Hoopz Live): solo escucha la configuración y los partidos EN VIVO (sin equipos, sin sorteo ni partidos viejos).
+     Los equipos se leen una vez y se guardan 15 min en el navegador. Así cada espectador cuesta ~1 lectura por cambio del partido. */
+  const STREAM_TEAMS = 'torneo.stream.teams', STREAM_TEAMS_MS = 900000;
+  function streamTeams() {
+    try {
+      const c = JSON.parse(localStorage.getItem(STREAM_TEAMS) || 'null');
+      if (c && Date.now() - c.t < STREAM_TEAMS_MS) { c.teams.forEach(t => remote.teams.set(t.id, t)); return Promise.resolve(); }
+    } catch (e) { /* sin copia */ }
+    return getDocs(collection(db, 'teams')).then(s => {
+      if (!s.metadata.fromCache) usage.reads(s.size);
+      remote.teams.clear(); s.forEach(d => remote.teams.set(d.id, d.data()));
+      try { localStorage.setItem(STREAM_TEAMS, JSON.stringify({ t: Date.now(), teams: [...remote.teams.values()] })); } catch (e) { /* sin espacio */ }
+    }).catch(err => console.error('teams', err));
+  }
+  function attachStream() {
+    pending = 4;
+    remote.games.clear(); remote.sched.clear(); remote.draft.clear(); known.clear();
+    let firstCfg = true, firstGames = true, firstSched = true, gotServer = false, gotServerS = false;
+    streamTeams().then(firstDone);
+    setTimeout(() => { // que la página no se quede esperando si no hay red
+      if (firstGames) { firstGames = false; firstDone(); }
+      if (firstSched) { firstSched = false; firstDone(); }
+    }, 8000);
+    unsubs = [
+      onSnapshot(doc(db, 'config', 'main'), snap => {
+        if (!snap.metadata.fromCache) usage.reads(1);
+        remote.config = snap.exists() ? snap.data() : null;
+        if (firstCfg) { firstCfg = false; firstDone(); } else if (pending === 0) rebuild();
+      }, err => { console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } retry(); }),
+      onSnapshot(query(collection(db, 'games'), where('status', '==', 'live')), snap => {
+        if (snap.metadata.fromCache && navigator.onLine && !gotServer) return; // la copia guardada puede traer un partido que ya terminó: se espera al servidor
+        if (!snap.metadata.fromCache) { gotServer = true; usage.reads(snap.docChanges().length); }
+        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.games.delete(ch.doc.id); else remote.games.set(ch.doc.id, ch.doc.data()); });
+        if (firstGames) { firstGames = false; firstDone(); } else if (pending === 0) rebuild();
+      }, err => { console.error('games', err); if (firstGames) { firstGames = false; firstDone(); } retry(); }),
+      // próximos partidos: solo cambia cuando uno arranca o se reprograma (las jugadas del partido en vivo no pasan por aquí)
+      onSnapshot(query(collection(db, 'games'), where('status', '==', 'scheduled')), snap => {
+        if (snap.metadata.fromCache && navigator.onLine && !gotServerS) return;
+        if (!snap.metadata.fromCache) { gotServerS = true; usage.reads(snap.docChanges().length); }
+        snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.sched.delete(ch.doc.id); else remote.sched.set(ch.doc.id, ch.doc.data()); });
+        if (firstSched) { firstSched = false; firstDone(); } else if (pending === 0) rebuild();
+      }, err => { console.error('programados', err); if (firstSched) { firstSched = false; firstDone(); } retry(); })
+    ];
+  }
+  /* Un partido por id (una lectura): para mostrar el resultado final cuando ya salió de la lista de "en vivo" */
+  function fetchGame(id) {
+    return getDoc(doc(db, 'games', id)).then(s => { if (!s.metadata.fromCache) usage.reads(1); return s.exists() ? s.data() : null; }).catch(() => null);
+  }
   function attach() {
     if (!liveMode) { fetchOnce(isReload() ? { fresh: 20000 } : {}); metaWatch(); return; }
+    if (opts && opts.stream) { attachStream(); return; }
     pending = 4;
     remote.teams.clear(); remote.games.clear(); remote.draft.clear(); known.clear();
     let firstCfg = true;
@@ -220,7 +269,7 @@ export function connect(cfg, host, opts) {
 
   return new Promise(resolve => {
     onReady = () => resolve({
-      save, watchUsage, bumpEpoch,
+      save, watchUsage, bumpEpoch, fetchGame,
       setStaff: v => { staff = v; if (v && !unsubs.length) attach(); },
       auth: {
         onChange: cb => onAuthStateChanged(auth, cb),

@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=58">
+<link rel="stylesheet" href="css/styles.css?v=59">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -27,10 +27,10 @@
 </head>
 <body>
 <main><div class="wrap tvwrap"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=58"></script>
-<script src="js/core.js?v=58"></script>
-<script src="js/seed.js?v=58"></script>
-<script src="js/ui.js?v=58"></script>
+<script src="js/firebase-config.js?v=59"></script>
+<script src="js/core.js?v=59"></script>
+<script src="js/seed.js?v=59"></script>
+<script src="js/ui.js?v=59"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -60,7 +60,7 @@ let runAtDown = false;
 ['pointerdown', 'keydown', 'touchstart', 'click'].forEach(ev => document.addEventListener(ev, () => { if (ev !== 'click') runAtDown = !!(actx && actx.state === 'running'); if (sndOn && !(actx && actx.state === 'running')) sndUnlock(); }, true));
 sndUnlock();
 function sndBlocked() { return sndOn && !(actx && actx.state === 'running'); }
-const SND_BUZZER = 'assets/sounds/nba.wav', SND_10S = 'assets/sounds/diez-segundos-juan.mp3'; // aviso de voz: para usar a María, cambiar a diez-segundos-maria.mp3
+const SND_BUZZER = 'assets/sounds/nba.wav';
 const bufs = {}, loading = {};
 function loadFile(url) { // cada archivo se descarga y decodifica una sola vez
   if (!loading[url]) loading[url] = fetch(url).then(r => r.arrayBuffer()).then(b => new Promise((ok, no) => actx.decodeAudioData(b, ok, no))).then(b => { bufs[url] = b; }).catch(() => { delete loading[url]; });
@@ -75,10 +75,8 @@ function playSound(url) {
   if (!actx || actx.state !== 'running') return;
   playFile(url || SND_BUZZER);
 }
-function preloadSounds() { if (actx) { loadFile(SND_BUZZER); loadFile(SND_10S); } }
+function preloadSounds() { if (actx) loadFile(SND_BUZZER); }
 function buzzer() { if (sndOn) playSound(SND_BUZZER); }
-const VOICE10_ON = false; // aviso de voz a los 10 s: apagado hasta tener el audio definitivo (poner true y ajustar SND_10S para activarlo)
-function voice10() { if (sndOn && VOICE10_ON) playSound(SND_10S); }
 /* Detecta el paso del reloj a 0:00 del partido que se muestra (no suena al abrir la página con el período ya terminado) */
 let prevRem = null, prevKey = '';
 setInterval(() => {
@@ -86,7 +84,6 @@ setInterval(() => {
   if (!g || g.status !== 'live') { prevRem = null; return; }
   const key = g.id + ':' + g.clock.period, rem = T.remaining(g);
   if (key === prevKey && prevRem !== null && prevRem > 0 && rem <= 0) buzzer();
-  else if (key === prevKey && g.clock.running && prevRem > 10000 && rem <= 10000 && rem > 0) voice10(); // aviso de voz a los 10 segundos
   prevKey = key; prevRem = rem;
 }, 200);
 

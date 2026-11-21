@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=58">
+<link rel="stylesheet" href="css/styles.css?v=59">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -18,10 +18,10 @@
 </head>
 <body>
 <main><div class="wrap page"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=58"></script>
-<script src="js/core.js?v=58"></script>
-<script src="js/seed.js?v=58"></script>
-<script src="js/ui.js?v=58"></script>
+<script src="js/firebase-config.js?v=59"></script>
+<script src="js/core.js?v=59"></script>
+<script src="js/seed.js?v=59"></script>
+<script src="js/ui.js?v=59"></script>
 <script>
 T.load().then(() => {
 UI.layout('');
@@ -29,7 +29,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null, editPl = null;
 
-const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['rules', 'Reglas'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['rules', 'Reglas'], ['stream', 'Transmisión'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -220,12 +220,36 @@ function rulesView(S) {
     <button class="btn gold" data-act="saverules" style="margin-top:12px">Guardar reglas</button>`;
 }
 
+/* Transmisión: video de YouTube que se ve en Hoopz Live con el marcador encima */
+function streamView(S) {
+  const st = S.config.stream || {};
+  const id = T.ytId(st.url);
+  return `<div class="card"><div class="frm">
+      ${field('Transmisión activa', `<select class="inp" id="s-on"><option value="1" ${st.enabled === false ? '' : 'selected'}>Sí: mostrar el video en Hoopz Live</option><option value="0" ${st.enabled === false ? 'selected' : ''}>No: Hoopz Live muestra que no hay transmisión</option></select>`)}
+      ${field('Enlace de la transmisión en vivo (YouTube)', `<input class="inp" id="s-url" placeholder="https://www.youtube.com/watch?v=…  ·  youtu.be/…  ·  youtube.com/live/…" value="${esc(st.url || '')}">`)}
+      ${field('Retraso del marcador (segundos)', `<input class="inp" type="number" min="0" max="90" id="s-delay" value="${st.delay ?? 8}">`)}
+    </div>
+    <div style="margin-top:14px"><label class="lbl">Ajuste en vivo (se guarda y se aplica al instante a todos los que están viendo)</label>
+      <div class="row" style="align-items:center">
+        <button class="btn" data-act="delaystep" data-d="-5">−5 s</button><button class="btn" data-act="delaystep" data-d="-1">−1 s</button>
+        <b class="gold" style="font-family:'Bebas Neue',sans-serif;font-size:34px;min-width:90px;text-align:center">${st.delay ?? 8} s</b>
+        <button class="btn" data-act="delaystep" data-d="1">+1 s</button><button class="btn" data-act="delaystep" data-d="5">+5 s</button></div></div>
+    <div style="margin-top:14px"><label class="lbl">Valor sugerido según la latencia elegida en YouTube Studio (punto de partida)</label>
+      <div class="row"><button class="btn ghost" data-act="delaypreset" data-d="6">Ultra baja → 6 s</button><button class="btn ghost" data-act="delaypreset" data-d="10">Baja → 10 s</button><button class="btn ghost" data-act="delaypreset" data-d="20">Normal → 20 s</button></div></div>
+    <p class="note">${id ? `Video detectado: <b>${esc(id)}</b>.` : st.url ? '<b style="color:var(--live)">No reconozco ese enlace.</b>' : 'Aún no hay enlace guardado.'}
+      El marcador llega en 1–2 segundos pero el video de YouTube va atrasado (entre 3 y 30 s según la latencia de la transmisión): este retraso hace que el punto aparezca cuando ya se vio la jugada.
+      Cómo calibrar: abre Hoopz Live en un celular mientras alguien anota en la mesa. Si el punto aparece <b>antes</b> de ver el tiro, sube el retraso; si aparece <b>después</b>, bájalo. En YouTube Studio conviene elegir latencia <b>ultra baja</b> (según YouTube, la mayoría de los espectadores ve menos de 5 s de retraso; con "baja", menos de 10 s). Cada espectador tiene unos segundos de diferencia, así que busca el valor que le funcione a la mayoría.</p>
+    <div class="row" style="margin-top:12px"><button class="btn gold" data-act="savestream">Guardar transmisión</button>
+      <a class="btn" href="hoopzlive.html" target="_blank">Abrir Hoopz Live ↗</a></div></div>
+    <p class="note">Hoopz Live solo escucha el partido que está en vivo (no carga equipos, sorteo ni partidos viejos), así que cada espectador consume muy pocas lecturas. Para cambiar de canal (por ejemplo al de la academia) basta pegar otro enlace aquí; en la cámara se cambia la clave de transmisión del canal nuevo.</p>`;
+}
+
 function dataView() {
   return `<div class="card" style="display:grid;gap:14px">
     <div><h3 class="gold" style="font-size:22px">Respaldo</h3><p class="muted">Descarga todo el torneo en un archivo JSON, o restaura uno anterior. Sirve también para migrar a la versión del próximo año.</p>
       <div class="row"><button class="btn gold" data-act="export">Descargar respaldo</button><label class="btn ghost" style="cursor:pointer">Restaurar respaldo<input type="file" id="imp" accept="application/json" hidden></label></div></div>
-    <div><h3 class="gold" style="font-size:22px">Sonido de alerta</h3><p class="muted">Es el sonido que suena en la pantalla de Modo TV cuando termina el tiempo de cada cuarto. Pruébalo aquí para ajustar el volumen del TV o mostrárselo a los árbitros. El aviso de voz ("Diez segundos") suena en la TV cuando faltan 10 segundos para terminar el cuarto.</p>
-      <div class="row"><button class="btn gold" data-act="testsound">▶ Probar sonido de alerta</button><button class="btn ghost" data-act="testvoice" data-v="juan">🗣 Aviso 10 segundos · Juan</button><button class="btn ghost" data-act="testvoice" data-v="maria">🗣 Aviso 10 segundos · María</button></div></div>
+    <div><h3 class="gold" style="font-size:22px">Sonido de alerta</h3><p class="muted">Es el sonido que suena en la pantalla de Modo TV cuando termina el tiempo de cada cuarto. Pruébalo aquí para ajustar el volumen del TV o mostrárselo a los árbitros.</p>
+      <div class="row"><button class="btn gold" data-act="testsound">▶ Probar sonido de alerta</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Datos de prueba</h3><p class="muted">${T.cloud ? '<b>Los datos están en la nube y los ve todo el público.</b> Estas acciones reemplazan lo que hay en el torneo real.' : 'Modo local: todo se guarda solo en este navegador.'}</p>
       <div class="row"><button class="btn" data-act="seed">Restaurar datos de ejemplo</button></div></div>
     <div><h3 class="gold" style="font-size:22px">Reinicio real</h3>
@@ -238,7 +262,7 @@ function dataView() {
 
 /* Monitoreo: dispositivos conectados ahora y lecturas/escrituras del día (suma de lo que reporta cada dispositivo) */
 const ONLINE_MS = 300000, QUOTA = { reads: 50000, writes: 20000 };
-const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación', 'presentacion-llaves': 'Presentación de llaves', podio: 'Podio' };
+const PAGES = { index: 'Inicio', partido: 'Partido', posiciones: 'Posiciones', llaves: 'Llaves', resultados: 'Resultados', estadisticas: 'Estadísticas', tv: 'Marcador TV', hoopzlive: 'Hoopz Live', mesa: 'Mesa', admin: 'Administración', sorteo: 'Sorteo', presentacion: 'Presentación', 'presentacion-llaves': 'Presentación de llaves', podio: 'Podio' };
 let unUsage = null, lastUsage = null;
 function monitorView() {
   if (!T.cloud || !T.watchUsage) return '<div class="card"><p class="muted">El monitoreo solo funciona con los datos en la nube (no en modo local).</p></div>';
@@ -277,7 +301,7 @@ function render() {
   if (tab === 'monitor') startUsage(); else stopUsage();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'rules' ? rulesView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'rules' ? rulesView(S) : tab === 'stream' ? streamView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
 }
 
 app.addEventListener('click', e => {
@@ -428,15 +452,22 @@ app.addEventListener('click', e => {
       });
       UI.toast('Reglas guardadas'); break;
     }
+    case 'savestream': {
+      const url = val('s-url');
+      if (url && !T.ytId(url)) { UI.toast('No reconozco ese enlace de YouTube', 'bad'); break; }
+      mt(s => { s.config.stream = { enabled: val('s-on') !== '0', url, delay: Math.max(0, Math.min(90, +document.getElementById('s-delay').value || 0)) }; });
+      UI.toast('Transmisión guardada'); break;
+    }
+    case 'delaystep': case 'delaypreset': {
+      const cur = (T.state().config.stream || {}).delay ?? 8;
+      const next = Math.max(0, Math.min(90, b.dataset.act === 'delaypreset' ? +b.dataset.d : cur + (+b.dataset.d)));
+      mt(s => { s.config.stream = Object.assign({ enabled: true, url: '' }, s.config.stream, { delay: next }); });
+      UI.toast('Retraso: ' + next + ' s'); break;
+    }
     case 'export': {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([JSON.stringify(T.state(), null, 2)], { type: 'application/json' }));
       a.download = 'torneo-respaldo-' + new Date().toISOString().slice(0, 10) + '.json'; a.click(); break;
-    }
-    case 'testvoice': {
-      try { const au = new Audio('assets/sounds/diez-segundos-' + (b.dataset.v === 'maria' ? 'maria' : 'juan') + '.mp3'); au.play().catch(() => UI.toast('El navegador no permitió reproducir el sonido', 'bad')); }
-      catch (e) { UI.toast('No se pudo reproducir el sonido', 'bad'); }
-      break;
     }
     case 'testsound': {
       try { const au = new Audio('assets/sounds/nba.wav'); au.currentTime = 0; au.play().catch(() => UI.toast('El navegador no permitió reproducir el sonido', 'bad')); }

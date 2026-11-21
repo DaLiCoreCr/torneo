@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hoopz Live · Torneo interno Hoopz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@500;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="assets/logo.jpg">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #000; color: #fff; font-family: Inter, system-ui, sans-serif; overflow: hidden; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+  /* Escenario 16:9 que ocupa toda la ventana; todo lo de adentro se mide en cqw (porcentaje del ancho del video) */
+  .stage { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; container-type: inline-size; overflow: hidden; }
+  @supports (height: 100dvh) { .stage { width: min(100vw, calc(100dvh * 16 / 9)); } }
+  .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .tap { position: absolute; inset: 0; z-index: 2; }
+
+  .msg { position: absolute; inset: 0; z-index: 1; display: grid; place-content: center; justify-items: center; gap: 1.6cqw; text-align: center; padding: 0 8cqw; color: #aeb4c0; font-size: 2.6cqw; }
+  .msg img { width: 14cqw; }
+  .msg a { color: #c9a84c; }
+  .msg[hidden] { display: none; }
+
+  .logo { position: absolute; z-index: 3; top: 1.6cqw; right: 1.8cqw; width: 8.5cqw; pointer-events: none; filter: drop-shadow(0 .3cqw .8cqw rgba(0,0,0,.65)); }
+  .logo img { width: 100%; display: block; }
+  .chip { position: absolute; z-index: 3; top: 2cqw; left: 2cqw; display: flex; align-items: center; gap: .8cqw; background: rgba(0,0,0,.6); border-radius: 99px; padding: .6cqw 1.6cqw; font-weight: 800; font-size: 1.5cqw; letter-spacing: .1em; pointer-events: none; }
+  .chip i { width: 1.1cqw; height: 1.1cqw; border-radius: 50%; background: #ff3b30; animation: blink 1.2s infinite; }
+  @keyframes blink { 50% { opacity: .25; } }
+  .chip[hidden] { display: none; }
+  .chip.wait i { background: #c9a84c; animation: none; }
+  .chip.fin i { background: #8b93a3; animation: none; }
+
+  /* Barra inferior estilo transmisión */
+  .bar { position: absolute; z-index: 3; left: 1.5cqw; right: 1.5cqw; bottom: 1.6cqw; height: 4.6cqw; display: flex; align-items: stretch; pointer-events: none;
+         filter: drop-shadow(0 .4cqw 1cqw rgba(0,0,0,.55)); font-weight: 800; transition: opacity .4s; }
+  .bar[hidden] { display: none; }
+  .bar > * { display: flex; align-items: center; }
+  .b-cat { background: #0c0f16; padding: 0 2cqw; font-size: 1.7cqw; letter-spacing: .12em; color: #c9a84c; }
+  .b-team { flex: 1; min-width: 0; gap: 1.2cqw; padding: 0 1.6cqw; font-size: 2.1cqw; text-transform: uppercase; }
+  .b-team.h { justify-content: flex-end; }
+  .b-team .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b-team .fl { font-size: 1.3cqw; opacity: .85; font-weight: 700; white-space: nowrap; }
+  .bd { width: 3.4cqw; height: 3.4cqw; border-radius: 50%; background: #fff; color: #111; display: grid; place-items: center; font-size: 1.3cqw; font-weight: 800; overflow: hidden; flex: none; border: .2cqw solid rgba(255,255,255,.85); }
+  .bd img { width: 100%; height: 100%; object-fit: cover; }
+  .b-sc { background: #000; color: #fff; min-width: 5.2cqw; justify-content: center; font-family: 'Bebas Neue', Inter, sans-serif; font-size: 3.4cqw; font-weight: 400; padding: 0 .6cqw; font-variant-numeric: tabular-nums; }
+  .b-sc + .b-sc { border-left: .2cqw solid #333; }
+  .b-per { background: #c9a84c; color: #111; padding: 0 1.6cqw; font-size: 2cqw; margin-left: .6cqw; }
+  .b-clk { background: #000; color: #fff; min-width: 9cqw; justify-content: center; font-family: 'Bebas Neue', Inter, sans-serif; font-size: 3.4cqw; font-weight: 400; font-variant-numeric: tabular-nums; }
+  .b-clk.low { color: #ffd166; }
+
+  /* Último anotador */
+  .pop { position: absolute; z-index: 3; left: 1.5cqw; bottom: 7.6cqw; display: flex; align-items: stretch; pointer-events: none; transform: translateY(40%); opacity: 0; transition: transform .35s ease, opacity .35s ease;
+         filter: drop-shadow(0 .4cqw 1cqw rgba(0,0,0,.55)); font-weight: 800; }
+  .pop.show { transform: none; opacity: 1; }
+  .pop .pt { background: var(--c, #c9a84c); color: var(--tx, #111); font-family: 'Bebas Neue', Inter, sans-serif; font-weight: 400; font-size: 4cqw; padding: 0 1.8cqw; display: grid; place-items: center; }
+  .pop .who { background: #0c0f16; padding: .9cqw 2cqw; display: grid; align-content: center; }
+  .pop .who b { font-size: 2.4cqw; text-transform: uppercase; }
+  .pop .who small { font-size: 1.3cqw; color: #aeb4c0; letter-spacing: .1em; text-transform: uppercase; }
+
+  /* Controles */
+  .snd { position: absolute; z-index: 4; left: 50%; top: 2cqw; transform: translateX(-50%); background: rgba(0,0,0,.72); border: 1px solid rgba(255,255,255,.35); color: #fff; font: inherit; font-weight: 700; font-size: 1.9cqw; border-radius: 99px; padding: .9cqw 2.4cqw; cursor: pointer; }
+  .snd[hidden] { display: none; }
+  .fs { position: absolute; z-index: 4; left: 2cqw; bottom: 7.2cqw; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.3); color: #fff; font: inherit; font-size: 1.6cqw; border-radius: 6px; padding: .6cqw 1.2cqw; cursor: pointer; opacity: 0; transition: opacity .3s; }
+  .stage.ctl .fs { opacity: 1; }
+  .fs[hidden] { display: none; }
+  .hint { display: none; color: #8b93a3; font-size: 14px; text-align: center; padding: 12px; }
+  @media (orientation: portrait) { .hint { display: block; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="msg" id="msg"><img src="assets/logo-boleta.png" alt="Hoopz"><div id="msgTxt">Conectando…</div></div>
+  <div id="player"></div>
+  <div class="tap" id="tap"></div>
+  <div class="logo"><img src="assets/logo-boleta.png" alt="Hoopz"></div>
+  <div class="chip" id="chip" hidden><i></i><span id="chipTxt">EN VIVO</span></div>
+  <button class="snd" id="snd" hidden>🔇 Toca para activar el sonido</button>
+  <button class="fs" id="fs" hidden>⛶ Pantalla completa</button>
+
+  <div class="pop" id="pop"><div class="pt" id="popPts">+2</div><div class="who"><b id="popWho"></b><small id="popTeam"></small></div></div>
+
+  <div class="bar" id="bar" hidden>
+    <div class="b-cat" id="bCat"></div>
+    <div class="b-team h" id="tH"><span class="nm" id="nmH"></span><span class="fl" id="flH"></span><span class="bd" id="bdH"></span></div>
+    <div class="b-sc" id="scH">0</div><div class="b-sc" id="scA">0</div>
+    <div class="b-team a" id="tA"><span class="bd" id="bdA"></span><span class="fl" id="flA"></span><span class="nm" id="nmA"></span></div>
+    <div class="b-per" id="per">Q1</div><div class="b-clk" id="clk">00:00</div>
+  </div>
+</div>
+<div class="hint">Gira el celular para ver la transmisión más grande</div>
+
+<script src="js/firebase-config.js?v=59"></script>
+<script src="js/core.js?v=59"></script>
+<script src="js/seed.js?v=59"></script>
+<script src="js/ui.js?v=59"></script>
+<script>
+/* Hoopz Live: video de YouTube a pantalla completa con el marcador, el reloj y el último anotador encima.
+   Los datos salen del partido en vivo (el mismo que usa el Modo TV), con un retraso configurable para coincidir con el video. */
+T.load({ stream: true }).then(() => {
+const { esc, ACTIONS } = T;
+const $ = id => document.getElementById(id);
+const qs = new URLSearchParams(location.search);
+const HOLD_MS = 180000;   // el resultado final se deja 3 minutos
+const POP_MS = 8000;      // el último anotador se muestra 8 segundos
+const KEEP_MS = 240000;   // historial de estados para poder mostrar con retraso
+
+/* ---------- configuración (Administración → Transmisión; ?yt= y ?delay= sirven para probar) ---------- */
+const streamCfg = () => (T.state().config.stream || {});
+const videoId = () => T.ytId(qs.get('yt') || (streamCfg().enabled === false ? '' : streamCfg().url));
+const delayMs = () => Math.max(0, Math.min(90, qs.has('delay') ? +qs.get('delay') || 0 : (streamCfg().delay ?? 8))) * 1000;
+
+/* ---------- video ---------- */
+let player = null, curVid = null, ytLoading = null, ready = false;
+function setMsg(t) { $('msg').hidden = !t; if (t) $('msgTxt').innerHTML = t; }
+function loadYT() {
+  if (!ytLoading) ytLoading = new Promise(res => {
+    if (window.YT && YT.Player) return res();
+    window.onYouTubeIframeAPIReady = res;
+    const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; s.onerror = () => res(); document.head.appendChild(s);
+  });
+  return ytLoading;
+}
+const ERR = { 2: 'El enlace del video no es válido.', 5: 'Este navegador no pudo reproducir el video.', 100: 'El video no está disponible.', 101: 'El dueño del video no permite verlo fuera de YouTube.', 150: 'El dueño del video no permite verlo fuera de YouTube.', 153: 'No se pudo cargar el video (abre la página desde http, no como archivo).' };
+function mountVideo(id) {
+  if (id === curVid) return;
+  curVid = id; ready = false;
+  if (player) { try { player.destroy(); } catch (e) { /* ya no existe */ } player = null; }
+  if (!$('player')) $('stage').insertAdjacentHTML('afterbegin', '<div id="player"></div>');
+  $('snd').hidden = true;
+  if (!id) { setMsg(streamCfg().enabled === false || !streamCfg().url ? 'La transmisión de este partido aún no está disponible.<br><a href="tv.html">Ver el marcador en Modo TV</a>' : 'La transmisión aún no está disponible.'); return; }
+  setMsg('Conectando con la transmisión…');
+  loadYT().then(() => {
+    if (id !== curVid) return;
+    if (!(window.YT && YT.Player)) { setMsg('No se pudo cargar el reproductor de YouTube. Revisa tu conexión.'); return; }
+    const vars = { autoplay: 1, mute: 1, controls: 0, rel: 0, modestbranding: 1, playsinline: 1, fs: 0, disablekb: 1, iv_load_policy: 3 };
+    if (location.protocol.startsWith('http')) vars.origin = location.origin;
+    player = new YT.Player('player', { width: '100%', height: '100%', videoId: id, playerVars: vars, events: {
+      onReady: e => { ready = true; e.target.mute(); e.target.playVideo(); setMsg(''); $('snd').hidden = false; },
+      onError: e => setMsg((ERR[e.data] || 'No se pudo reproducir el video.') + '<br><a href="tv.html">Ver el marcador en Modo TV</a>')
+    } });
+  });
+}
+function unmute() { if (!player || !ready) return; try { player.unMute(); player.setVolume(100); $('snd').hidden = true; } catch (e) { /* aún no listo */ } }
+$('snd').onclick = unmute;
+let ctlTimer = null;
+$('tap').onclick = () => {
+  if (player && ready && player.isMuted && player.isMuted()) unmute();
+  $('stage').classList.add('ctl'); clearTimeout(ctlTimer); ctlTimer = setTimeout(() => $('stage').classList.remove('ctl'), 3500);
+};
+const fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+$('fs').hidden = !fsOk;
+$('fs').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else ($('stage').requestFullscreen || $('stage').webkitRequestFullscreen).call($('stage'));
+};
+
+/* ---------- datos del partido, guardados con la hora de llegada para mostrarlos con retraso ---------- */
+let hist = [], tracked = null, fetchedId = null, lastSig = '', nextM = null;
+const T0 = Date.now();
+const sameDay = iso => !!iso && new Date(iso).toDateString() === new Date().toDateString();
+function model(S, g) {
+  const R = S.config.rules, h = UI.team(S, g.home), a = UI.team(S, g.away), per = g.clock.period;
+  const ev = g.events.slice().reverse().find(e => ACTIONS[e.type] && ACTIONS[e.type].pts);
+  const p = ev && ev.pid ? T.playerIndex(S)[ev.pid] : null;
+  const side = s => { const t = s === 'h' ? h : a; return { name: t.name, color: t.color || '#c9a84c', logo: t.logo || '', ini: UI.initials(t.name || '?'), score: g.score[s] }; };
+  return {
+    id: g.id, status: g.status, cat: UI.catName(S, g.cat) + (g.status === 'scheduled' && g.date && !sameDay(g.date) ? ' · ' + UI.fmtDate(g.date) : ''), when: g.date ? UI.fmtTime(g.date) : '', h: side('h'), a: side('a'), period: per, plabel: T.periodLabel(per),
+    rem: g.clock.remainingMs, run: !!g.clock.running, st: g.clock.startedAt, fouls: { h: T.teamFouls(g, 'h', per), a: T.teamFouls(g, 'a', per) }, bonus: R.bonusFouls,
+    last: ev ? { id: ev.id, pts: ACTIONS[ev.type].pts, team: ev.team, num: p ? p.p.num : '', name: p ? p.p.name : '', tname: ev.team === 'h' ? h.name : a.name } : null,
+    t: Date.now()
+  };
+}
+function push(m) {
+  const sig = JSON.stringify([m.id, m.status, m.h.score, m.a.score, m.period, m.rem, m.run, m.st, m.fouls, m.last && m.last.id, m.h.name, m.a.name, m.h.color, m.a.color]);
+  if (sig === lastSig) return;
+  lastSig = sig; hist.push(m);
+  const cut = Date.now() - KEEP_MS;
+  while (hist.length > 1 && hist[1].t < cut) hist.shift();
+}
+function onData() {
+  mountVideo(videoId());
+  const S = T.state();
+  const fixed = qs.get('id');
+  const g = fixed ? (S.games.find(x => x.id === fixed && x.status === 'live') || null) : S.games.filter(x => x.status === 'live').sort(UI.byDate)[0];
+  // próximo partido (el que sigue en el calendario): se muestra mientras no haya uno en vivo
+  const nx = S.games.filter(x => x.status === 'scheduled' && !(g && x.id === g.id)).sort(UI.byDate)[0];
+  const nsig = nx ? JSON.stringify([nx.id, nx.date, nx.home, nx.away]) : '';
+  if (!nx) nextM = null; else if (!nextM || nextM.sig !== nsig) { nextM = model(S, nx); nextM.sig = nsig; }
+  if (g) { tracked = g.id; fetchedId = null; push(model(S, g)); return; }
+  if (!tracked || fetchedId === tracked) return;
+  // el partido salió de "en vivo": se trae una vez para mostrar el resultado final
+  const id = tracked; fetchedId = id;
+  Promise.resolve(T.fetchGame(id)).then(d => { if (d && d.status === 'final') push(model(T.state(), d)); else if (d && d.status !== 'live') tracked = null; });
+}
+T.subscribe(onData);
+
+/* ---------- dibujo ---------- */
+const textOn = hex => { const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#fff'; const n = parseInt(m[1], 16); const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; return l > 0.6 ? '#111' : '#fff'; };
+const pad = n => String(n).padStart(2, '0');
+function fmtClock(ms) {
+  if (ms < 60000) return (Math.floor(ms / 100) / 10).toFixed(1);
+  const t = Math.ceil(ms / 1000); return pad(Math.floor(t / 60)) + ':' + pad(t % 60);
+}
+function badge(el, t) { el.style.borderColor = t.color; el.innerHTML = t.logo ? `<img src="${esc(t.logo)}" alt="">` : esc(t.ini); }
+const set = (el, v) => { if (el.textContent !== v) el.textContent = v; };
+let shownId = null, shownKey = '', prevTotal = 0, popUntil = 0, finalSince = 0;
+
+function render() {
+  if (document.hidden) return;
+  const now = Date.now(), target = now - delayMs();
+  let m = null;
+  for (let i = hist.length - 1; i >= 0; i--) { if (hist[i].t <= target) { m = hist[i]; break; } }
+  if (!m && now - T0 < delayMs() + 1500) m = hist[0] || null; // recién abierta la página: se muestra lo último que hay hasta llenar el retraso
+  if (m && m.status === 'final') { if (!finalSince) finalSince = now; if (now - finalSince > HOLD_MS) { m = null; tracked = null; hist = []; lastSig = ''; } } else finalSince = 0;
+  if (!m) m = nextM; // sin partido en vivo ni recién terminado: datos del próximo partido
+  $('bar').hidden = !m;
+  const wait = !!m && m.status === 'scheduled', fin = !!m && m.status === 'final';
+  $('chip').hidden = !m; $('chip').className = 'chip' + (wait ? ' wait' : fin ? ' fin' : '');
+  set($('chipTxt'), wait ? 'A LA ESPERA' : fin ? 'FINAL' : 'EN VIVO');
+  if (!m) { $('pop').classList.remove('show'); shownId = null; return; }
+
+  const key = [m.h.name, m.h.color, m.h.logo, m.a.name, m.a.color, m.a.logo].join('|');
+  if (key !== shownKey) {
+    shownKey = key;
+    for (const [s, id] of [['h', 'H'], ['a', 'A']]) {
+      const t = m[s], box = $('t' + id);
+      box.style.background = t.color; box.style.color = textOn(t.color);
+      $('nm' + id).textContent = t.name; badge($('bd' + id), t);
+    }
+  }
+  set($('bCat'), m.cat);
+  set($('scH'), wait ? '–' : String(m.h.score)); set($('scA'), wait ? '–' : String(m.a.score));
+  set($('flH'), !wait && m.fouls.h ? 'F' + m.fouls.h : ''); set($('flA'), !wait && m.fouls.a ? 'F' + m.fouls.a : '');
+  const rem = m.run ? Math.max(0, m.rem - (target - m.st)) : m.rem;
+  set($('per'), wait ? 'PRONTO' : fin ? 'FIN' : m.plabel);
+  set($('clk'), wait ? (m.when || '––:––') : fin ? 'FINAL' : fmtClock(rem));
+  $('clk').classList.toggle('low', !wait && !fin && rem < 60000);
+  $('clk').style.fontSize = wait ? '2.4cqw' : '';
+
+  // último anotador: aparece cuando el total sube (no al abrir la página ni al deshacer una jugada)
+  const total = m.h.score + m.a.score;
+  if (m.id !== shownId) { shownId = m.id; prevTotal = total; popUntil = 0; }
+  else if (total > prevTotal && m.last) {
+    const t = m[m.last.team], pop = $('pop');
+    pop.style.setProperty('--c', t.color); pop.style.setProperty('--tx', textOn(t.color));
+    set($('popPts'), '+' + m.last.pts);
+    set($('popWho'), m.last.name ? (m.last.num !== '' ? '#' + m.last.num + ' ' : '') + m.last.name : m.last.tname);
+    set($('popTeam'), m.last.tname);
+    popUntil = now + POP_MS;
+  }
+  prevTotal = total;
+  $('pop').classList.toggle('show', now < popUntil);
+}
+onData();
+setInterval(render, 100);
+});
+</script>
+</body>
+</html>
