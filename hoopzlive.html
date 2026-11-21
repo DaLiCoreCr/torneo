@@ -326,7 +326,7 @@ function measureRoster() {
 function buildRoster(m) {
   if (rosterKey === m.sig) return;
   rosterKey = m.sig;
-  const col = t => `<div class="rs-col"><h4 style="background:${esc(t.color)};color:${textOn(t.color)}">${esc(t.name)}</h4>${t.coach ? `<div class="coach">Coach: ${esc(t.coach)}</div>` : ''}<ul>${t.players.map(p => `<li><b>${esc(String(p.num ?? ''))}</b>${esc(p.name)}${p.cap ? '<i>C</i>' : ''}</li>`).join('') || '<li style="opacity:.6">Sin jugadores registrados</li>'}</ul></div>`;
+  const col = t => `<div class="rs-col"><h4 style="background:${esc(t.color)};color:${textOn(t.color)}">${esc(t.name)}</h4>${t.coach ? `<div class="coach">Coach: ${esc(t.coach)}</div>` : ''}<ul>${t.players.map(p => `<li>${esc(p.name)}${p.cap ? '<i>C</i>' : ''}</li>`).join('') || '<li style="opacity:.6">Sin jugadores registrados</li>'}</ul></div>`;
   $('rsTitle').textContent = 'PLANTILLAS · ' + m.cat;
   $('rsTrack').innerHTML = col(m.h) + col(m.a);
   requestAnimationFrame(measureRoster);
@@ -356,14 +356,13 @@ function render() {
       $('nm' + id).textContent = t.name; badge($('bd' + id), t);
     }
   }
-  set($('bCat'), m.cat);
-  set($('scH'), wait ? '–' : String(m.h.score)); set($('scA'), wait ? '–' : String(m.a.score));
+  set($('bCat'), m.cat + (wait && m.when ? ' · ' + m.when : '')); // en la espera se ve también la hora del partido
+  set($('scH'), String(m.h.score)); set($('scA'), String(m.a.score));
   set($('flH'), !wait && m.fouls.h ? 'F' + m.fouls.h : ''); set($('flA'), !wait && m.fouls.a ? 'F' + m.fouls.a : '');
   const rem = m.run ? Math.max(0, m.rem - (target - m.st)) : m.rem;
-  set($('per'), wait ? 'PRONTO' : fin ? 'FIN' : m.plabel);
-  set($('clk'), wait ? (m.when || '') : fin ? 'FINAL' : fmtClock(rem));
+  set($('per'), fin ? 'FIN' : m.plabel); // en la espera: marcador 0-0, Q1 y el tiempo completo del período, listo para iniciar
+  set($('clk'), fin ? 'FINAL' : fmtClock(rem));
   $('clk').classList.toggle('low', !wait && !fin && rem < 60000);
-  $('clk').style.fontSize = wait ? '2.4cqw' : '';
 
   // plantillas: lista de jugadores que sube mientras se espera el partido
   const hasPl = wait && (m.h.players.length || m.a.players.length);
