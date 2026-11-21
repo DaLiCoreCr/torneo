@@ -124,10 +124,10 @@
 </div>
 <div class="hint">Gira el celular para ver la transmisión más grande</div>
 
-<script src="js/firebase-config.js?v=64"></script>
-<script src="js/core.js?v=64"></script>
-<script src="js/seed.js?v=64"></script>
-<script src="js/ui.js?v=64"></script>
+<script src="js/firebase-config.js?v=65"></script>
+<script src="js/core.js?v=65"></script>
+<script src="js/seed.js?v=65"></script>
+<script src="js/ui.js?v=65"></script>
 <script>
 /* Hoopz Live: video de YouTube a pantalla completa con el marcador, el reloj y el último anotador encima.
    Los datos salen del partido en vivo (el mismo que usa el Modo TV), con un retraso configurable para coincidir con el video. */
@@ -137,7 +137,7 @@ addEventListener('error', e => __errs.push(String(e.message)));
 addEventListener('unhandledrejection', e => __errs.push('promesa: ' + String((e.reason && e.reason.message) || e.reason)));
 if (new URLSearchParams(location.search).get('debug')) {
   const dbg = document.createElement('pre');
-  dbg.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:99;max-width:96vw;background:rgba(0,0,0,.85);color:#7bd88f;font:12px/1.45 monospace;padding:8px 10px;margin:0;white-space:pre-wrap;border:1px solid #7bd88f55;border-radius:6px';
+  dbg.style.cssText = 'position:fixed;left:8px;top:84px;z-index:99;max-width:96vw;max-height:70vh;overflow:auto;background:rgba(0,0,0,.85);color:#7bd88f;font:12px/1.45 monospace;padding:8px 10px;margin:0;white-space:pre-wrap;border:1px solid #7bd88f55;border-radius:6px';
   document.body.appendChild(dbg);
   window.__hlDbg = () => 'los datos aún no responden (T.load pendiente)';
   setInterval(() => { let t; try { t = window.__hlDbg(); } catch (e) { t = 'error al leer: ' + e.message; } dbg.textContent = 'Hoopz Live · diagnóstico\n' + t + '\nerrores: ' + (__errs.length ? __errs.join(' | ') : 'ninguno'); }, 500);
@@ -405,7 +405,8 @@ window.__hlDbg = () => {
     'equipos cargados: ' + teamMap.size + ' (' + plInfo + ')',
     'próximo partido: ' + (nextM ? nextM.h.name + ' vs ' + nextM.a.name : 'ninguno'),
     'historial en vivo: ' + hist.length,
-    'video: ' + (videoId() || 'sin URL')].join('\n');
+    'video: ' + (videoId() || 'sin URL'),
+    'firestore:', ...((window.__fsLog || []).length ? window.__fsLog.map(x => '  ' + x) : ['  (sin respuestas todavía)'])].join('\n');
 };
 loadTeams().then(() => { onData(); setInterval(render, 100); });
 });

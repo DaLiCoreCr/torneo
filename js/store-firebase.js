@@ -161,22 +161,24 @@ export function connect(cfg, host, opts) {
   }
   /* Modo automático (sin cola): escucha los partidos en vivo y los programados (los programados solo cambian al arrancar o reprogramar) */
   let autoOn = false, autoUn = [];
+  /* Registro corto de lo que responde Firestore (se ve en Hoopz Live con ?debug=1) */
+  const dbg = m => { try { const l = (window.__fsLog = window.__fsLog || []); l.push(new Date().toLocaleTimeString() + ' ' + m); if (l.length > 10) l.shift(); } catch (e) { /* sin registro */ } };
   function startAuto() {
     if (autoUn.length) return;
-    let gotL = false, gotS = false;
+    dbg('auto: conectando (en vivo y programados)');
     autoUn = [
       onSnapshot(query(collection(db, 'games'), where('status', '==', 'live')), snap => {
-        if (snap.metadata.fromCache && navigator.onLine && !gotL) return;
-        if (!snap.metadata.fromCache) { gotL = true; usage.reads(snap.docChanges().length); }
+        dbg('en vivo: ' + (snap.metadata.fromCache ? 'caché' : 'servidor') + ' n=' + snap.size);
+        if (!snap.metadata.fromCache) usage.reads(snap.docChanges().length);
         snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.games.delete(ch.doc.id); else remote.games.set(ch.doc.id, ch.doc.data()); });
         rebuild();
-      }, err => { console.warn('en vivo', err.code || err); retry(); }),
+      }, err => { dbg('ERROR en vivo: ' + (err.code || '') + ' ' + (err.message || '')); console.warn('en vivo', err.code || err); retry(); }),
       onSnapshot(query(collection(db, 'games'), where('status', '==', 'scheduled')), snap => {
-        if (snap.metadata.fromCache && navigator.onLine && !gotS) return;
-        if (!snap.metadata.fromCache) { gotS = true; usage.reads(snap.docChanges().length); }
+        dbg('programados: ' + (snap.metadata.fromCache ? 'caché' : 'servidor') + ' n=' + snap.size);
+        if (!snap.metadata.fromCache) usage.reads(snap.docChanges().length);
         snap.docChanges().forEach(ch => { if (ch.type === 'removed') remote.sched.delete(ch.doc.id); else remote.sched.set(ch.doc.id, ch.doc.data()); });
         rebuild();
-      }, err => { console.warn('programados', err.code || err); retry(); })
+      }, err => { dbg('ERROR programados: ' + (err.code || '') + ' ' + (err.message || '')); console.warn('programados', err.code || err); retry(); })
     ];
   }
   function stopAuto() { autoUn.forEach(u => u()); autoUn = []; remote.games.clear(); remote.sched.clear(); }
@@ -188,10 +190,11 @@ export function connect(cfg, host, opts) {
     let firstCfg = true;
     unsubs = [
       onSnapshot(doc(db, 'config', 'main'), snap => {
+        dbg('config: ' + (snap.metadata.fromCache ? 'caché' : 'servidor') + ' existe=' + snap.exists());
         if (!snap.metadata.fromCache) usage.reads(1);
         remote.config = snap.exists() ? snap.data() : null;
         if (firstCfg) { firstCfg = false; firstDone(); } else if (pending === 0) rebuild();
-      }, err => { console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } retry(); })
+      }, err => { dbg('ERROR config: ' + (err.code || '') + ' ' + (err.message || '')); console.error('config', err); if (firstCfg) { firstCfg = false; firstDone(); } retry(); })
     ];
     watchers.forEach(w => { if (!w.un) subWatcher(w); });
     if (autoOn) startAuto();
