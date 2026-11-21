@@ -29,7 +29,10 @@
 
   .logo { position: absolute; z-index: 3; top: 1.6cqw; right: 1.8cqw; width: 8.5cqw; pointer-events: none; filter: drop-shadow(0 .3cqw .8cqw rgba(0,0,0,.65)); }
   .logo img { width: 100%; display: block; }
-  .chip { position: absolute; z-index: 3; top: 2cqw; left: 2cqw; display: flex; align-items: center; gap: .8cqw; background: rgba(0,0,0,.6); border-radius: 99px; padding: .6cqw 1.6cqw; font-weight: 800; font-size: 1.5cqw; letter-spacing: .1em; pointer-events: none; }
+  .topl { position: absolute; z-index: 4; top: 2cqw; left: 2cqw; display: flex; align-items: center; gap: 1.2cqw; }
+  .back { background: rgba(0,0,0,.6); color: #fff; text-decoration: none; font-weight: 700; font-size: 1.6cqw; border: 1px solid rgba(255,255,255,.3); border-radius: 99px; padding: .6cqw 1.5cqw; white-space: nowrap; }
+  .back:hover { background: rgba(0,0,0,.85); }
+  .chip { display: flex; align-items: center; gap: .8cqw; background: rgba(0,0,0,.6); border-radius: 99px; padding: .6cqw 1.6cqw; font-weight: 800; font-size: 1.5cqw; letter-spacing: .1em; pointer-events: none; }
   .chip i { width: 1.1cqw; height: 1.1cqw; border-radius: 50%; background: #ff3b30; animation: blink 1.2s infinite; }
   @keyframes blink { 50% { opacity: .25; } }
   .chip[hidden] { display: none; }
@@ -53,6 +56,21 @@
   .b-per { background: #c9a84c; color: #111; padding: 0 1.6cqw; font-size: 2cqw; margin-left: .6cqw; }
   .b-clk { background: #000; color: #fff; min-width: 9cqw; justify-content: center; font-family: 'Bebas Neue', Inter, sans-serif; font-size: 3.4cqw; font-weight: 400; font-variant-numeric: tabular-nums; }
   .b-clk.low { color: #ffd166; }
+
+  /* Plantillas: lista que sube mientras se espera el partido */
+  .roster { position: absolute; z-index: 3; left: 10cqw; right: 10cqw; top: 11cqw; bottom: 8.4cqw; display: grid; grid-template-rows: auto 1fr; pointer-events: none; }
+  .roster[hidden] { display: none; }
+  .rs-title { text-align: center; font-weight: 800; letter-spacing: .18em; font-size: 1.8cqw; color: #c9a84c; text-shadow: 0 .2cqw .6cqw #000; padding-bottom: .8cqw; }
+  .rs-view { position: relative; overflow: hidden; background: rgba(0,0,0,.55); border-radius: 1cqw;
+             -webkit-mask-image: linear-gradient(transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(transparent, #000 10%, #000 90%, transparent); }
+  .rs-track { position: absolute; left: 0; right: 0; top: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 3cqw; padding: 0 3cqw; animation: rsrise 30s linear infinite; }
+  @keyframes rsrise { from { transform: translateY(var(--from, 100cqw)); } to { transform: translateY(var(--to, -100cqw)); } }
+  .rs-col h4 { margin: 0 0 1cqw; padding: .7cqw 1.4cqw; border-radius: .6cqw; font-size: 2.2cqw; text-transform: uppercase; display: flex; align-items: center; gap: 1cqw; }
+  .rs-col .coach { font-size: 1.4cqw; font-weight: 600; opacity: .8; margin: -.4cqw 0 1cqw 1.4cqw; color: #cbd5e1; }
+  .rs-col ul { list-style: none; margin: 0; padding: 0; }
+  .rs-col li { font-size: 2.4cqw; font-weight: 700; padding: .55cqw 1.4cqw; border-bottom: .15cqw solid rgba(255,255,255,.12); display: flex; gap: 1.4cqw; text-shadow: 0 .2cqw .6cqw #000; }
+  .rs-col li b { font-family: 'Bebas Neue', Inter, sans-serif; font-weight: 400; font-size: 2.8cqw; min-width: 3.4cqw; color: #c9a84c; }
+  .rs-col li i { font-style: normal; font-size: 1.3cqw; background: #c9a84c; color: #111; border-radius: 99px; padding: .1cqw .7cqw; align-self: center; }
 
   /* Último anotador */
   .pop { position: absolute; z-index: 3; left: 1.5cqw; bottom: 7.6cqw; display: flex; align-items: stretch; pointer-events: none; transform: translateY(40%); opacity: 0; transition: transform .35s ease, opacity .35s ease;
@@ -79,9 +97,11 @@
   <div id="player"></div>
   <div class="tap" id="tap"></div>
   <div class="logo"><img src="assets/logo-boleta.png" alt="Hoopz"></div>
-  <div class="chip" id="chip" hidden><i></i><span id="chipTxt">EN VIVO</span></div>
+  <div class="topl"><a class="back" href="index.html">← Inicio</a><div class="chip" id="chip" hidden><i></i><span id="chipTxt">EN VIVO</span></div></div>
   <button class="snd" id="snd" hidden>🔇 Toca para activar el sonido</button>
   <button class="fs" id="fs" hidden>⛶ Pantalla completa</button>
+
+  <div class="roster" id="roster" hidden><div class="rs-title" id="rsTitle">PLANTILLAS</div><div class="rs-view" id="rsView"><div class="rs-track" id="rsTrack"></div></div></div>
 
   <div class="pop" id="pop"><div class="pt" id="popPts">+2</div><div class="who"><b id="popWho"></b><small id="popTeam"></small></div></div>
 
@@ -95,10 +115,10 @@
 </div>
 <div class="hint">Gira el celular para ver la transmisión más grande</div>
 
-<script src="js/firebase-config.js?v=60"></script>
-<script src="js/core.js?v=60"></script>
-<script src="js/seed.js?v=60"></script>
-<script src="js/ui.js?v=60"></script>
+<script src="js/firebase-config.js?v=61"></script>
+<script src="js/core.js?v=61"></script>
+<script src="js/seed.js?v=61"></script>
+<script src="js/ui.js?v=61"></script>
 <script>
 /* Hoopz Live: video de YouTube a pantalla completa con el marcador, el reloj y el último anotador encima.
    Los datos salen del partido en vivo (el mismo que usa el Modo TV), con un retraso configurable para coincidir con el video. */
@@ -168,7 +188,13 @@ function model(S, g) {
   const R = S.config.rules, h = UI.team(S, g.home), a = UI.team(S, g.away), per = g.clock.period;
   const ev = g.events.slice().reverse().find(e => ACTIONS[e.type] && ACTIONS[e.type].pts);
   const p = ev && ev.pid ? T.playerIndex(S)[ev.pid] : null;
-  const side = s => { const t = s === 'h' ? h : a; return { name: t.name, color: t.color || '#c9a84c', logo: t.logo || '', ini: UI.initials(t.name || '?'), score: g.score[s] }; };
+  const wait = g.status === 'scheduled';
+  const side = s => {
+    const t = s === 'h' ? h : a;
+    return { name: t.name, color: (g.kit && g.kit[s]) || t.color || '#c9a84c', logo: t.logo || '', ini: UI.initials(t.name || '?'), score: g.score[s],
+      coach: wait ? T.coachList(t).join(', ') : '', // plantilla solo mientras se espera (no se repite en cada estado del partido)
+      players: wait ? (t.players || []).slice().sort((x, y) => (+x.num || 0) - (+y.num || 0)).map(p => ({ num: p.num, name: p.name, cap: !!p.captain })) : [] };
+  };
   return {
     id: g.id, status: g.status, cat: UI.catName(S, g.cat) + (g.status === 'scheduled' && g.date && !sameDay(g.date) ? ' · ' + UI.fmtDate(g.date) : ''), when: g.date ? UI.fmtTime(g.date) : '', h: side('h'), a: side('a'), period: per, plabel: T.periodLabel(per),
     rem: g.clock.remainingMs, run: !!g.clock.running, st: g.clock.startedAt, fouls: { h: T.teamFouls(g, 'h', per), a: T.teamFouls(g, 'a', per) }, bonus: R.bonusFouls,
@@ -190,8 +216,8 @@ function onData() {
   const g = fixed ? (S.games.find(x => x.id === fixed && x.status === 'live') || null) : S.games.filter(x => x.status === 'live').sort(UI.byDate)[0];
   // próximo partido (el que sigue en el calendario): se muestra mientras no haya uno en vivo
   const nx = S.games.filter(x => x.status === 'scheduled' && !(g && x.id === g.id)).sort(UI.byDate)[0];
-  const nsig = nx ? JSON.stringify([nx.id, nx.date, nx.home, nx.away]) : '';
-  if (!nx) nextM = null; else if (!nextM || nextM.sig !== nsig) { nextM = model(S, nx); nextM.sig = nsig; }
+  if (!nx) nextM = null;
+  else { const m2 = model(S, nx), sg = JSON.stringify([m2.id, m2.cat, m2.when, m2.h, m2.a]); if (!nextM || nextM.sig !== sg) { m2.sig = sg; nextM = m2; } }
   if (g) { tracked = g.id; fetchedId = null; push(model(S, g)); return; }
   if (!tracked || fetchedId === tracked) return;
   // el partido salió de "en vivo": se trae una vez para mostrar el resultado final
@@ -209,7 +235,25 @@ function fmtClock(ms) {
 }
 function badge(el, t) { el.style.borderColor = t.color; el.innerHTML = t.logo ? `<img src="${esc(t.logo)}" alt="">` : esc(t.ini); }
 const set = (el, v) => { if (el.textContent !== v) el.textContent = v; };
-let shownId = null, shownKey = '', prevTotal = 0, popUntil = 0, finalSince = 0;
+let shownId = null, shownKey = '', prevTotal = 0, popUntil = 0, finalSince = 0, rosterKey = '';
+
+/* Lista de plantillas que sube lentamente (como créditos): se mide para que entre desde abajo y salga por arriba */
+function measureRoster() {
+  const v = $('rsView'), tr = $('rsTrack');
+  if (!v.clientHeight) return;
+  const vh = v.clientHeight, th = tr.scrollHeight, w = $('stage').clientWidth;
+  tr.style.setProperty('--from', vh + 'px'); tr.style.setProperty('--to', (-th) + 'px');
+  tr.style.animationDuration = Math.max(10, (vh + th) / (w * 0.035)) + 's'; // ~3.5 % del ancho por segundo
+}
+function buildRoster(m) {
+  if (rosterKey === m.sig) return;
+  rosterKey = m.sig;
+  const col = t => `<div class="rs-col"><h4 style="background:${esc(t.color)};color:${textOn(t.color)}">${esc(t.name)}</h4>${t.coach ? `<div class="coach">Coach: ${esc(t.coach)}</div>` : ''}<ul>${t.players.map(p => `<li><b>${esc(String(p.num ?? ''))}</b>${esc(p.name)}${p.cap ? '<i>C</i>' : ''}</li>`).join('') || '<li style="opacity:.6">Sin jugadores registrados</li>'}</ul></div>`;
+  $('rsTitle').textContent = 'PLANTILLAS · ' + m.cat;
+  $('rsTrack').innerHTML = col(m.h) + col(m.a);
+  requestAnimationFrame(measureRoster);
+}
+if (window.ResizeObserver) new ResizeObserver(() => { rosterKey = ''; }).observe($('stage')); // al cambiar el tamaño se vuelve a medir
 
 function render() {
   if (document.hidden) return;
@@ -223,7 +267,7 @@ function render() {
   const wait = !!m && m.status === 'scheduled', fin = !!m && m.status === 'final';
   $('chip').hidden = !m; $('chip').className = 'chip' + (wait ? ' wait' : fin ? ' fin' : '');
   set($('chipTxt'), wait ? 'A LA ESPERA' : fin ? 'FINAL' : 'EN VIVO');
-  if (!m) { $('pop').classList.remove('show'); shownId = null; return; }
+  if (!m) { $('pop').classList.remove('show'); $('roster').hidden = true; shownId = null; return; }
 
   const key = [m.h.name, m.h.color, m.h.logo, m.a.name, m.a.color, m.a.logo].join('|');
   if (key !== shownKey) {
@@ -242,6 +286,11 @@ function render() {
   set($('clk'), wait ? (m.when || '––:––') : fin ? 'FINAL' : fmtClock(rem));
   $('clk').classList.toggle('low', !wait && !fin && rem < 60000);
   $('clk').style.fontSize = wait ? '2.4cqw' : '';
+
+  // plantillas: lista de jugadores que sube mientras se espera el partido
+  const hasPl = wait && (m.h.players.length || m.a.players.length);
+  $('roster').hidden = !hasPl;
+  if (hasPl) buildRoster(m);
 
   // último anotador: aparece cuando el total sube (no al abrir la página ni al deshacer una jugada)
   const total = m.h.score + m.a.score;
