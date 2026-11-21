@@ -131,18 +131,6 @@
 <script>
 /* Hoopz Live: video de YouTube a pantalla completa con el marcador, el reloj y el último anotador encima.
    Los datos salen del partido en vivo (el mismo que usa el Modo TV), con un retraso configurable para coincidir con el video. */
-/* Diagnóstico (?debug=1): texto en pantalla con lo que la página está leyendo y los errores, para revisar sin abrir la consola */
-const __errs = [];
-addEventListener('error', e => __errs.push(String(e.message)));
-addEventListener('unhandledrejection', e => __errs.push('promesa: ' + String((e.reason && e.reason.message) || e.reason)));
-if (new URLSearchParams(location.search).get('debug')) {
-  const dbg = document.createElement('pre');
-  dbg.style.cssText = 'position:fixed;left:8px;top:84px;z-index:99;max-width:96vw;max-height:70vh;overflow:auto;background:rgba(0,0,0,.85);color:#7bd88f;font:12px/1.45 monospace;padding:8px 10px;margin:0;white-space:pre-wrap;border:1px solid #7bd88f55;border-radius:6px';
-  document.body.appendChild(dbg);
-  window.__hlDbg = () => 'los datos aún no responden (T.load pendiente)';
-  setInterval(() => { let t; try { t = window.__hlDbg(); } catch (e) { t = 'error al leer: ' + e.message; } dbg.textContent = 'Hoopz Live · diagnóstico\n' + t + '\nerrores: ' + (__errs.length ? __errs.join(' | ') : 'ninguno'); }, 500);
-}
-
 T.load({ stream: true }).then(() => {
 const { esc, ACTIONS } = T;
 const $ = id => document.getElementById(id);
@@ -396,18 +384,6 @@ function render() {
   prevTotal = total;
   $('pop').classList.toggle('show', now < popUntil);
 }
-window.__hlDbg = () => {
-  const S = T.state(), by = {}; S.games.forEach(g => { by[g.status] = (by[g.status] || 0) + 1; });
-  return ['versión: ' + (((document.querySelector('script[src*="core.js"]') || {}).src || '?').split('?')[1] || '?'),
-    'nube: ' + T.cloud + ' · sin conexión: ' + T.offline,
-    'modo: ' + (mode || 'iniciando') + ' · cola: ' + queueIds().length,
-    'partidos que lee: ' + (S.games.length ? JSON.stringify(by) : 'ninguno'),
-    'equipos cargados: ' + teamMap.size + ' (' + plInfo + ')',
-    'próximo partido: ' + (nextM ? nextM.h.name + ' vs ' + nextM.a.name : 'ninguno'),
-    'historial en vivo: ' + hist.length,
-    'video: ' + (videoId() || 'sin URL'),
-    'firestore:', ...((window.__fsLog || []).length ? window.__fsLog.map(x => '  ' + x) : ['  (sin respuestas todavía)'])].join('\n');
-};
 loadTeams().then(() => { onData(); setInterval(render, 100); });
 });
 </script>
