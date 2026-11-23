@@ -228,6 +228,7 @@ function streamView(S) {
       ${field('Transmisión activa', `<select class="inp" id="s-on"><option value="1" ${st.enabled === false ? '' : 'selected'}>Sí: mostrar el video en Hoopz Live</option><option value="0" ${st.enabled === false ? 'selected' : ''}>No: Hoopz Live muestra que no hay transmisión</option></select>`)}
       ${field('Enlace de la transmisión en vivo (YouTube)', `<input class="inp" id="s-url" placeholder="https://www.youtube.com/watch?v=…  ·  youtu.be/…  ·  youtube.com/live/…" value="${esc(st.url || '')}">`)}
       ${field('Retraso del marcador (segundos)', `<input class="inp" type="number" min="0" max="90" id="s-delay" value="${st.delay ?? 8}">`)}
+      ${field('Espera tras el final del partido (minutos, 0 a 30)', `<input class="inp" type="number" min="0" max="30" step="0.5" id="s-hold" value="${st.hold ?? 3}">`)}
     </div>
     <div style="margin-top:14px"><label class="lbl">Ajuste en vivo (se guarda y se aplica al instante a todos los que están viendo)</label>
       <div class="row" style="align-items:center">
@@ -490,7 +491,7 @@ app.addEventListener('click', e => {
     case 'savestream': {
       const url = val('s-url');
       if (url && !T.ytId(url)) { UI.toast('No reconozco ese enlace de YouTube', 'bad'); break; }
-      mt(s => { s.config.stream = Object.assign({}, s.config.stream, { enabled: val('s-on') !== '0', url, delay: Math.max(0, Math.min(90, +document.getElementById('s-delay').value || 0)) }); });
+      mt(s => { s.config.stream = Object.assign({}, s.config.stream, { enabled: val('s-on') !== '0', url, delay: Math.max(0, Math.min(90, +document.getElementById('s-delay').value || 0)), hold: Math.max(0, Math.min(30, +document.getElementById('s-hold').value || 0)) }); });
       UI.toast('Transmisión guardada'); break;
     }
     case 'qadd': case 'qaddall': case 'qmove': case 'qdel': case 'qclear': {

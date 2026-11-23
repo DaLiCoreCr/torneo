@@ -124,7 +124,7 @@ T.load({ stream: true }).then(() => {
 const { esc, ACTIONS } = T;
 const $ = id => document.getElementById(id);
 const qs = new URLSearchParams(location.search);
-const HOLD_MS = 180000;   // el resultado final se deja 3 minutos
+const holdMs = () => Math.max(0, Math.min(30, +((T.state().config.stream || {}).hold ?? 3))) * 60000; // cuánto se deja el resultado final (Administración → Transmisión; 3 min por defecto)
 const POP_MS = 8000;      // el último anotador se muestra 8 segundos
 const KEEP_MS = 240000;   // historial de estados para poder mostrar con retraso
 
@@ -330,7 +330,7 @@ function render() {
   let m = null;
   for (let i = hist.length - 1; i >= 0; i--) { if (hist[i].t <= target) { m = hist[i]; break; } }
   if (!m && now - T0 < delayMs() + 1500) m = hist[0] || null; // recién abierta la página: se muestra lo último que hay hasta llenar el retraso
-  if (m && m.status === 'final') { if (!finalSince) finalSince = now; if (now - finalSince > HOLD_MS) { m = null; finalSince = 0; afterHold(); } } else finalSince = 0;
+  if (m && m.status === 'final') { if (!finalSince) finalSince = now; if (now - finalSince > holdMs()) { m = null; finalSince = 0; afterHold(); } } else finalSince = 0;
   if (!m) m = nextM; // sin partido en vivo ni recién terminado: datos del próximo partido
   $('bar').hidden = !m;
   const wait = !!m && m.status === 'scheduled', fin = !!m && m.status === 'final';
