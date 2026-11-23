@@ -17,7 +17,7 @@
   body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
 
   /* Escenario 16:9 que ocupa toda la ventana; todo lo de adentro se mide en cqw (porcentaje del ancho del video) */
-  .stage { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; container-type: inline-size; overflow: hidden; }
+  .stage { position: relative; width: min(100vw, calc(100vh * 16 / 9)); aspect-ratio: 16 / 9; background: #000; container-type: inline-size; overflow: hidden; --bf: max(11px, 1.5cqw); }
   @supports (height: 100dvh) { .stage { width: min(100vw, calc(100dvh * 16 / 9)); } }
   .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
   .tap { position: absolute; inset: 0; z-index: 2; }
@@ -47,25 +47,25 @@
   .chip.wait i { background: #c9a84c; animation: none; }
   .chip.fin i { background: #8b93a3; animation: none; }
 
-  /* Barra inferior estilo transmisión: negro, blanco y dorado (colores de la academia) */
-  .bar { position: absolute; z-index: 3; left: 2cqw; right: 2cqw; bottom: 2cqw; display: grid; grid-template-columns: 12.5cqw 1fr auto; color: #fff; pointer-events: none;
-         background: rgba(10,10,10,.93); border-top: .3cqw solid #c9a84c; box-shadow: 0 .4cqw 1.2cqw rgba(0,0,0,.5); }
+  /* Barra inferior estilo transmisión (ESPN): centrada, ~60 % del ancho del video; todo escala con --bf (nunca menos de 11 px, para que se lea en el celular) */
+  .bar { position: absolute; z-index: 3; left: 50%; transform: translateX(-50%); bottom: 2.2cqw; width: min(40em, 96cqw); font-size: var(--bf); display: grid; grid-template-columns: 4.7em 1fr auto; color: #fff; pointer-events: none;
+         background: rgba(10,10,10,.93); border-top: .1em solid #c9a84c; box-shadow: 0 .3em .8em rgba(0,0,0,.5); }
   .bar[hidden] { display: none; }
   .lo { grid-row: 1 / 3; background: #000; display: flex; align-items: center; justify-content: center; }
-  .lo span { background: #fff; color: #111; border-radius: 99px; padding: .7cqw 1.4cqw; font-weight: 800; font-size: 1.7cqw; letter-spacing: .1em; white-space: nowrap; }
-  .r1 { grid-column: 2; display: flex; align-items: center; gap: 1.6cqw; padding: 1.1cqw 2cqw; min-width: 0; font-weight: 700; font-size: 2.3cqw; letter-spacing: .03em; text-transform: uppercase; }
-  .tm { flex: 1; display: flex; align-items: center; gap: 1.1cqw; min-width: 0; }
+  .lo span { background: #fff; color: #111; border-radius: 99px; padding: .5em .95em; font-weight: 800; font-size: .7em; letter-spacing: .1em; white-space: nowrap; }
+  .r1 { grid-column: 2; display: flex; align-items: center; gap: .6em; padding: .3em .75em; min-width: 0; font-weight: 700; font-size: 1em; letter-spacing: .03em; text-transform: uppercase; }
+  .tm { flex: 1; display: flex; align-items: center; gap: .5em; min-width: 0; }
   .tm .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .k { width: 1.4cqw; height: 1.4cqw; border-radius: 50%; border: .22cqw solid #fff; flex: none; }
-  .sc { font-family: 'Bebas Neue', Inter, sans-serif; font-weight: 400; font-size: 3.6cqw; line-height: 1; font-variant-numeric: tabular-nums; min-width: 3cqw; text-align: right; }
+  .k { width: .55em; height: .55em; border-radius: 50%; border: .13em solid #fff; flex: none; }
+  .sc { font-family: 'Bebas Neue', Inter, sans-serif; font-weight: 400; font-size: 1.5em; line-height: 1; font-variant-numeric: tabular-nums; min-width: 1.1em; text-align: right; }
   .sep { color: #5d5d5d; font-weight: 400; }
-  .pill { grid-column: 3; grid-row: 1; align-self: center; margin: 0 2cqw; background: #fff; color: #111; border-radius: 99px; padding: .8cqw 2cqw; font-weight: 800; font-size: 2.3cqw; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pill { grid-column: 3; grid-row: 1; align-self: center; margin: 0 .7em; background: #fff; color: #111; border-radius: 99px; padding: .25em .75em; font-weight: 800; font-size: .95em; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .pill.low, .pill.wait { background: #c9a84c; }
-  .r2 { grid-column: 2 / 4; display: flex; justify-content: space-between; align-items: center; gap: 2cqw; padding: .8cqw 2cqw; background: #1b1b1b; font-weight: 500; font-size: 1.6cqw; letter-spacing: .1em; text-transform: uppercase; color: #bdbdbd; }
-  .r2.gold { background: #c9a84c; color: #111; font-weight: 800; font-size: 1.9cqw; letter-spacing: .06em; }
+  .r2 { grid-column: 2 / 4; display: flex; justify-content: space-between; align-items: center; gap: 1.4em; padding: .3em .75em; background: #1b1b1b; font-weight: 500; font-size: .66em; letter-spacing: .1em; text-transform: uppercase; color: #bdbdbd; }
+  .r2.gold { background: #c9a84c; color: #111; font-weight: 800; font-size: .8em; letter-spacing: .06em; }
 
   /* Alineaciones: lista de jugadores que sube mientras se espera el partido (semitransparente para dejar ver el video) */
-  .roster { position: absolute; z-index: 3; left: 12cqw; right: 12cqw; top: 11cqw; bottom: 13cqw; display: grid; grid-template-rows: auto 1fr; pointer-events: none; }
+  .roster { position: absolute; z-index: 3; left: 12cqw; right: 12cqw; top: 11cqw; bottom: calc(var(--bf) * 3.6 + 3.4cqw); display: grid; grid-template-rows: auto 1fr; pointer-events: none; }
   .roster[hidden] { display: none; }
   .rs-title { text-align: center; font-weight: 800; letter-spacing: .18em; font-size: 1.8cqw; color: rgba(201,168,76,.9); text-shadow: 0 .2cqw .6cqw #000; padding-bottom: .8cqw; }
   .rs-view { position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(transparent, #000 10%, #000 90%, transparent); mask-image: linear-gradient(transparent, #000 10%, #000 90%, transparent); }
@@ -80,7 +80,7 @@
   /* Controles */
   .snd { position: absolute; z-index: 4; left: 50%; top: 2cqw; transform: translateX(-50%); background: rgba(0,0,0,.72); border: 1px solid rgba(255,255,255,.35); color: #fff; font: inherit; font-weight: 700; font-size: 1.9cqw; border-radius: 99px; padding: .9cqw 2.4cqw; cursor: pointer; }
   .snd[hidden] { display: none; }
-  .fs { position: absolute; z-index: 4; left: 2cqw; bottom: 13cqw; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.3); color: #fff; font: inherit; font-size: 1.6cqw; border-radius: 6px; padding: .6cqw 1.2cqw; cursor: pointer; opacity: 0; transition: opacity .3s; }
+  .fs { position: absolute; z-index: 4; left: 2cqw; bottom: calc(var(--bf) * 3.6 + 3.4cqw); background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.3); color: #fff; font: inherit; font-size: 1.6cqw; border-radius: 6px; padding: .6cqw 1.2cqw; cursor: pointer; opacity: 0; transition: opacity .3s; }
   .stage.ctl .fs { opacity: 1; }
   .fs[hidden] { display: none; }
   .hint { display: none; color: #8b93a3; font-size: 14px; text-align: center; padding: 12px; }
@@ -204,6 +204,8 @@ const catName = c => ((T.state().config.categories || []).find(x => x.id === c) 
 /* ---------- datos del partido, guardados con la hora de llegada para mostrarlos con retraso ---------- */
 let hist = [], lastSig = '', nextM = null;
 const T0 = Date.now();
+/* En pantalla se muestra el nombre sin la palabra "Team" (Team Rayo → Rayo) */
+const dn = n => String(n || '').replace(/^\s*team\s+/i, '').trim() || String(n || '');
 const sameDay = iso => !!iso && new Date(iso).toDateString() === new Date().toDateString();
 function model(g) {
   const R = T.state().config.rules, h = teamOf(g.home), a = teamOf(g.away), per = g.clock.period;
@@ -212,14 +214,14 @@ function model(g) {
   const wait = g.status === 'scheduled';
   const side = s => {
     const t = s === 'h' ? h : a;
-    return { name: t.name, color: (g.kit && g.kit[s]) || t.color || '#c9a84c', logo: t.logo || '', ini: UI.initials(t.name || '?'), score: g.score[s],
+    return { name: dn(t.name), color: (g.kit && g.kit[s]) || t.color || '#c9a84c', logo: t.logo || '', ini: UI.initials(t.name || '?'), score: g.score[s],
       coach: wait ? T.coachList(t).join(', ') : '', // plantilla solo mientras se espera (no se repite en cada estado del partido)
       players: wait ? (t.players || []).slice().sort((x, y) => String(x.name).localeCompare(String(y.name), 'es')).map(p => ({ name: p.name, cap: !!p.captain })) : [] };
   };
   return {
     id: g.id, status: g.status, cat: catName(g.cat), dateTxt: g.date ? (sameDay(g.date) ? 'hoy' : UI.fmtDate(g.date)) + ' · ' + UI.fmtTime(g.date) : '', h: side('h'), a: side('a'), period: per, plabel: T.periodLabel(per),
     rem: g.clock.remainingMs, run: !!g.clock.running, st: g.clock.startedAt, fouls: { h: T.teamFouls(g, 'h', per), a: T.teamFouls(g, 'a', per) }, bonus: R.bonusFouls,
-    last: ev ? { id: ev.id, pts: ACTIONS[ev.type].pts, team: ev.team, name: p ? p.name : '', tname: ev.team === 'h' ? h.name : a.name } : null,
+    last: ev ? { id: ev.id, pts: ACTIONS[ev.type].pts, team: ev.team, name: p ? p.name : '', tname: dn(ev.team === 'h' ? h.name : a.name) } : null,
     t: Date.now()
   };
 }
