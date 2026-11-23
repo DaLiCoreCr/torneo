@@ -147,9 +147,9 @@ export function connect(cfg, host, opts) {
   const watchers = new Set();
   function subWatcher(w) {
     let srv = false;
-    w.un = onSnapshot(doc(db, 'games', w.id), snap => {
+    w.un = onSnapshot(doc(db, 'games', w.id), { includeMetadataChanges: true }, snap => {
       if (snap.metadata.fromCache && navigator.onLine && !srv) return; // la copia guardada puede estar vieja: se espera al servidor
-      if (!snap.metadata.fromCache) { srv = true; usage.reads(1); }
+      if (!snap.metadata.fromCache) { if (!srv) usage.reads(1); srv = true; } // con includeMetadataChanges llega un aviso cuando el servidor confirma aunque el partido no haya cambiado
       w.cb(snap.exists() ? snap.data() : null);
     }, err => { console.warn('partido', err.code || err); retry(); });
   }
