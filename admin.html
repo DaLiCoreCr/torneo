@@ -260,8 +260,8 @@ function queueView(S, st) {
       ${rows || '<div class="empty" style="margin:0 0 8px">La cola está vacía (modo automático).</div>'}
       <div class="row" style="margin-top:10px;align-items:center"><select class="inp" id="q-sel" style="flex:1;min-width:220px"><option value="">Elige un partido para agregar…</option>${avail.map(g => `<option value="${esc(g.id)}">${gname(g)}</option>`).join('')}</select>
         <button class="btn gold" data-act="qadd">Agregar</button><button class="btn" data-act="qaddall" ${avail.length ? '' : 'disabled'}>Agregar todos los pendientes</button><button class="btn danger" data-act="qclear" ${q.length ? '' : 'disabled'}>Vaciar cola</button></div></div>
-    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Plantillas (jugadores)</h3>
-    <div class="card"><p class="muted" style="margin:0 0 8px">Hoopz Live toma los equipos y jugadores del archivo <b>plantillas.json</b> publicado junto al sitio, sin consultar la base de datos. Cada vez que cambien jugadores, números, capitanes o equipos, descarga el archivo nuevo, reemplaza el de la carpeta del proyecto y publica.</p>
+    <h3 class="gold" style="margin:18px 0 8px;font-size:22px">Alineaciones (jugadores)</h3>
+    <div class="card"><p class="muted" style="margin:0 0 8px">Hoopz Live toma los equipos y las alineaciones (jugadores) del archivo <b>plantillas.json</b> publicado junto al sitio, sin consultar la base de datos. Cada vez que cambien jugadores, números, capitanes o equipos, descarga el archivo nuevo, reemplaza el de la carpeta del proyecto y publica.</p>
       <p id="plstat" style="margin:0 0 10px">Comprobando…</p><div class="row"><button class="btn gold" data-act="dlplant">Descargar plantillas.json</button></div></div>`;
 }
 
