@@ -29,7 +29,7 @@ const { esc } = T;
 const app = document.getElementById('app');
 let tab = 'teams', cat = UI.getCat(false), openTeam = null, editPl = null;
 
-const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['rules', 'Reglas'], ['stream', 'Transmisión'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
+const TABS = [['teams', 'Equipos'], ['pool', 'Jugadores y sorteo'], ['games', 'Partidos'], ['draw', 'Sorteo de partidos'], ['podio', 'Podio'], ['awards', 'Premiación'], ['rules', 'Reglas'], ['stream', 'Transmisión'], ['monitor', 'Monitoreo'], ['data', 'Datos']];
 const field = (label, html) => `<div><label class="lbl">${label}</label>${html}</div>`;
 const val = id => document.getElementById(id).value.trim();
 function confirmDanger(msg) {
@@ -201,6 +201,22 @@ function podioView(S) {
     <iframe title="Muestra del podio" src="podio.html?demo=1&cat=${esc(cat)}" style="width:100%;height:640px;border:1px solid var(--line);border-radius:var(--r);background:#0a0a0a"></iframe>`;
 }
 
+/* Premiación manual (reglamento): jugador/jugadora más valioso y más disciplinado. Se guarda en config.awards = { show, byCat: { cat: { mvpM, mvpF, discM, discF } } }.
+   El campeón, el subcampeón y los máximos anotadores no se registran: salen solos de los partidos. */
+const AWARDS = [['mvpM', 'Jugador más valioso'], ['mvpF', 'Jugadora más valiosa'], ['discM', 'Jugador más disciplinado'], ['discF', 'Jugadora más disciplinada']];
+function awardsView(S) {
+  const aw = S.config.awards || {}, cur = (aw.byCat || {})[cat] || {};
+  const teams = S.teams.filter(t => t.cat === cat).sort((a, b) => a.name.localeCompare(b.name, 'es', { numeric: true }));
+  const opts = pid => '<option value="">Por definir</option>' + teams.map(t => `<optgroup label="${esc(t.name)}">${t.players.slice().sort((a, b) => a.name.localeCompare(b.name, 'es')).map(p => `<option value="${esc(p.id)}" ${p.id === pid ? 'selected' : ''}>${p.num != null ? '#' + p.num + ' ' : ''}${esc(p.name)}</option>`).join('')}</optgroup>`).join('');
+  return `${catBar(S)}
+    <div class="card" style="margin:12px 0"><h3 class="gold" style="font-size:22px">Premios de ${esc(UI.catName(S, cat))}</h3>
+      <p class="muted">Elige al ganador de cada premio. El <b>campeón</b>, el <b>subcampeón</b> y los <b>máximos anotadores</b> salen solos de los partidos y no se registran aquí.</p>
+      <div class="frm">${AWARDS.map(([k, label]) => field(label, `<select class="inp" id="a-${k}">${opts(cur[k])}</select>`)).join('')}
+        ${field('Mostrar los premios en el Salón de la fama (todas las categorías)', `<select class="inp" id="a-show"><option value="0" ${aw.show ? '' : 'selected'}>No: se ven como "Por definir"</option><option value="1" ${aw.show ? 'selected' : ''}>Sí: mostrar los ganadores</option></select>`)}</div>
+      <div class="row" style="margin-top:12px"><button class="btn gold" data-act="saveawards">Guardar premiación</button><a class="btn" href="salon.html?cat=${esc(cat)}" target="_blank">Ver el Salón de la fama ↗</a></div>
+      <p class="note">Guarda cada categoría por separado: elige la categoría arriba, marca los ganadores y toca Guardar. Mientras el selector de mostrar esté en "No", el público no ve ningún ganador, así que puedes dejarlo listo antes de la ceremonia.</p></div>`;
+}
+
 function rulesView(S) {
   const R = S.config.rules;
   const num = (k, label) => field(label, `<input class="inp" type="number" min="0" id="r-${k}" value="${R[k] ?? (k === 'onCourt' ? 5 : k === 'forfeitWin' ? 20 : k === 'forfeitLoss' ? 0 : '')}">`);
@@ -336,7 +352,7 @@ function render() {
   if (tab === 'monitor') startUsage(); else stopUsage();
   app.innerHTML = `<h1 class="page-title">Administración del <b>torneo</b></h1>
     <div class="tabs">${TABS.map(([k, l]) => `<button data-act="tab" data-id="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
-    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'rules' ? rulesView(S) : tab === 'stream' ? streamView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
+    ${tab === 'teams' ? teamsView(S) : tab === 'pool' ? poolView(S) : tab === 'games' ? gamesView(S) : tab === 'draw' ? drawView(S) : tab === 'podio' ? podioView(S) : tab === 'awards' ? awardsView(S) : tab === 'rules' ? rulesView(S) : tab === 'stream' ? streamView(S) : tab === 'monitor' ? monitorView() : dataView()}`;
   if (tab === 'stream') checkPlantillas();
 }
 
@@ -487,6 +503,16 @@ app.addEventListener('click', e => {
         s.games.filter(g => g.status === 'scheduled').forEach(g => { g.clock.remainingMs = T.periodLen(1, g.cat); });
       });
       UI.toast('Reglas guardadas'); break;
+    }
+    case 'saveawards': {
+      mt(s => {
+        const a = s.config.awards = Object.assign({ byCat: {} }, s.config.awards);
+        a.byCat = Object.assign({}, a.byCat);
+        a.byCat[cat] = {};
+        AWARDS.forEach(([k]) => { a.byCat[cat][k] = val('a-' + k); });
+        a.show = val('a-show') === '1';
+      });
+      UI.toast('Premiación guardada'); break;
     }
     case 'savestream': {
       const url = val('s-url');

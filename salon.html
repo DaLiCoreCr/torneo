@@ -176,20 +176,24 @@ function compute(S, c) {
 }
 
 /* Premiación según el reglamento: 1.º y 2.º lugar y máximos anotadores salen de los partidos; el resto lo decide la academia. */
-function premiosHtml(S, d) {
+function premiosHtml(S, d, c) {
   const pend = '<p class="hf-sub">Por definir</p>';
+  const aw = S.config.awards || {}, won = (aw.byCat || {})[c] || {};
   const place = (title, sub, id) => {
     const t = id && UI.team(S, id);
     return `<article class="hf-card"><header><small>${esc(sub)}</small><h3>${esc(title)}</h3></header>${t ? `<div class="hf-1">${UI.badge(t)}<div class="hf-who"><b>${esc(t.name)}</b></div></div>` : pend}</article>`;
   };
-  const manual = (title, sub) => `<article class="hf-card"><header><small>${esc(sub)}</small><h3>${esc(title)}</h3></header>${pend}</article>`;
+  const manual = (title, sub, key) => {
+    const w = key && aw.show && won[key] ? T.playerIndex(S)[won[key]] : null;
+    return `<article class="hf-card"><header><small>${esc(sub)}</small><h3>${esc(title)}</h3></header>${w ? `<div class="hf-1">${UI.badge(w.team)}<div class="hf-who"><b>${esc(w.p.name)}</b><span>#${esc(w.p.num)} · ${esc(w.team.name)}</span></div></div>` : pend}</article>`;
+  };
   const scorer = d.leaders.find(e => e.L.t === 'Máximo anotador');
   const scorers = scorer ? card('Máximos anotadores', 'Premio · el que más puntos suma', 'puntos', leaderItems(S, scorer), false)
     : manual('Máximos anotadores', 'Premio · el que más puntos suma');
   return `<section class="hf-sec"><h2><b>Premiación</b> del torneo</h2><p class="lead-p">Los premios que entrega la academia según el <a href="reglamento.html">reglamento</a>.</p><div class="hf-grid">
     ${place('Campeón', 'Primer lugar', d.champ && d.champ.c)}${place('Subcampeón', 'Segundo lugar', d.champ && d.champ.r)}${scorers}
-    ${manual('Jugador más valioso', 'Premio MVP')}${manual('Jugadora más valiosa', 'Premio MVP')}
-    ${manual('Jugador más disciplinado', 'Premio especial')}${manual('Jugadora más disciplinada', 'Premio especial')}</div></section>`;
+    ${manual('Jugador más valioso', 'Premio MVP', 'mvpM')}${manual('Jugadora más valiosa', 'Premio MVP', 'mvpF')}
+    ${manual('Jugador más disciplinado', 'Premio especial', 'discM')}${manual('Jugadora más disciplinada', 'Premio especial', 'discF')}</div></section>`;
 }
 
 const teamOf = (S, id) => UI.team(S, id);
@@ -234,11 +238,11 @@ function siteView(S, c) {
   const hero = `<div class="hf-hero"><small>Torneo interno Hoopz · ${esc(UI.catName(S, c))}</small><h1>Salón de la <b>fama</b></h1><div class="hf-rule"></div>
     <p>Los mejores de la categoría, partido a partido. ${d.finals ? `Después de <b>${d.finals}</b> ${d.finals === 1 ? 'partido jugado' : 'partidos jugados'}, estos son los que están dejando huella.` : 'Todo está por escribirse.'}</p></div>${tools}`;
   const banner = demo ? '<div class="chip soft" style="display:table;margin:8px auto;font-size:13px;padding:6px 12px">MUESTRA · datos de ejemplo</div>' : '';
-  if (!d.finals) return hero + banner + empty(S, c) + premiosHtml(S, d);
+  if (!d.finals) return hero + banner + empty(S, c) + premiosHtml(S, d, c);
   const leaders = d.leaders.map(e => card(e.L.t, e.L.s, e.L.unit, leaderItems(S, e), false, e.L.note)).join('');
   const recs = d.recs.map(R => recCard(S, R)).join('') + (d.bigWin ? winCard(S, d.bigWin) : '');
   const teams = d.teams.map(e => card(e.t, e.s, e.unit, teamItems(e), false)).join('');
-  return hero + banner + premiosHtml(S, d) +
+  return hero + banner + premiosHtml(S, d, c) +
     `<section class="hf-sec"><h2>Líderes del <b>torneo</b></h2><p class="lead-p">Los mejores en cada categoría de juego, con el total acumulado.</p><div class="hf-grid">${leaders}</div></section>` +
     (recs ? `<section class="hf-sec"><h2>Récords de un <b>partido</b></h2><p class="lead-p">Las mejores actuaciones individuales del torneo.</p><div class="hf-grid">${recs}</div></section>` : '') +
     (teams ? `<section class="hf-sec"><h2>Equipos <b>destacados</b></h2><p class="lead-p">Los que mejor están jugando como grupo.</p><div class="hf-grid">${teams}</div></section>` : '') +
