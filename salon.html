@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=66">
+<link rel="stylesheet" href="css/styles.css?v=67">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -92,10 +92,10 @@
 </head>
 <body>
 <main><div class="wrap pres" id="wrap"><div id="app"></div></div></main>
-<script src="js/firebase-config.js?v=66"></script>
-<script src="js/core.js?v=66"></script>
-<script src="js/seed.js?v=66"></script>
-<script src="js/ui.js?v=66"></script>
+<script src="js/firebase-config.js?v=67"></script>
+<script src="js/core.js?v=67"></script>
+<script src="js/seed.js?v=67"></script>
+<script src="js/ui.js?v=67"></script>
 <script>
 /* Salón de la fama: lo mejor de cada categoría (solo cosas positivas). Todo se calcula con los partidos finalizados; no escribe nada.
    ?tv=1 → vista de pantalla grande con rotación automática · ?demo=1 → muestra con datos de ejemplo (en memoria) */
@@ -170,7 +170,26 @@ function compute(S, c) {
     const streak = arr.filter(x => x.best >= 2).map(x => ({ x, v: x.best })).sort((a, b) => b.v - a.v);
     if (streak.length) teams.push({ t: 'Racha ganadora', s: 'Más victorias seguidas', unit: 'victorias', list: rankOf(streak, 'v').slice(0, 3), sub: x => `${x.best} seguidas en ${x.gp} PJ` });
   }
-  return { finals: finals.length, players: rows.length, leaders, recs, teams, bigWin };
+  const fin = finals.find(g => g.stage === 'final' && T.gameWinner(g));
+  const champ = fin ? { c: T.gameWinner(fin), r: T.gameLoser(fin) } : null;
+  return { finals: finals.length, players: rows.length, leaders, recs, teams, bigWin, champ };
+}
+
+/* Premiación según el reglamento: 1.º y 2.º lugar y máximos anotadores salen de los partidos; el resto lo decide la academia. */
+function premiosHtml(S, d) {
+  const pend = '<p class="hf-sub">Por definir</p>';
+  const place = (title, sub, id) => {
+    const t = id && UI.team(S, id);
+    return `<article class="hf-card"><header><small>${esc(sub)}</small><h3>${esc(title)}</h3></header>${t ? `<div class="hf-1">${UI.badge(t)}<div class="hf-who"><b>${esc(t.name)}</b></div></div>` : pend}</article>`;
+  };
+  const manual = (title, sub) => `<article class="hf-card"><header><small>${esc(sub)}</small><h3>${esc(title)}</h3></header>${pend}</article>`;
+  const scorer = d.leaders.find(e => e.L.t === 'Máximo anotador');
+  const scorers = scorer ? card('Máximos anotadores', 'Premio · el que más puntos suma', 'puntos', leaderItems(S, scorer), false)
+    : manual('Máximos anotadores', 'Premio · el que más puntos suma');
+  return `<section class="hf-sec"><h2><b>Premiación</b> del torneo</h2><p class="lead-p">Los premios que entrega la academia según el <a href="reglamento.html">reglamento</a>.</p><div class="hf-grid">
+    ${place('Campeón', 'Primer lugar', d.champ && d.champ.c)}${place('Subcampeón', 'Segundo lugar', d.champ && d.champ.r)}${scorers}
+    ${manual('Jugador más valioso', 'Premio MVP')}${manual('Jugadora más valiosa', 'Premio MVP')}
+    ${manual('Jugador más disciplinado', 'Premio especial')}${manual('Jugadora más disciplinada', 'Premio especial')}</div></section>`;
 }
 
 const teamOf = (S, id) => UI.team(S, id);
@@ -215,11 +234,11 @@ function siteView(S, c) {
   const hero = `<div class="hf-hero"><small>Torneo interno Hoopz · ${esc(UI.catName(S, c))}</small><h1>Salón de la <b>fama</b></h1><div class="hf-rule"></div>
     <p>Los mejores de la categoría, partido a partido. ${d.finals ? `Después de <b>${d.finals}</b> ${d.finals === 1 ? 'partido jugado' : 'partidos jugados'}, estos son los que están dejando huella.` : 'Todo está por escribirse.'}</p></div>${tools}`;
   const banner = demo ? '<div class="chip soft" style="display:table;margin:8px auto;font-size:13px;padding:6px 12px">MUESTRA · datos de ejemplo</div>' : '';
-  if (!d.finals) return hero + banner + empty(S, c);
+  if (!d.finals) return hero + banner + empty(S, c) + premiosHtml(S, d);
   const leaders = d.leaders.map(e => card(e.L.t, e.L.s, e.L.unit, leaderItems(S, e), false, e.L.note)).join('');
   const recs = d.recs.map(R => recCard(S, R)).join('') + (d.bigWin ? winCard(S, d.bigWin) : '');
   const teams = d.teams.map(e => card(e.t, e.s, e.unit, teamItems(e), false)).join('');
-  return hero + banner +
+  return hero + banner + premiosHtml(S, d) +
     `<section class="hf-sec"><h2>Líderes del <b>torneo</b></h2><p class="lead-p">Los mejores en cada categoría de juego, con el total acumulado.</p><div class="hf-grid">${leaders}</div></section>` +
     (recs ? `<section class="hf-sec"><h2>Récords de un <b>partido</b></h2><p class="lead-p">Las mejores actuaciones individuales del torneo.</p><div class="hf-grid">${recs}</div></section>` : '') +
     (teams ? `<section class="hf-sec"><h2>Equipos <b>destacados</b></h2><p class="lead-p">Los que mejor están jugando como grupo.</p><div class="hf-grid">${teams}</div></section>` : '') +
