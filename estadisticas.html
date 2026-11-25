@@ -20,7 +20,6 @@
 <main><div class="wrap page">
   <h1 class="page-title">Estadísticas del <b>torneo</b></h1>
   <div class="pills" id="cats"></div>
-  <div style="margin:10px 0"><span class="seg" id="mode"><button data-m="avg" class="on">Promedio</button><button data-m="tot">Total</button></span></div>
   <div id="app"></div>
 </div></main>
 <script src="js/firebase-config.js?v=66"></script>
@@ -32,7 +31,8 @@ T.load({ live: false }).then(() => {
 UI.layout('est');
 const { esc } = T;
 let cat = UI.catPicker(document.getElementById('cats'), { all: false }, c => { cat = c; render(); });
-let mode = 'avg', sortKey = 'pts';
+const mode = 'tot'; // solo totales (los padres no entienden promedios)
+let sortKey = 'pts';
 const app = document.getElementById('app');
 
 const LEADERS = [['pts', 'Puntos'], ['p3m', 'Triples'], ['reb', 'Rebotes'], ['ast', 'Asistencias'], ['stl', 'Robos'], ['blk', 'Tapones']];
@@ -46,12 +46,6 @@ const fmt = v => (mode === 'avg' ? v.toFixed(1) : String(v));
 const made = (r, k) => (k === 'p1' || k === 'p2' || k === 'p3' ? r[k + 'm'] : r[k]);
 const att = (r, k) => r[k + 'a'];
 
-document.getElementById('mode').addEventListener('click', e => {
-  const b = e.target.closest('[data-m]'); if (!b) return;
-  mode = b.dataset.m;
-  document.querySelectorAll('#mode button').forEach(x => x.classList.toggle('on', x === b));
-  render();
-});
 app.addEventListener('click', e => {
   const th = e.target.closest('[data-k]'); if (!th) return;
   sortKey = th.dataset.k; render();
@@ -79,7 +73,7 @@ function render() {
   app.innerHTML = `<div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:8px">${leaders}</div>
     <div class="sec"><div class="sec-h"><h2>Todos los <b>jugadores</b></h2></div>
     <div class="tbl-wrap"><table class="tbl"><thead><tr><th class="l">Jugador</th><th>PJ</th>${head}</tr></thead><tbody>${body}</tbody></table></div>
-    <p class="note">${mode === 'avg' ? 'Promedios por partido.' : 'Totales; TL, 2P y 3P como anotados/intentados.'} Toca una columna para ordenar. PJ = partidos jugados, TL = tiros libres, ROB = robos, TAP = tapones, PER = pérdidas, FC = faltas cometidas, FR = faltas recibidas (solo en captura Completa), MIN = minutos jugados y +/- = diferencia de puntos con el jugador en cancha (solo en partidos donde la mesa registró los cambios).</p></div>`;
+    <p class="note">Totales acumulados; TL, 2P y 3P como anotados/intentados. Toca una columna para ordenar. PJ = partidos jugados, TL = tiros libres, ROB = robos, TAP = tapones, PER = pérdidas, FC = faltas cometidas, FR = faltas recibidas (solo en captura Completa), MIN = minutos jugados y +/- = diferencia de puntos con el jugador en cancha (solo en partidos donde la mesa registró los cambios).</p></div>`;
 }
 render();
 UI.autoRefresh(render);
