@@ -72,7 +72,7 @@ function renderDetail(S) {
   const playerCard = !cur ? '' : `<div class="eq-card"><h3>${cur.num != null ? '#' + cur.num + ' ' : ''}${esc(cur.name)}${UI.capMark(cur)}</h3>
     <p class="muted" style="margin:2px 0 12px">${esc(t.name)}${rs ? ` · ${rs.gp} partido${rs.gp === 1 ? '' : 's'} jugado${rs.gp === 1 ? '' : 's'}` : ''}</p>
     ${rs ? `<div class="eq-tiles">${[['pts', 'PTS'], ['reb', 'REB'], ['ast', 'AST'], ['stl', 'ROB'], ['blk', 'TAP']].map(([k, l]) => `<div><b>${avg(rs, k)}</b><span>${l}</span></div>`).join('')}</div>
-      <p class="note" style="margin-top:10px">Totales acumulados del torneo. Triples ${rs.p3m}/${rs.p3a} · tiros libres ${rs.p1m}/${rs.p1a}.</p>`
+      <p class="note" style="margin-top:10px">Totales acumulados del torneo. Tiros de 2 ${rs.p2m}/${rs.p2a} · triples ${rs.p3m}/${rs.p3a} · tiros libres ${rs.p1m}/${rs.p1a}.</p>`
       : '<div class="empty" style="padding:14px">Aún no tiene partidos jugados, por eso todavía no hay estadísticas.</div>'}</div>`;
 
   const rows = players.map(p => {
@@ -83,7 +83,7 @@ function renderDetail(S) {
   $('det').innerHTML = `<button class="eq-back" id="back">‹ Volver a la lista</button>
     <div class="eq-head" style="--tc:${esc(t.color || '#c9a84c')}">${UI.badge(t)}<div><h2>${esc(t.name)}</h2>
       <p class="muted">${coaches.length ? (coaches.length > 1 ? 'Coaches: ' : 'Coach: ') + '<b style="color:var(--text)">' + esc(coaches.join(', ')) + '</b>' : 'Coach por definir'}</p></div></div>
-    ${st && st.pj ? `<div class="eq-tiles sm"><div><b>${st.pj}</b><span>PJ</span></div><div><b>${st.g}</b><span>Ganados</span></div><div><b>${st.p}</b><span>Sin ganar</span></div><div><b>${st.pts}</b><span>Puntos</span></div></div>` : ''}
+    ${st && st.pj ? `<div class="eq-tiles sm"><div><b>${st.pj}</b><span>PJ</span></div><div><b>${st.g}</b><span>Ganados</span></div><div><b>${st.p}</b><span>Sin ganar</span></div><div><b>${st.pts}</b><span>Pts. de tabla</span></div></div>` : ''}
     ${playerCard}
     <div class="sec" style="margin-top:18px"><div class="sec-h"><h2>Jugadores del <b>equipo</b></h2></div>
       ${players.length ? `<div class="tbl-wrap"><table class="tbl eq-tbl"><thead><tr><th class="l">Jugador</th><th>PJ</th><th>PTS</th><th>REB</th><th>AST</th><th>ROB</th><th>TAP</th></tr></thead><tbody>${rows}</tbody></table></div>
